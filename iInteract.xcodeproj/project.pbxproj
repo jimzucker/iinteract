@@ -16,6 +16,10 @@
 		28C286E10D94DF7D0034E888 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28C286E00D94DF7D0034E888 /* RootViewController.m */; };
 		28F335F11007B36200424DE2 /* RootViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 28F335F01007B36200424DE2 /* RootViewController.xib */; };
 		6D828C9E1BE4302F006DE136 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 6D828C9D1BE4302F006DE136 /* Default-568h@2x.png */; };
+		6DDCC0401BF70A050050D1DD /* iInteract152.png in Resources */ = {isa = PBXBuildFile; fileRef = 6DDCC03F1BF70A050050D1DD /* iInteract152.png */; };
+		6DDCC0441BF70A250050D1DD /* iInteract76.png in Resources */ = {isa = PBXBuildFile; fileRef = 6DDCC0411BF70A250050D1DD /* iInteract76.png */; };
+		6DDCC0451BF70A250050D1DD /* iInteract120.png in Resources */ = {isa = PBXBuildFile; fileRef = 6DDCC0421BF70A250050D1DD /* iInteract120.png */; };
+		6DDCC0461BF70A250050D1DD /* iInteract72.png in Resources */ = {isa = PBXBuildFile; fileRef = 6DDCC0431BF70A250050D1DD /* iInteract72.png */; };
 		9E0E665D11694F0A003A650C /* boy_soda.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9E0E665C11694F0A003A650C /* boy_soda.mp3 */; };
 		9E0E666011694F33003A650C /* girl_chips.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9E0E665F11694F33003A650C /* girl_chips.mp3 */; };
 		9E13273E11695C1A00732629 /* girl_book.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9E13273D11695C1A00732629 /* girl_book.mp3 */; };
@@ -141,6 +145,10 @@
 		28F335F01007B36200424DE2 /* RootViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = RootViewController.xib; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		6D828C9D1BE4302F006DE136 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
+		6DDCC03F1BF70A050050D1DD /* iInteract152.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iInteract152.png; sourceTree = "<group>"; };
+		6DDCC0411BF70A250050D1DD /* iInteract76.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iInteract76.png; sourceTree = "<group>"; };
+		6DDCC0421BF70A250050D1DD /* iInteract120.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iInteract120.png; sourceTree = "<group>"; };
+		6DDCC0431BF70A250050D1DD /* iInteract72.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iInteract72.png; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* iInteract-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "iInteract-Info.plist"; plistStructureDefinitionIdentifier = "com.apple.xcode.plist.structure-definition.iphone.info-plist"; sourceTree = "<group>"; };
 		9E0E665C11694F0A003A650C /* boy_soda.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = boy_soda.mp3; sourceTree = "<group>"; };
 		9E0E665F11694F33003A650C /* girl_chips.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = girl_chips.mp3; sourceTree = "<group>"; };
@@ -332,6 +340,10 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				6DDCC0411BF70A250050D1DD /* iInteract76.png */,
+				6DDCC0421BF70A250050D1DD /* iInteract120.png */,
+				6DDCC0431BF70A250050D1DD /* iInteract72.png */,
+				6DDCC03F1BF70A050050D1DD /* iInteract152.png */,
 				9EA1A2CE115E4C740010B739 /* feel */,
 				8D1107310486CEB800E47090 /* iInteract-Info.plist */,
 				9E7548AC118D9E950054BAE8 /* icon.png */,
@@ -603,6 +615,7 @@
 				9EA94116115E8FC900D3CB44 /* bathroom.jpg in Resources */,
 				9EBBBB14115E98F100213029 /* break.jpg in Resources */,
 				9EBBBB19115E996300213029 /* stomach.jpg in Resources */,
+				6DDCC0451BF70A250050D1DD /* iInteract120.png in Resources */,
 				9EBBBB1B115E998300213029 /* pretzel.jpg in Resources */,
 				9EBBBB1F115E99DC00213029 /* headache.jpg in Resources */,
 				9EBBBB26115E9A4700213029 /* cut.jpg in Resources */,
@@ -639,6 +652,7 @@
 				9E635629116039E2003ECFC3 /* girl_tv.mp3 in Resources */,
 				9E63562B116039F9003ECFC3 /* girl_play.mp3 in Resources */,
 				9E63562E11603A6C003ECFC3 /* girl_pretzel.mp3 in Resources */,
+				6DDCC0401BF70A050050D1DD /* iInteract152.png in Resources */,
 				9E63563011603A7F003ECFC3 /* girl_soda.mp3 in Resources */,
 				9E63563411603A86003ECFC3 /* girl_water.mp3 in Resources */,
 				9E63563511603A86003ECFC3 /* girl_juice.mp3 in Resources */,
@@ -667,6 +681,8 @@
 				9EFC7C021163D26500311073 /* boy_tv.mp3 in Resources */,
 				9EFC7C031163D26500311073 /* boy_play.mp3 in Resources */,
 				9EFC7C041163D26500311073 /* boy_book.mp3 in Resources */,
+				6DDCC0441BF70A250050D1DD /* iInteract76.png in Resources */,
+				6DDCC0461BF70A250050D1DD /* iInteract72.png in Resources */,
 				9EFC7C051163D26500311073 /* boy_computer.mp3 in Resources */,
 				9EFC7C061163D26500311073 /* boy_chips.mp3 in Resources */,
 				9EFC7C071163D26500311073 /* boy_cookie.mp3 in Resources */,
