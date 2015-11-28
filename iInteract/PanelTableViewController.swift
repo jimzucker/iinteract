@@ -11,13 +11,18 @@ import UIKit
 class PanelTableViewController: UITableViewController {
 
     // MARK: Properties
+    
+    
     var panels = [Panel]()
     var configurationButton : UIBarButtonItem?
     
     // MARK: Settings Properties
     var voiceEnabled        : Bool      = true
-    var voiceStyle          : String    = "Girl"
+    var voiceStyle          : String    = "girl"
     var enableConfiguration : Bool      = false
+    
+    //dislay splash screen 1 time then disable it by setting a preference, we use an int so we can show newer splash screens, it will be set to the current version # once it shows
+    var displaySplashScreen : String     = ""
     
    private func loadSamplePanels() {
         
@@ -92,6 +97,9 @@ class PanelTableViewController: UITableViewController {
         
         //load sample data
         loadSamplePanels()
+        
+        //show the splash screen if this is a new version
+        showSplashScreen()
         
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
@@ -220,6 +228,7 @@ class PanelTableViewController: UITableViewController {
         voiceEnabled = userDefaults.boolForKey("voice_enabled")
         voiceStyle = userDefaults.stringForKey("voice_style")!
         enableConfiguration = userDefaults.boolForKey("configuration_enabled")
+        displaySplashScreen = userDefaults.stringForKey("displaySplashScreen")!
         
             //show hide the configuration buttons
         if !enableConfiguration {
@@ -235,4 +244,42 @@ class PanelTableViewController: UITableViewController {
         updateSettings()
     }
     
+    // Mark: Splash Screen
+    private func showSplashScreen() {
+        let nsObject: AnyObject? = NSBundle.mainBundle().infoDictionary!["CFBundleShortVersionString"]
+        let appVersion = nsObject as! String
+
+        if displaySplashScreen != appVersion {
+            
+            //display the screen
+            //Create the AlertController
+            let actionSheetController: UIAlertController = UIAlertController(title: "Voice Style"
+                , message: "Select default voice, you can change it any time under settings."
+                , preferredStyle: .Alert)
+            
+            //Create the choices
+            let boyVoice: UIAlertAction = UIAlertAction(title: "Boy", style: .Default) { action -> Void in
+                self.voiceStyle = "boy"
+                let userDefaults = NSUserDefaults.standardUserDefaults()
+                userDefaults.setObject( self.voiceStyle , forKey: "voice_style")
+                userDefaults.synchronize()
+            }
+            actionSheetController.addAction(boyVoice)
+            let girlVoice: UIAlertAction = UIAlertAction(title: "Girl", style: .Default) { action -> Void in
+                self.voiceStyle = "girl"
+                let userDefaults = NSUserDefaults.standardUserDefaults()
+                userDefaults.setObject( self.voiceStyle , forKey: "voice_style")
+                userDefaults.synchronize()
+            }
+            actionSheetController.addAction(girlVoice)
+
+            //Present the AlertController
+            self.presentViewController(actionSheetController, animated: true, completion: nil)
+
+            //Remember not to show it again!
+            let userDefaults = NSUserDefaults.standardUserDefaults()
+            userDefaults.setObject( appVersion , forKey: "displaySplashScreen")
+            userDefaults.synchronize()
+        }
+    }
 }

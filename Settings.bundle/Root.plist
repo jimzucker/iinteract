@@ -35,18 +35,12 @@
 				<string>Boy</string>
 			</array>
 			<key>DefaultValue</key>
-			<integer>0</integer>
+			<string>girl</string>
 			<key>Values</key>
 			<array>
-				<integer>0</integer>
-				<integer>1</integer>
+				<string>girl</string>
+				<string>boy</string>
 			</array>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-			<key>Title</key>
-			<string>Customize Application</string>
 		</dict>
 	</array>
 </dict>

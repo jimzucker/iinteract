@@ -115,7 +115,7 @@ class PanelViewController: UIViewController {
                     }
                     
                         //create the new voice
-                    if self.voiceStyle == "Girl" {
+                    if self.voiceStyle == "girl" {
                         try audioPlayer = AVAudioPlayer(contentsOfURL: panel!.interactions[index!].girlSound!)
                     } else {
                         try audioPlayer = AVAudioPlayer(contentsOfURL: panel!.interactions[index!].boySound!)

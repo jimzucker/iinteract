@@ -52,8 +52,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let userDefaults = NSUserDefaults.standardUserDefaults()
         let appDefaults = [
             "voice_enabled" : "YES"
-            , "voice_style" : "Girl"
+            , "voice_style" : "girl"
             , "configuration_enabled" : "NO"
+            , "displaySplashScreen" : "0.0"
         ]
         userDefaults.registerDefaults(appDefaults)
     }
