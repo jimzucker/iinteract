@@ -18,8 +18,8 @@
                         <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" image="launchImage" translatesAutoresizingMaskIntoConstraints="NO" id="bTs-Mo-lUD">
-                                <rect key="frame" x="139" y="60" width="324" height="540"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launchImage" translatesAutoresizingMaskIntoConstraints="NO" id="bTs-Mo-lUD">
+                                <rect key="frame" x="128" y="28" width="344" height="572"/>
                                 <animations/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="bTs-Mo-lUD" secondAttribute="height" multiplier="3:5" id="H8H-xm-cte"/>
@@ -30,7 +30,7 @@
                         <constraints>
                             <constraint firstItem="bTs-Mo-lUD" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="MAP-iE-eaM"/>
                             <constraint firstItem="xb3-aO-Qok" firstAttribute="top" secondItem="bTs-Mo-lUD" secondAttribute="bottom" id="Vkm-PT-Y6G"/>
-                            <constraint firstItem="bTs-Mo-lUD" firstAttribute="top" secondItem="Llm-lL-Icb" secondAttribute="bottom" constant="40" id="mVC-bK-1xA"/>
+                            <constraint firstItem="bTs-Mo-lUD" firstAttribute="top" secondItem="Llm-lL-Icb" secondAttribute="bottom" constant="8" id="mVC-bK-1xA"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -40,6 +40,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="launchImage" width="308" height="493"/>
+        <image name="launchImage" width="310" height="533"/>
     </resources>
 </document>
