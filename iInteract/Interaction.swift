@@ -21,14 +21,14 @@ class Interaction {
         
         self.picture = UIImage(named: interactionName)
         
-        if let path = NSBundle.mainBundle().pathForResource("boy_" + interactionName , ofType: "mp3") {
+        if let path = NSBundle.mainBundle().pathForResource("sounds/boy_" + interactionName , ofType: "mp3") {
             self.boySound = NSURL.fileURLWithPath(path)
         }
         else {
             self.boySound = nil
         }
 
-        if let path = NSBundle.mainBundle().pathForResource("girl_" + interactionName , ofType: "mp3") {
+        if let path = NSBundle.mainBundle().pathForResource("sounds/girl_" + interactionName , ofType: "mp3") {
             self.girlSound = NSURL.fileURLWithPath(path)
         }
         else {
