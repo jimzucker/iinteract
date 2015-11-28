@@ -1,2490 +1,0 @@
-TiInteract
-v7
-r0
-t295785793.240309
-cCheck dependencies
-cCpResource build/Distribution-iphoneos/iInteract.app/ResourceRules.plist /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist
-cProcessInfoPlistFile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/Info.plist" iInteract-Info.plist
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/MainWindow.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/RootViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/FlipsideView.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/FeelViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/SnacksViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/WantViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/NeedHelpViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/FoodViewController.xib"
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/DrinksViewController.xib"
-cCpResource build/Distribution-iphoneos/iInteract.app/drink.jpg drink.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/cookie.jpg cookie.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/eat.jpg eat.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/dessert.jpg dessert.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/bathroom.jpg bathroom.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/break.jpg break.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/stomach.jpg stomach.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/pretzel.jpg pretzel.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/headache.jpg headache.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/cut.jpg cut.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/fruit.jpg fruit.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/chips.jpg chips.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/tv.jpg tv.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/computer.jpg computer.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/book.jpg book.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/play.jpg play.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/Frame.gif Frame.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/FrameWhite.gif FrameWhite.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/juice.jpg juice.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/soda.jpg soda.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/milk.jpg milk.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/water.jpg water.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/dinner.jpg dinner.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/lunch.jpg lunch.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/breakfast.jpg breakfast.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/LargeFrame.gif LargeFrame.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_angry.mp3 girl_angry.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_break.mp3 girl_break.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_breakfast.mp3 girl_breakfast.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_computer.mp3 girl_computer.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_cookie.mp3 girl_cookie.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_cut.mp3 girl_cut.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_dessert.mp3 girl_dessert.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_dinner.mp3 girl_dinner.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_drink.mp3 girl_drink.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_eat.mp3 girl_eat.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_fruit.mp3 girl_fruit.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_sad.mp3 girl_sad.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_headache.mp3 girl_headache.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_stomach.mp3 girl_stomach.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_tv.mp3 girl_tv.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_play.mp3 girl_play.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_pretzel.mp3 girl_pretzel.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_soda.mp3 girl_soda.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_water.mp3 girl_water.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_juice.mp3 girl_juice.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_milk.mp3 girl_milk.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_lunch.mp3 girl_lunch.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_happy.mp3 girl_happy.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_bathroom.mp3 girl_bathroom.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/feel.gif feel.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/want.gif want.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/need.gif need.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/happy.jpg happy.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/sad.jpg sad.jpg
-cCpResource build/Distribution-iphoneos/iInteract.app/angry.jpg angry.jpg
-cCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib"
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_happy.mp3 boy_happy.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_sad.mp3 boy_sad.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_angry.mp3 boy_angry.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_drink.mp3 boy_drink.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_eat.mp3 boy_eat.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_bathroom.mp3 boy_bathroom.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_break.mp3 boy_break.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_headache.mp3 boy_headache.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_stomach.mp3 boy_stomach.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_cut.mp3 boy_cut.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_tv.mp3 boy_tv.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_play.mp3 boy_play.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_book.mp3 boy_book.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_computer.mp3 boy_computer.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_chips.mp3 boy_chips.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_cookie.mp3 boy_cookie.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_pretzel.mp3 boy_pretzel.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_fruit.mp3 boy_fruit.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_milk.mp3 boy_milk.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_water.mp3 boy_water.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_juice.mp3 boy_juice.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_dinner.mp3 boy_dinner.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_dessert.mp3 boy_dessert.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_lunch.mp3 boy_lunch.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_breakfast.mp3 boy_breakfast.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/boy_soda.mp3 boy_soda.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_chips.mp3 girl_chips.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/girl_book.mp3 girl_book.mp3
-cCpResource build/Distribution-iphoneos/iInteract.app/food.gif food.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/drinks.gif drinks.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/snacks.gif snacks.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/needhelp.gif needhelp.gif
-cCpResource build/Distribution-iphoneos/iInteract.app/dotdotdot.gif dotdotdot.gif
-cCopyPNGFile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/icon.png" icon.png
-cProcessPCH /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch.gch iInteract_Prefix.pch normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/main.o "/Users/majjaz/Documents/Iphone Developement/iInteract/main.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteractAppDelegate.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/RootViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedHelpViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/WantViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/SnacksViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FoodViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/DrinksViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/PictureBaseViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FeelViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/BoyGirlViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-cLd "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract" normal armv6
-cGenerateDSYMFile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app.dSYM" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract"
-cProcessProductPackaging "/Users/majjaz/Library/MobileDevice/Provisioning Profiles/D4F856E0-1723-408B-A70A-BA05129EED1F.mobileprovision" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision"
-cTouch "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"
-cProcessProductPackaging /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/Entitlements.plist "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent"
-cCodeSign "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk
-c000000004BDE17E40000000000000110
-t1272846308
-s272
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/Entitlements.plist
-c000000004ABDB88400000000000000DD
-t1253947524
-s221
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist
-c000000004ABDB88400000000000001E5
-t1253947524
-s485
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/AVFoundation.framework/AVFoundation
-c000000004ABDBEB0000000000001AD10
-t1253949104
-s109840
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/AVFoundation.framework/Headers/AVFoundation.h
-c000000004ABDBEAE00000000000000EB
-t1253949102
-s235
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics
-c000000004ABDBA1300000000005F4900
-t1253947923
-s6244608
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/Foundation.framework/Foundation
-c000000004ABDBDCF0000000000501370
-t1253948879
-s5247856
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h
-c000000004ABDBDA40000000000001355
-t1253948836
-s4949
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h
-c000000004ABDD0D10000000000000788
-t1253953745
-s1928
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/System/Library/Frameworks/UIKit.framework/UIKit
-c000000004ABDD2250000000001B3F450
-t1253954085
-s28570704
-
-N/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/usr/include/Availability.h
-c000000004ABDC79900000000000019F9
-t1253951385
-s6649
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib
-c000000004BB69689000000000000400A
-t1270257289
-s16394
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.h
-c000000004BDCDA0F00000000000001D9
-t1272764943
-s473
-i<UIKit/UIKit.h>
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m
-c000000004BDCDA160000000000000A70
-t1272764950
-s2672
-i"BoyGirlViewController.h"
-i"iInteractAppDelegate.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.h
-c000000004BDCD9D800000000000002DA
-t1272764888
-s730
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m
-c000000004BDCD9DD00000000000007A7
-t1272764893
-s1959
-i"DrinksViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.h
-c000000004BDCD98B000000000000026D
-t1272764811
-s621
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m
-c000000004BDCD9940000000000000731
-t1272764820
-s1841
-i"FeelViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.h
-c000000004BDCD9E200000000000002F0
-t1272764898
-s752
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m
-c000000004BDCD9E800000000000007C3
-t1272764904
-s1987
-i"FoodViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.h
-c000000004BDCD9B30000000000000276
-t1272764851
-s630
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m
-c000000004BDCD9B9000000000000075A
-t1272764857
-s1882
-i"NeedHelpViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.h
-c000000004BDCD9A000000000000002F9
-t1272764832
-s761
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m
-c000000004BDCD9A700000000000007BB
-t1272764839
-s1979
-i"NeedViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.h
-c000000004BDCD9F00000000000000329
-t1272764912
-s809
-i<UIKit/UIKit.h>
-i<AVFoundation/AVFoundation.h>
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m
-c000000004BDCD9F60000000000001067
-t1272764918
-s4199
-i"PictureBaseViewController.h"
-i"iInteractAppDelegate.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.h
-c000000004BDCD9FA0000000000000140
-t1272764922
-s320
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m
-c000000004BDCDA00000000000000265D
-t1272764928
-s9821
-i"RootViewController.h"
-i"FeelViewController.h"
-i"NeedViewController.h"
-i"NeedHelpViewController.h"
-i"WantViewController.h"
-i"SnacksViewController.h"
-i"DrinksViewController.h"
-i"FoodViewController.h"
-i"iInteractAppDelegate.h"
-i"BoyGirlViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.h
-c000000004BDCD9CD00000000000002E9
-t1272764877
-s745
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m
-c000000004BDCD9D300000000000007BC
-t1272764883
-s1980
-i"SnacksViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.h
-c000000004BDCD9C000000000000002D6
-t1272764864
-s726
-i"PictureBaseViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m
-c000000004BDCD9C700000000000007A8
-t1272764871
-s1960
-i"WantViewController.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.h
-c000000004BDCDA050000000000000200
-t1272764933
-s512
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m
-c000000004BDCDA0A000000000000037D
-t1272764938
-s893
-i"RootViewController.h"
-i"iInteractAppDelegate.h"
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/DrinksViewController.xib
-c000000004BF11B440000000000008A9C
-t1274092356
-s35484
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/FeelViewController.xib
-c000000004BD65D900000000000008812
-t1272339856
-s34834
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/FlipsideView.xib
-c000000004BA6398C0000000000002686
-t1269184908
-s9862
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/FoodViewController.xib
-c000000004BDC78570000000000008BA4
-t1272739927
-s35748
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/Frame.gif
-c000000004BAEADCD00000000000001A2
-t1269738957
-s418
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/FrameWhite.gif
-c000000004BAEAF3500000000000001A2
-t1269739317
-s418
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/LargeFrame.gif
-c000000004BAF6B3500000000000003F0
-t1269787445
-s1008
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/MainWindow.xib
-c000000004BB342CA00000000000056B9
-t1270039242
-s22201
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/NeedHelpViewController.xib
-c000000004BD65B3F00000000000088A3
-t1272339263
-s34979
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib
-c000000004BD65DB7000000000000927B
-t1272339895
-s37499
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/RootViewController.xib
-c000000004BAF68CE0000000000003FE5
-t1269786830
-s16357
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/SnacksViewController.xib
-c000000004BD652000000000000008AED
-t1272336896
-s35565
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/WantViewController.xib
-c000000004BD651E600000000000089EA
-t1272336870
-s35306
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/angry.jpg
-c000000004BB340F80000000000002086
-t1270038776
-s8326
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/bathroom.jpg
-c000000004BD6640D0000000000002818
-t1272341517
-s10264
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/book.jpg
-c000000004BD6648B00000000000019AF
-t1272341643
-s6575
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_angry.mp3
-c000000004BDC59F30000000000006C3F
-t1272732147
-s27711
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_bathroom.mp3
-c000000004BDC540A00000000000053C2
-t1272730634
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_book.mp3
-c000000004BDC545400000000000053C2
-t1272730708
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_break.mp3
-c000000004BDC548C00000000000053C2
-t1272730764
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_breakfast.mp3
-c000000004BDC740300000000000053C2
-t1272738819
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_chips.mp3
-c000000004BDC54EB00000000000046B2
-t1272730859
-s18098
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_computer.mp3
-c000000004BDC55940000000000005F30
-t1272731028
-s24368
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_cookie.mp3
-c000000004BDC55EB0000000000004B98
-t1272731115
-s19352
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_cut.mp3
-c000000004BDC5684000000000000858E
-t1272731268
-s34190
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_dessert.mp3
-c000000004BDC5746000000000000824A
-t1272731462
-s33354
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_dinner.mp3
-c000000004BDC57BA000000000000514F
-t1272731578
-s20815
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_drink.mp3
-c000000004BDC57EB0000000000005220
-t1272731627
-s21024
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_eat.mp3
-c000000004BDC581A0000000000004FAD
-t1272731674
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_fruit.mp3
-c000000004BDC583E0000000000004FAD
-t1272731710
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_happy.mp3
-c000000004BDC589000000000000091CC
-t1272731792
-s37324
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_headache.mp3
-c000000004BDC591700000000000060D1
-t1272731927
-s24785
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_juice.mp3
-c000000004BDC596100000000000064E6
-t1272732001
-s25830
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_lunch.mp3
-c000000004BDC59A90000000000006273
-t1272732073
-s25203
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_milk.mp3
-c000000004BDC5BF40000000000005E5F
-t1272732660
-s24159
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_play.mp3
-c000000004BDC5C4C000000000000514F
-t1272732748
-s20815
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_pretzel.mp3
-c000000004BDC5F6E0000000000005564
-t1272733550
-s21860
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_sad.mp3
-c000000004BDC5FED00000000000065B7
-t1272733677
-s26039
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_soda.mp3
-c000000004BDC60340000000000005220
-t1272733748
-s21024
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_stomach.mp3
-c000000004BDC60750000000000005B1B
-t1272733813
-s23323
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_tv.mp3
-c000000004BDC60B40000000000006C3F
-t1272733876
-s27711
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/boy_water.mp3
-c000000004BDC60DE0000000000005564
-t1272733918
-s21860
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/break.jpg
-c000000004BD6631700000000000026B9
-t1272341271
-s9913
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/breakfast.jpg
-c000000004BD6638F00000000000036EF
-t1272341391
-s14063
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app
-t1274092993
-s3740
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app.dSYM
-t1274092992
-s102
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/BoyGirlViewController.nib
-t1274092991
-s3479
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/DrinksViewController.nib
-t1274092990
-s4984
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FeelViewController.nib
-t1274092989
-s4975
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FlipsideView.nib
-t1274092989
-s1802
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FoodViewController.nib
-t1274092990
-s5010
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/Frame.gif
-t1274092990
-s418
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FrameWhite.gif
-t1274092990
-s418
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/Info.plist
-t1274092988
-s723
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/LargeFrame.gif
-t1274092990
-s1008
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/MainWindow.nib
-t1274092988
-s2027
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/NeedHelpViewController.nib
-t1274092990
-s4884
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/NeedViewController.nib
-t1274092990
-s5381
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/PkgInfo
-t1274092988
-s8
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/ResourceRules.plist
-t1274092988
-s485
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/RootViewController.nib
-t1274092988
-s1463
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/SnacksViewController.nib
-t1274092989
-s5017
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/WantViewController.nib
-t1274092989
-s4958
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/angry.jpg
-t1274092990
-s8326
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/bathroom.jpg
-t1274092990
-s10264
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/book.jpg
-t1274092990
-s6575
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_angry.mp3
-t1274092991
-s27711
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_bathroom.mp3
-t1274092991
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_book.mp3
-t1274092991
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_break.mp3
-t1274092991
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_breakfast.mp3
-t1274092991
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_chips.mp3
-t1274092991
-s18098
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_computer.mp3
-t1274092991
-s24368
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_cookie.mp3
-t1274092991
-s19352
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_cut.mp3
-t1274092991
-s34190
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_dessert.mp3
-t1274092991
-s33354
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_dinner.mp3
-t1274092991
-s20815
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_drink.mp3
-t1274092991
-s21024
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_eat.mp3
-t1274092991
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_fruit.mp3
-t1274092991
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_happy.mp3
-t1274092991
-s37324
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_headache.mp3
-t1274092991
-s24785
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_juice.mp3
-t1274092991
-s25830
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_lunch.mp3
-t1274092991
-s25203
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_milk.mp3
-t1274092991
-s24159
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_play.mp3
-t1274092991
-s20815
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_pretzel.mp3
-t1274092991
-s21860
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_sad.mp3
-t1274092991
-s26039
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_soda.mp3
-t1274092991
-s21024
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_stomach.mp3
-t1274092991
-s23323
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_tv.mp3
-t1274092991
-s27711
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/boy_water.mp3
-t1274092991
-s21860
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/break.jpg
-t1274092990
-s9913
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/breakfast.jpg
-t1274092990
-s14063
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/chips.jpg
-t1274092990
-s8553
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/computer.jpg
-t1274092990
-s10325
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/cookie.jpg
-t1274092990
-s11381
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/cut.jpg
-t1274092990
-s7843
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/dessert.jpg
-t1274092990
-s8898
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/dinner.jpg
-t1274092990
-s8083
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/dotdotdot.gif
-t1274092991
-s261
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/drink.jpg
-t1274092990
-s24834
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/drinks.gif
-t1274092991
-s585
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/eat.jpg
-t1274092990
-s15193
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision
-t1274092992
-s7046
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/feel.gif
-t1274092990
-s521
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/food.gif
-t1274092991
-s490
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/fruit.jpg
-t1274092990
-s9233
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_angry.mp3
-t1274092990
-s19770
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_bathroom.mp3
-t1274092990
-s22278
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_book.mp3
-t1274092991
-s20606
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_break.mp3
-t1274092990
-s24159
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_breakfast.mp3
-t1274092990
-s23323
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_chips.mp3
-t1274092991
-s25621
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_computer.mp3
-t1274092990
-s29592
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_cookie.mp3
-t1274092990
-s22069
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_cut.mp3
-t1274092990
-s27920
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_dessert.mp3
-t1274092990
-s20606
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_dinner.mp3
-t1274092990
-s20188
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_drink.mp3
-t1274092990
-s28965
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_eat.mp3
-t1274092990
-s24368
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_fruit.mp3
-t1274092990
-s22278
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_happy.mp3
-t1274092990
-s18516
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_headache.mp3
-t1274092990
-s23532
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_juice.mp3
-t1274092990
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_lunch.mp3
-t1274092990
-s20815
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_milk.mp3
-t1274092990
-s22905
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_play.mp3
-t1274092990
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_pretzel.mp3
-t1274092990
-s22905
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_sad.mp3
-t1274092990
-s21860
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_soda.mp3
-t1274092990
-s19143
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_stomach.mp3
-t1274092990
-s32936
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_tv.mp3
-t1274092990
-s26039
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/girl_water.mp3
-t1274092990
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/happy.jpg
-t1274092990
-s7899
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/headache.jpg
-t1274092990
-s13981
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract
-t1274092992
-s57092
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/icon.png
-t1274092991
-s5649
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/juice.jpg
-t1274092990
-s6450
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/lunch.jpg
-t1274092990
-s13745
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/milk.jpg
-t1274092990
-s17980
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/need.gif
-t1274092990
-s540
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/needhelp.gif
-t1274092991
-s760
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/play.jpg
-t1274092990
-s10447
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/pretzel.jpg
-t1274092990
-s14324
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/sad.jpg
-t1274092990
-s7965
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/snacks.gif
-t1274092991
-s572
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/soda.jpg
-t1274092990
-s7758
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/stomach.jpg
-t1274092990
-s29294
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/tv.jpg
-t1274092990
-s8353
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/want.gif
-t1274092990
-s626
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/water.jpg
-t1274092990
-s24834
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/BoyGirlViewController.o
-t1274092992
-s40540
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/DrinksViewController.o
-t1274092992
-s36200
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FeelViewController.o
-t1274092992
-s35404
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FoodViewController.o
-t1274092992
-s36216
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedHelpViewController.o
-t1274092992
-s35428
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedViewController.o
-t1274092992
-s36624
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/PictureBaseViewController.o
-t1274092992
-s45180
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/RootViewController.o
-t1274092992
-s54352
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/SnacksViewController.o
-t1274092992
-s36692
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/WantViewController.o
-t1274092992
-s36532
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteract.LinkFileList
-c000000004BF11DBC0000000000000756
-t1274092988
-s1878
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteractAppDelegate.o
-t1274092991
-s40988
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/main.o
-t1274092991
-s6476
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent
-t1274092992
-s315
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/chips.jpg
-c000000004BD664030000000000002169
-t1272341507
-s8553
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/computer.jpg
-c000000004BD664530000000000002855
-t1272341587
-s10325
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/cookie.jpg
-c000000004BD663F20000000000002C75
-t1272341490
-s11381
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/cut.jpg
-c000000004BD6642A0000000000001EA3
-t1272341546
-s7843
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/dessert.jpg
-c000000004BD6643A00000000000022C2
-t1272341562
-s8898
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/dinner.jpg
-c000000004BD420160000000000001F93
-t1272193046
-s8083
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/dotdotdot.gif
-c000000004BD6594D0000000000000105
-t1272338765
-s261
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/drink.jpg
-c000000004BD668220000000000006102
-t1272342562
-s24834
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/drinks.gif
-c000000004BD6614A0000000000000249
-t1272340810
-s585
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/eat.jpg
-c000000004BDD5C8E0000000000003B59
-t1272798350
-s15193
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/feel.gif
-c000000004BD65BBC0000000000000209
-t1272339388
-s521
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/food.gif
-c000000004BD6533E00000000000001EA
-t1272337214
-s490
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/fruit.jpg
-c000000004BD664190000000000002411
-t1272341529
-s9233
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_angry.mp3
-c000000004BDC65A50000000000004D3A
-t1272735141
-s19770
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_bathroom.mp3
-c000000004BDC537A0000000000005706
-t1272730490
-s22278
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_book.mp3
-c000000004BDC6166000000000000507E
-t1272734054
-s20606
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_break.mp3
-c000000004BDC61A40000000000005E5F
-t1272734116
-s24159
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_breakfast.mp3
-c000000004BDC61D30000000000005B1B
-t1272734163
-s23323
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_chips.mp3
-c000000004BDC62400000000000006415
-t1272734272
-s25621
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_computer.mp3
-c000000004BDC62910000000000007398
-t1272734353
-s29592
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_cookie.mp3
-c000000004BDC62D40000000000005635
-t1272734420
-s22069
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_cut.mp3
-c000000004BDC634E0000000000006D10
-t1272734542
-s27920
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_dessert.mp3
-c000000004BDC6382000000000000507E
-t1272734594
-s20606
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_dinner.mp3
-c000000004BDC63BA0000000000004EDC
-t1272734650
-s20188
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_drink.mp3
-c000000004BDC63EB0000000000007125
-t1272734699
-s28965
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_eat.mp3
-c000000004BDC64320000000000005F30
-t1272734770
-s24368
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_fruit.mp3
-c000000004BDC646F0000000000005706
-t1272734831
-s22278
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_happy.mp3
-c000000004BDC64A60000000000004854
-t1272734886
-s18516
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_headache.mp3
-c000000004BDC64EB0000000000005BEC
-t1272734955
-s23532
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_juice.mp3
-c000000004BDC652D0000000000004FAD
-t1272735021
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_lunch.mp3
-c000000004BDC6567000000000000514F
-t1272735079
-s20815
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_milk.mp3
-c000000004BDC65CE0000000000005979
-t1272735182
-s22905
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_play.mp3
-c000000004BDC65F80000000000004FAD
-t1272735224
-s20397
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_pretzel.mp3
-c000000004BDC66300000000000005979
-t1272735280
-s22905
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_sad.mp3
-c000000004BDC666A0000000000005564
-t1272735338
-s21860
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_soda.mp3
-c000000004BDC669E0000000000004AC7
-t1272735390
-s19143
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_stomach.mp3
-c000000004BDC670C00000000000080A8
-t1272735500
-s32936
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_tv.mp3
-c000000004BDC673600000000000065B7
-t1272735542
-s26039
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/girl_water.mp3
-c000000004BDC676200000000000053C2
-t1272735586
-s21442
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/happy.jpg
-c000000004BB340DF0000000000001EDB
-t1270038751
-s7899
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/headache.jpg
-c000000004BD663AE000000000000369D
-t1272341422
-s13981
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/iInteract_Prefix.pch
-c000000004BA815A30000000000000144
-t1269306787
-s324
-i<Availability.h>
-i<Foundation/Foundation.h>
-i<UIKit/UIKit.h>
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/icon.png
-c000000004BDFFE920000000000001749
-t1272970898
-s5961
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/juice.jpg
-c000000004BD6646E0000000000001932
-t1272341614
-s6450
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/lunch.jpg
-c000000004BD663C900000000000035B1
-t1272341449
-s13745
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/main.m
-c000000004BA815A3000000000000016B
-t1269306787
-s363
-i<UIKit/UIKit.h>
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/milk.jpg
-c000000004BD6696E000000000000463C
-t1272342894
-s17980
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/need.gif
-c000000004BD65C00000000000000021C
-t1272339456
-s540
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/needhelp.gif
-c000000004BD6599F00000000000002F8
-t1272338847
-s760
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/play.jpg
-c000000004BD6644700000000000028CF
-t1272341575
-s10447
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/pretzel.jpg
-c000000004BD663B900000000000037F4
-t1272341433
-s14324
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/sad.jpg
-c000000004BB340CA0000000000001F1D
-t1270038730
-s7965
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/snacks.gif
-c000000004BD65407000000000000023C
-t1272337415
-s572
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/soda.jpg
-c000000004BD6645F0000000000001E4E
-t1272341599
-s7758
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/stomach.jpg
-c000000004BD665A9000000000000726E
-t1272341929
-s29294
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/tv.jpg
-c000000004BD4201600000000000020A1
-t1272193046
-s8353
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/want.gif
-c000000004BD65C6C0000000000000272
-t1272339564
-s626
-
-N/Users/majjaz/Documents/Iphone Developement/iInteract/water.jpg
-c000000004BD668220000000000006102
-t1272342562
-s24834
-
-N/Users/majjaz/Library/MobileDevice/Provisioning Profiles/D4F856E0-1723-408B-A70A-BA05129EED1F.mobileprovision
-c000000004BDD651B0000000000001B86
-t1272800539
-s7046
-
-N/var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch.gch
-t1272971279
-s8208568
-
-NiInteract-Info.plist
-c000000004BF11DA00000000000000377
-t1274092960
-s887
-
-CCheck dependencies
-r0
-lSLF07#2@18"Check dependencies295785788#295785788#0(0"0(0#1#0"4300911832#0"0#
-
-CCodeSign "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"
-s295785792.847147
-e295785793.240199
-r1
-xCodeSign
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app
-lSLF07#2@50"CodeSign build/Distribution-iphoneos/iInteract.app295785792#295785793#0(0"0(0#0#95"/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app4300911832#756"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IGNORE_CODESIGN_ALLOCATE_RADAR_7181968 /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/codesign_allocate    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /usr/bin/codesign -f -s "iPhone Distribution: James Zucker" "--resource-rules=/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/ResourceRules.plist" --entitlements "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/BoyGirlViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.571671
-e295785792.667570
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/BoyGirlViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@93"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m295785792#295785792#0(0"0(0#0#85"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m4300911832#2077"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/BoyGirlViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/BoyGirlViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/DrinksViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.323738
-e295785792.434401
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/DrinksViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@92"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m295785792#295785792#0(0"0(0#0#84"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m4300911832#2075"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/DrinksViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/DrinksViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FeelViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.434512
-e295785792.592437
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FeelViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@90"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m295785792#295785792#0(0"0(0#0#82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m4300911832#2071"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FeelViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FeelViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FoodViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.272949
-e295785792.411935
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FoodViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@90"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m295785792#295785792#0(0"0(0#0#82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m4300911832#2071"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/FoodViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/FoodViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedHelpViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.059879
-e295785792.183816
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedHelpViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@94"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m295785792#295785792#0(0"0(0#0#86"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m4300911832#2079"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedHelpViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedHelpViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785791.943295
-e295785792.059780
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@90"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m295785791#295785792#0(0"0(0#0#82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m4300911832#2071"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/NeedViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/NeedViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/PictureBaseViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.412043
-e295785792.571533
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/PictureBaseViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@97"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m295785792#295785792#0(0"0(0#0#89"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m4300911832#2085"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/PictureBaseViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/PictureBaseViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/RootViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785791.901542
-e295785792.149044
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/RootViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-o/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m: In function '-[RootViewController tableView:didSelectRowAtIndexPath:]':
-o/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: 'UIViewController' may not respond to '-setBoy:'
-o/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: (Messages without a matching method signature
-o/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: will be assumed to return 'id' and accept
-o/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: '...' as arguments.)
-lSLF07#2@90"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m295785791#295785792#0(702"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m: In function '-[RootViewController tableView:didSelectRowAtIndexPath:]':/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: 'UIViewController' may not respond to '-setBoy:'/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: (Messages without a matching method signature/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: will be assumed to return 'id' and accept/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m:238: warning: '...' as arguments.)2(22@48"'UIViewController' may not respond to '-setBoy:'295785791#156#146#0(6@82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m294457728#238#0#238#0#26"'*' may not respond to '*'0(13@108"(Messages without a matching method signature will be assumed to return 'id' and accept '...' as arguments.)295785791#302#143#0(6@82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m294457728#238#0#238#0#0"0(0#0#82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m4300911832#2071"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/RootViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/RootViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/SnacksViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.183918
-e295785792.323633
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/SnacksViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@92"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m295785792#295785792#0(0"0(0#0#84"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m4300911832#2075"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/SnacksViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/SnacksViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/WantViewController.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785792.149149
-e295785792.272845
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/WantViewController.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@90"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m295785792#295785792#0(0"0(0#0#82"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m4300911832#2071"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/WantViewController.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/WantViewController.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteractAppDelegate.o "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785791.777092
-e295785791.943194
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteractAppDelegate.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@92"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m295785791#295785791#0(0"0(0#0#84"/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m4300911832#2075"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/Classes/iInteractAppDelegate.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteractAppDelegate.o"0#
-
-CCompileC build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/main.o "/Users/majjaz/Documents/Iphone Developement/iInteract/main.m" normal armv6 objective-c com.apple.compilers.gcc.4_2
-s295785791.775226
-e295785791.901423
-r1
-xCompileC
-xbuild/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/main.o
-x/Users/majjaz/Documents/Iphone Developement/iInteract/main.m
-xnormal
-xarmv6
-xobjective-c
-xcom.apple.compilers.gcc.4_2
-lSLF07#2@68"Compile /Users/majjaz/Documents/Iphone Developement/iInteract/main.m295785791#295785791#0(0"0(0#0#60"/Users/majjaz/Documents/Iphone Developement/iInteract/main.m4300911832#2035"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv LANG en_US.US-ASCII    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -x objective-c -arch armv6 -fmessage-length=0 -pipe -std=c99 -Wno-trigraphs -fpascal-strings -Os -mdynamic-no-pic -Wreturn-type -Wunused-variable -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk -fvisibility=hidden -gdwarf-2 -mthumb -miphoneos-version-min=3.1.2 -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-generated-files.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-own-target-headers.hmap" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-all-target-headers.hmap" -iquote "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract-project-headers.hmap" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/include" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources/armv6" "-I/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/DerivedSources" -include /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/main.m" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/main.o"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib"
-s295785790.903389
-e295785791.678808
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib
-o/* com.apple.ibtool.document.warnings */
-o/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib:10: warning: The 'Touch Down' event of 'Rounded Rect Button' is connected to the 'girl:' selector of 'File's Owner', but 'girl:' is no longer defined on 'BoyGirlViewController'.
-lSLF07#2@36"CompileXIB BoyGirlViewController.xib295785790#295785791#0(299"/* com.apple.ibtool.document.warnings *//Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib:10: warning: The 'Touch Down' event of 'Rounded Rect Button' is connected to the 'girl:' selector of 'File's Owner', but 'girl:' is no longer defined on 'BoyGirlViewController'.1(22@164"The 'Touch Down' event of 'Rounded Rect Button' is connected to the 'girl:' selector of 'File's Owner', but 'girl:' is no longer defined on 'BoyGirlViewController'.295785791#18446744073709551615#0#0(6@79"/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib291950089#10#0#10#0#0"0(0#0#79"/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib4300911832#550"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/BoyGirlViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/BoyGirlViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/DrinksViewController.xib"
-s295785790.409349
-e295785791.008983
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/DrinksViewController.xib
-lSLF07#2@35"CompileXIB DrinksViewController.xib295785790#295785791#0(0"0(0#0#78"/Users/majjaz/Documents/Iphone Developement/iInteract/DrinksViewController.xib4300911832#548"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/DrinksViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/DrinksViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/FeelViewController.xib"
-s295785789.016735
-e295785789.561965
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/FeelViewController.xib
-lSLF07#2@33"CompileXIB FeelViewController.xib295785789#295785789#0(0"0(0#0#76"/Users/majjaz/Documents/Iphone Developement/iInteract/FeelViewController.xib4300911832#544"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FeelViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/FeelViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/FlipsideView.xib"
-s295785788.987040
-e295785789.381630
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/FlipsideView.xib
-lSLF07#2@27"CompileXIB FlipsideView.xib295785788#295785789#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/FlipsideView.xib4300911832#532"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FlipsideView.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/FlipsideView.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/FoodViewController.xib"
-s295785790.306914
-e295785790.754961
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/FoodViewController.xib
-lSLF07#2@33"CompileXIB FoodViewController.xib295785790#295785790#0(0"0(0#0#76"/Users/majjaz/Documents/Iphone Developement/iInteract/FoodViewController.xib4300911832#544"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/FoodViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/FoodViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/MainWindow.xib"
-s295785788.580406
-e295785789.016641
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/MainWindow.xib
-lSLF07#2@25"CompileXIB MainWindow.xib295785788#295785789#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/MainWindow.xib4300911832#528"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/MainWindow.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/MainWindow.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/NeedHelpViewController.xib"
-s295785789.995940
-e295785790.409252
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/NeedHelpViewController.xib
-lSLF07#2@37"CompileXIB NeedHelpViewController.xib295785789#295785790#0(0"0(0#0#80"/Users/majjaz/Documents/Iphone Developement/iInteract/NeedHelpViewController.xib4300911832#552"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/NeedHelpViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/NeedHelpViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib"
-s295785789.861996
-e295785790.306821
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib
-o/* com.apple.ibtool.document.warnings */
-o/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib:40: warning: Specifying a content edge inset in Interface Builder is not supported by the iPhone SDK for iPhone OS versions prior to 3.0.
-o/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib:40: warning: Specifying an image edge inset in Interface Builder is not supported by the iPhone SDK for iPhone OS versions prior to 3.0.
-lSLF07#2@33"CompileXIB NeedViewController.xib295785789#295785790#0(470"/* com.apple.ibtool.document.warnings *//Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib:40: warning: Specifying a content edge inset in Interface Builder is not supported by the iPhone SDK for iPhone OS versions prior to 3.0./Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib:40: warning: Specifying an image edge inset in Interface Builder is not supported by the iPhone SDK for iPhone OS versions prior to 3.0.2(22@124"Specifying a content edge inset in Interface Builder is not supported by the iPhone SDK for iPhone OS versions prior to 3.0.295785790#18446744073709551615#0#0(6@76"/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib294032695#40#0#40#0#0"0(22@123"Specifying an image edge inset in Interface Builder is not supported by the iPhone SDK for iPhone OS versions prior to 3.0.295785790#18446744073709551615#0#0(6@76"/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib294032695#40#0#40#0#0"0(0#0#76"/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib4300911832#544"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/NeedViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/NeedViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/RootViewController.xib"
-s295785788.582389
-e295785788.986945
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/RootViewController.xib
-lSLF07#2@33"CompileXIB RootViewController.xib295785788#295785788#0(0"0(0#0#76"/Users/majjaz/Documents/Iphone Developement/iInteract/RootViewController.xib4300911832#544"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/RootViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/RootViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/SnacksViewController.xib"
-s295785789.381725
-e295785789.861899
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/SnacksViewController.xib
-lSLF07#2@35"CompileXIB SnacksViewController.xib295785789#295785789#0(0"0(0#0#78"/Users/majjaz/Documents/Iphone Developement/iInteract/SnacksViewController.xib4300911832#548"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/SnacksViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/SnacksViewController.xib"0#
-
-CCompileXIB "/Users/majjaz/Documents/Iphone Developement/iInteract/WantViewController.xib"
-s295785789.562062
-e295785789.995740
-r1
-xCompileXIB
-x/Users/majjaz/Documents/Iphone Developement/iInteract/WantViewController.xib
-lSLF07#2@33"CompileXIB WantViewController.xib295785789#295785789#0(0"0(0#0#76"/Users/majjaz/Documents/Iphone Developement/iInteract/WantViewController.xib4300911832#544"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IBC_MINIMUM_COMPATIBILITY_VERSION 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/ibtool --errors --warnings --notices --output-format human-readable-text --compile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/WantViewController.nib" "/Users/majjaz/Documents/Iphone Developement/iInteract/WantViewController.xib"0#
-
-CCopyPNGFile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/icon.png" icon.png
-s295785791.115578
-e295785791.774977
-r1
-xCopyPNGFile
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/icon.png
-xicon.png
-lSLF07#2@71"CopyPNGFile build/Distribution-iphoneos/iInteract.app/icon.png icon.png295785791#295785791#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/icon.png4300911832#616"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv COPY_COMMAND /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    "/Developer/Platforms/iPhoneOS.platform/Developer/Library/Xcode/Plug-ins/iPhoneOS Build System Support.xcplugin/Contents/Resources/copypng" -compress "" "/Users/majjaz/Documents/Iphone Developement/iInteract/icon.png" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/icon.png"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/Frame.gif Frame.gif
-s295785790.784556
-e295785790.801097
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/Frame.gif
-xFrame.gif
-lSLF07#2@14"Copy Frame.gif295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/Frame.gif4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/Frame.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/FrameWhite.gif FrameWhite.gif
-s295785790.786451
-e295785790.810744
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/FrameWhite.gif
-xFrameWhite.gif
-lSLF07#2@19"Copy FrameWhite.gif295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/FrameWhite.gif4300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/FrameWhite.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/LargeFrame.gif LargeFrame.gif
-s295785790.805807
-e295785790.849545
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/LargeFrame.gif
-xLargeFrame.gif
-lSLF07#2@19"Copy LargeFrame.gif295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/LargeFrame.gif4300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/LargeFrame.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/ResourceRules.plist /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist
-s295785788.492752
-e295785788.580253
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/ResourceRules.plist
-x/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist
-lSLF07#2@96"Copy /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist295785788#295785788#0(0"0(0#0#91"/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist4300911832#546"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/ResourceRules.plist "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/angry.jpg angry.jpg
-s295785790.901347
-e295785790.914931
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/angry.jpg
-xangry.jpg
-lSLF07#2@14"Copy angry.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/angry.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/angry.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/bathroom.jpg bathroom.jpg
-s295785790.759713
-e295785790.776286
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/bathroom.jpg
-xbathroom.jpg
-lSLF07#2@17"Copy bathroom.jpg295785790#295785790#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/bathroom.jpg4300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/bathroom.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/book.jpg book.jpg
-s295785790.780773
-e295785790.790301
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/book.jpg
-xbook.jpg
-lSLF07#2@13"Copy book.jpg295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/book.jpg4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/book.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_angry.mp3 boy_angry.mp3
-s295785791.012325
-e295785791.039169
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_angry.mp3
-xboy_angry.mp3
-lSLF07#2@18"Copy boy_angry.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_angry.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_angry.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_bathroom.mp3 boy_bathroom.mp3
-s295785791.019854
-e295785791.061675
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_bathroom.mp3
-xboy_bathroom.mp3
-lSLF07#2@21"Copy boy_bathroom.mp3295785791#295785791#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_bathroom.mp34300911832#527"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_bathroom.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_book.mp3 boy_book.mp3
-s295785791.046659
-e295785791.084156
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_book.mp3
-xboy_book.mp3
-lSLF07#2@17"Copy boy_book.mp3295785791#295785791#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_book.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_book.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_break.mp3 boy_break.mp3
-s295785791.026890
-e295785791.058385
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_break.mp3
-xboy_break.mp3
-lSLF07#2@18"Copy boy_break.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_break.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_break.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_breakfast.mp3 boy_breakfast.mp3
-s295785791.093248
-e295785791.122396
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_breakfast.mp3
-xboy_breakfast.mp3
-lSLF07#2@22"Copy boy_breakfast.mp3295785791#295785791#0(0"0(0#0#71"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_breakfast.mp34300911832#528"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_breakfast.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_chips.mp3 boy_chips.mp3
-s295785791.061754
-e295785791.084284
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_chips.mp3
-xboy_chips.mp3
-lSLF07#2@18"Copy boy_chips.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_chips.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_chips.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_computer.mp3 boy_computer.mp3
-s295785791.058480
-e295785791.076776
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_computer.mp3
-xboy_computer.mp3
-lSLF07#2@21"Copy boy_computer.mp3295785791#295785791#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_computer.mp34300911832#527"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_computer.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_cookie.mp3 boy_cookie.mp3
-s295785791.063839
-e295785791.084388
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_cookie.mp3
-xboy_cookie.mp3
-lSLF07#2@19"Copy boy_cookie.mp3295785791#295785791#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_cookie.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_cookie.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_cut.mp3 boy_cut.mp3
-s295785791.039333
-e295785791.092863
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_cut.mp3
-xboy_cut.mp3
-lSLF07#2@16"Copy boy_cut.mp3295785791#295785791#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_cut.mp34300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_cut.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_dessert.mp3 boy_dessert.mp3
-s295785791.088143
-e295785791.109203
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_dessert.mp3
-xboy_dessert.mp3
-lSLF07#2@20"Copy boy_dessert.mp3295785791#295785791#0(0"0(0#0#69"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_dessert.mp34300911832#526"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_dessert.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_dinner.mp3 boy_dinner.mp3
-s295785791.084461
-e295785791.102608
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_dinner.mp3
-xboy_dinner.mp3
-lSLF07#2@19"Copy boy_dinner.mp3295785791#295785791#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_dinner.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_dinner.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_drink.mp3 boy_drink.mp3
-s295785791.015479
-e295785791.039263
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_drink.mp3
-xboy_drink.mp3
-lSLF07#2@18"Copy boy_drink.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_drink.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_drink.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_eat.mp3 boy_eat.mp3
-s295785791.017504
-e295785791.061555
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_eat.mp3
-xboy_eat.mp3
-lSLF07#2@16"Copy boy_eat.mp3295785791#295785791#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_eat.mp34300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_eat.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_fruit.mp3 boy_fruit.mp3
-s295785791.069950
-e295785791.109403
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_fruit.mp3
-xboy_fruit.mp3
-lSLF07#2@18"Copy boy_fruit.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_fruit.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_fruit.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_happy.mp3 boy_happy.mp3
-s295785791.009072
-e295785791.038958
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_happy.mp3
-xboy_happy.mp3
-lSLF07#2@18"Copy boy_happy.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_happy.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_happy.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_headache.mp3 boy_headache.mp3
-s295785791.029037
-e295785791.067741
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_headache.mp3
-xboy_headache.mp3
-lSLF07#2@21"Copy boy_headache.mp3295785791#295785791#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_headache.mp34300911832#527"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_headache.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_juice.mp3 boy_juice.mp3
-s295785791.080529
-e295785791.109303
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_juice.mp3
-xboy_juice.mp3
-lSLF07#2@18"Copy boy_juice.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_juice.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_juice.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_lunch.mp3 boy_lunch.mp3
-s295785791.090244
-e295785791.102739
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_lunch.mp3
-xboy_lunch.mp3
-lSLF07#2@18"Copy boy_lunch.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_lunch.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_lunch.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_milk.mp3 boy_milk.mp3
-s295785791.072641
-e295785791.093079
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_milk.mp3
-xboy_milk.mp3
-lSLF07#2@17"Copy boy_milk.mp3295785791#295785791#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_milk.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_milk.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_play.mp3 boy_play.mp3
-s295785791.044339
-e295785791.072524
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_play.mp3
-xboy_play.mp3
-lSLF07#2@17"Copy boy_play.mp3295785791#295785791#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_play.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_play.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_pretzel.mp3 boy_pretzel.mp3
-s295785791.068094
-e295785791.093177
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_pretzel.mp3
-xboy_pretzel.mp3
-lSLF07#2@20"Copy boy_pretzel.mp3295785791#295785791#0(0"0(0#0#69"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_pretzel.mp34300911832#526"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_pretzel.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_sad.mp3 boy_sad.mp3
-s295785791.009961
-e295785791.039072
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_sad.mp3
-xboy_sad.mp3
-lSLF07#2@16"Copy boy_sad.mp3295785791#295785791#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_sad.mp34300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_sad.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_soda.mp3 boy_soda.mp3
-s295785791.095728
-e295785791.109082
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_soda.mp3
-xboy_soda.mp3
-lSLF07#2@17"Copy boy_soda.mp3295785791#295785791#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_soda.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_soda.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_stomach.mp3 boy_stomach.mp3
-s295785791.035868
-e295785791.068021
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_stomach.mp3
-xboy_stomach.mp3
-lSLF07#2@20"Copy boy_stomach.mp3295785791#295785791#0(0"0(0#0#69"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_stomach.mp34300911832#526"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_stomach.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_tv.mp3 boy_tv.mp3
-s295785791.042462
-e295785791.076657
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_tv.mp3
-xboy_tv.mp3
-lSLF07#2@15"Copy boy_tv.mp3295785791#295785791#0(0"0(0#0#64"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_tv.mp34300911832#521"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_tv.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/boy_water.mp3 boy_water.mp3
-s295785791.076846
-e295785791.092976
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/boy_water.mp3
-xboy_water.mp3
-lSLF07#2@18"Copy boy_water.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/boy_water.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/boy_water.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/break.jpg break.jpg
-s295785790.761467
-e295785790.776401
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/break.jpg
-xbreak.jpg
-lSLF07#2@14"Copy break.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/break.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/break.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/breakfast.jpg breakfast.jpg
-s295785790.803914
-e295785790.821087
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/breakfast.jpg
-xbreakfast.jpg
-lSLF07#2@18"Copy breakfast.jpg295785790#295785790#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/breakfast.jpg4300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/breakfast.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/chips.jpg chips.jpg
-s295785790.774318
-e295785790.803832
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/chips.jpg
-xchips.jpg
-lSLF07#2@14"Copy chips.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/chips.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/chips.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/computer.jpg computer.jpg
-s295785790.778188
-e295785790.797006
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/computer.jpg
-xcomputer.jpg
-lSLF07#2@17"Copy computer.jpg295785790#295785790#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/computer.jpg4300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/computer.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/cookie.jpg cookie.jpg
-s295785790.755911
-e295785790.769301
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/cookie.jpg
-xcookie.jpg
-lSLF07#2@15"Copy cookie.jpg295785790#295785790#0(0"0(0#0#64"/Users/majjaz/Documents/Iphone Developement/iInteract/cookie.jpg4300911832#521"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/cookie.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/cut.jpg cut.jpg
-s295785790.769465
-e295785790.788256
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/cut.jpg
-xcut.jpg
-lSLF07#2@12"Copy cut.jpg295785790#295785790#0(0"0(0#0#61"/Users/majjaz/Documents/Iphone Developement/iInteract/cut.jpg4300911832#518"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/cut.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/dessert.jpg dessert.jpg
-s295785790.758031
-e295785790.776171
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/dessert.jpg
-xdessert.jpg
-lSLF07#2@16"Copy dessert.jpg295785790#295785790#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/dessert.jpg4300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/dessert.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/dinner.jpg dinner.jpg
-s295785790.798974
-e295785790.815384
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/dinner.jpg
-xdinner.jpg
-lSLF07#2@15"Copy dinner.jpg295785790#295785790#0(0"0(0#0#64"/Users/majjaz/Documents/Iphone Developement/iInteract/dinner.jpg4300911832#521"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/dinner.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/dotdotdot.gif dotdotdot.gif
-s295785791.113280
-e295785791.120686
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/dotdotdot.gif
-xdotdotdot.gif
-lSLF07#2@18"Copy dotdotdot.gif295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/dotdotdot.gif4300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/dotdotdot.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/drink.jpg drink.jpg
-s295785790.755059
-e295785790.769188
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/drink.jpg
-xdrink.jpg
-lSLF07#2@14"Copy drink.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/drink.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/drink.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/drinks.gif drinks.gif
-s295785791.106243
-e295785791.121002
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/drinks.gif
-xdrinks.gif
-lSLF07#2@15"Copy drinks.gif295785791#295785791#0(0"0(0#0#64"/Users/majjaz/Documents/Iphone Developement/iInteract/drinks.gif4300911832#521"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/drinks.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/eat.jpg eat.jpg
-s295785790.756577
-e295785790.769398
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/eat.jpg
-xeat.jpg
-lSLF07#2@12"Copy eat.jpg295785790#295785790#0(0"0(0#0#61"/Users/majjaz/Documents/Iphone Developement/iInteract/eat.jpg4300911832#518"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/eat.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/feel.gif feel.gif
-s295785790.883474
-e295785790.905904
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/feel.gif
-xfeel.gif
-lSLF07#2@13"Copy feel.gif295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/feel.gif4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/feel.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/food.gif food.gif
-s295785791.104256
-e295785791.118482
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/food.gif
-xfood.gif
-lSLF07#2@13"Copy food.gif295785791#295785791#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/food.gif4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/food.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/fruit.jpg fruit.jpg
-s295785790.772433
-e295785790.798901
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/fruit.jpg
-xfruit.jpg
-lSLF07#2@14"Copy fruit.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/fruit.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/fruit.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_angry.mp3 girl_angry.mp3
-s295785790.810872
-e295785790.854183
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_angry.mp3
-xgirl_angry.mp3
-lSLF07#2@19"Copy girl_angry.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_angry.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_angry.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_bathroom.mp3 girl_bathroom.mp3
-s295785790.879868
-e295785790.901268
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_bathroom.mp3
-xgirl_bathroom.mp3
-lSLF07#2@22"Copy girl_bathroom.mp3295785790#295785790#0(0"0(0#0#71"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_bathroom.mp34300911832#528"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_bathroom.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_book.mp3 girl_book.mp3
-s295785791.100007
-e295785791.118585
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_book.mp3
-xgirl_book.mp3
-lSLF07#2@18"Copy girl_book.mp3295785791#295785791#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_book.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_book.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_break.mp3 girl_break.mp3
-s295785790.812899
-e295785790.838273
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_break.mp3
-xgirl_break.mp3
-lSLF07#2@19"Copy girl_break.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_break.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_break.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_breakfast.mp3 girl_breakfast.mp3
-s295785790.815473
-e295785790.847087
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_breakfast.mp3
-xgirl_breakfast.mp3
-lSLF07#2@23"Copy girl_breakfast.mp3295785790#295785790#0(0"0(0#0#72"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_breakfast.mp34300911832#529"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_breakfast.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_chips.mp3 girl_chips.mp3
-s295785791.098217
-e295785791.118360
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_chips.mp3
-xgirl_chips.mp3
-lSLF07#2@19"Copy girl_chips.mp3295785791#295785791#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_chips.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_chips.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_computer.mp3 girl_computer.mp3
-s295785790.817362
-e295785790.840347
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_computer.mp3
-xgirl_computer.mp3
-lSLF07#2@22"Copy girl_computer.mp3295785790#295785790#0(0"0(0#0#71"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_computer.mp34300911832#528"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_computer.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_cookie.mp3 girl_cookie.mp3
-s295785790.821182
-e295785790.861559
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_cookie.mp3
-xgirl_cookie.mp3
-lSLF07#2@20"Copy girl_cookie.mp3295785790#295785790#0(0"0(0#0#69"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_cookie.mp34300911832#526"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_cookie.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_cut.mp3 girl_cut.mp3
-s295785790.823583
-e295785790.845140
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_cut.mp3
-xgirl_cut.mp3
-lSLF07#2@17"Copy girl_cut.mp3295785790#295785790#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_cut.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_cut.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_dessert.mp3 girl_dessert.mp3
-s295785790.827070
-e295785790.875610
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_dessert.mp3
-xgirl_dessert.mp3
-lSLF07#2@21"Copy girl_dessert.mp3295785790#295785790#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_dessert.mp34300911832#527"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_dessert.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_dinner.mp3 girl_dinner.mp3
-s295785790.838364
-e295785790.877686
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_dinner.mp3
-xgirl_dinner.mp3
-lSLF07#2@20"Copy girl_dinner.mp3295785790#295785790#0(0"0(0#0#69"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_dinner.mp34300911832#526"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_dinner.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_drink.mp3 girl_drink.mp3
-s295785790.840531
-e295785790.867124
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_drink.mp3
-xgirl_drink.mp3
-lSLF07#2@19"Copy girl_drink.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_drink.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_drink.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_eat.mp3 girl_eat.mp3
-s295785790.843143
-e295785790.858825
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_eat.mp3
-xgirl_eat.mp3
-lSLF07#2@17"Copy girl_eat.mp3295785790#295785790#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_eat.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_eat.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_fruit.mp3 girl_fruit.mp3
-s295785790.845224
-e295785790.870942
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_fruit.mp3
-xgirl_fruit.mp3
-lSLF07#2@19"Copy girl_fruit.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_fruit.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_fruit.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_happy.mp3 girl_happy.mp3
-s295785790.877764
-e295785790.892898
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_happy.mp3
-xgirl_happy.mp3
-lSLF07#2@19"Copy girl_happy.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_happy.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_happy.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_headache.mp3 girl_headache.mp3
-s295785790.849623
-e295785790.867006
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_headache.mp3
-xgirl_headache.mp3
-lSLF07#2@22"Copy girl_headache.mp3295785790#295785790#0(0"0(0#0#71"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_headache.mp34300911832#528"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_headache.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_juice.mp3 girl_juice.mp3
-s295785790.871128
-e295785790.889540
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_juice.mp3
-xgirl_juice.mp3
-lSLF07#2@19"Copy girl_juice.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_juice.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_juice.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_lunch.mp3 girl_lunch.mp3
-s295785790.875693
-e295785790.929321
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_lunch.mp3
-xgirl_lunch.mp3
-lSLF07#2@19"Copy girl_lunch.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_lunch.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_lunch.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_milk.mp3 girl_milk.mp3
-s295785790.873356
-e295785790.925149
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_milk.mp3
-xgirl_milk.mp3
-lSLF07#2@18"Copy girl_milk.mp3295785790#295785790#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_milk.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_milk.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_play.mp3 girl_play.mp3
-s295785790.861638
-e295785790.903308
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_play.mp3
-xgirl_play.mp3
-lSLF07#2@18"Copy girl_play.mp3295785790#295785790#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_play.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_play.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_pretzel.mp3 girl_pretzel.mp3
-s295785790.863797
-e295785790.897265
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_pretzel.mp3
-xgirl_pretzel.mp3
-lSLF07#2@21"Copy girl_pretzel.mp3295785790#295785790#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_pretzel.mp34300911832#527"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_pretzel.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_sad.mp3 girl_sad.mp3
-s295785790.847159
-e295785790.861285
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_sad.mp3
-xgirl_sad.mp3
-lSLF07#2@17"Copy girl_sad.mp3295785790#295785790#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_sad.mp34300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_sad.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_soda.mp3 girl_soda.mp3
-s295785790.867198
-e295785790.879787
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_soda.mp3
-xgirl_soda.mp3
-lSLF07#2@18"Copy girl_soda.mp3295785790#295785790#0(0"0(0#0#67"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_soda.mp34300911832#524"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_soda.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_stomach.mp3 girl_stomach.mp3
-s295785790.854275
-e295785790.871058
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_stomach.mp3
-xgirl_stomach.mp3
-lSLF07#2@21"Copy girl_stomach.mp3295785790#295785790#0(0"0(0#0#70"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_stomach.mp34300911832#527"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_stomach.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_tv.mp3 girl_tv.mp3
-s295785790.858915
-e295785790.883387
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_tv.mp3
-xgirl_tv.mp3
-lSLF07#2@16"Copy girl_tv.mp3295785790#295785790#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_tv.mp34300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_tv.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/girl_water.mp3 girl_water.mp3
-s295785790.868922
-e295785790.899310
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/girl_water.mp3
-xgirl_water.mp3
-lSLF07#2@19"Copy girl_water.mp3295785790#295785790#0(0"0(0#0#68"/Users/majjaz/Documents/Iphone Developement/iInteract/girl_water.mp34300911832#525"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/girl_water.mp3" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/happy.jpg happy.jpg
-s295785790.897354
-e295785790.921934
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/happy.jpg
-xhappy.jpg
-lSLF07#2@14"Copy happy.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/happy.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/happy.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/headache.jpg headache.jpg
-s295785790.767184
-e295785790.786370
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/headache.jpg
-xheadache.jpg
-lSLF07#2@17"Copy headache.jpg295785790#295785790#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/headache.jpg4300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/headache.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/juice.jpg juice.jpg
-s295785790.788334
-e295785790.812817
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/juice.jpg
-xjuice.jpg
-lSLF07#2@14"Copy juice.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/juice.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/juice.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/lunch.jpg lunch.jpg
-s295785790.801184
-e295785790.840463
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/lunch.jpg
-xlunch.jpg
-lSLF07#2@14"Copy lunch.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/lunch.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/lunch.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/milk.jpg milk.jpg
-s295785790.795118
-e295785790.823502
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/milk.jpg
-xmilk.jpg
-lSLF07#2@13"Copy milk.jpg295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/milk.jpg4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/milk.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/need.gif need.gif
-s295785790.892995
-e295785790.910004
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/need.gif
-xneed.gif
-lSLF07#2@13"Copy need.gif295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/need.gif4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/need.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/needhelp.gif needhelp.gif
-s295785791.111240
-e295785791.128723
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/needhelp.gif
-xneedhelp.gif
-lSLF07#2@17"Copy needhelp.gif295785791#295785791#0(0"0(0#0#66"/Users/majjaz/Documents/Iphone Developement/iInteract/needhelp.gif4300911832#523"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/needhelp.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/play.jpg play.jpg
-s295785790.782858
-e295785790.795026
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/play.jpg
-xplay.jpg
-lSLF07#2@13"Copy play.jpg295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/play.jpg4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/play.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/pretzel.jpg pretzel.jpg
-s295785790.765404
-e295785790.782790
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/pretzel.jpg
-xpretzel.jpg
-lSLF07#2@16"Copy pretzel.jpg295785790#295785790#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/pretzel.jpg4300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/pretzel.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/sad.jpg sad.jpg
-s295785790.899388
-e295785790.911086
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/sad.jpg
-xsad.jpg
-lSLF07#2@12"Copy sad.jpg295785790#295785790#0(0"0(0#0#61"/Users/majjaz/Documents/Iphone Developement/iInteract/sad.jpg4300911832#518"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/sad.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/snacks.gif snacks.gif
-s295785791.109471
-e295785791.124651
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/snacks.gif
-xsnacks.gif
-lSLF07#2@15"Copy snacks.gif295785791#295785791#0(0"0(0#0#64"/Users/majjaz/Documents/Iphone Developement/iInteract/snacks.gif4300911832#521"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/snacks.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/soda.jpg soda.jpg
-s295785790.790382
-e295785790.817285
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/soda.jpg
-xsoda.jpg
-lSLF07#2@13"Copy soda.jpg295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/soda.jpg4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/soda.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/stomach.jpg stomach.jpg
-s295785790.763634
-e295785790.782657
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/stomach.jpg
-xstomach.jpg
-lSLF07#2@16"Copy stomach.jpg295785790#295785790#0(0"0(0#0#65"/Users/majjaz/Documents/Iphone Developement/iInteract/stomach.jpg4300911832#522"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/stomach.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/tv.jpg tv.jpg
-s295785790.776483
-e295785790.805728
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/tv.jpg
-xtv.jpg
-lSLF07#2@11"Copy tv.jpg295785790#295785790#0(0"0(0#0#60"/Users/majjaz/Documents/Iphone Developement/iInteract/tv.jpg4300911832#517"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/tv.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/want.gif want.gif
-s295785790.889628
-e295785790.914538
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/want.gif
-xwant.gif
-lSLF07#2@13"Copy want.gif295785790#295785790#0(0"0(0#0#62"/Users/majjaz/Documents/Iphone Developement/iInteract/want.gif4300911832#519"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/want.gif" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CCpResource build/Distribution-iphoneos/iInteract.app/water.jpg water.jpg
-s295785790.797084
-e295785790.826980
-r1
-xCpResource
-xbuild/Distribution-iphoneos/iInteract.app/water.jpg
-xwater.jpg
-lSLF07#2@14"Copy water.jpg295785790#295785790#0(0"0(0#0#63"/Users/majjaz/Documents/Iphone Developement/iInteract/water.jpg4300911832#520"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -exclude CVS -exclude .svn -strip-debug-symbols -resolve-src-symlinks "/Users/majjaz/Documents/Iphone Developement/iInteract/water.jpg" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
-CGenerateDSYMFile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app.dSYM" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract"
-s295785792.737333
-e295785792.767073
-r1
-xGenerateDSYMFile
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app.dSYM
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract
-lSLF07#2@115"GenerateDSYMFile build/Distribution-iphoneos/iInteract.app.dSYM build/Distribution-iphoneos/iInteract.app/iInteract295785792#295785792#0(0"0(0#0#105"/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract4300911832#433"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/usr/bin/dsymutil "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app.dSYM"0#
-
-CLd "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract" normal armv6
-s295785792.667657
-e295785792.737228
-r1
-xLd
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract
-xnormal
-xarmv6
-lSLF07#2@110"Link /Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract295785792#295785792#0(0"0(0#0#0"4300911832#975"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv IPHONEOS_DEPLOYMENT_TARGET 3.1.2    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -arch armv6 -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk "-L/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" "-F/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos" -filelist "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/Objects-normal/armv6/iInteract.LinkFileList" -dead_strip -miphoneos-version-min=3.1.2 -framework Foundation -framework UIKit -framework CoreGraphics -framework AVFoundation -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/iInteract"0#
-
-CProcessInfoPlistFile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/Info.plist" iInteract-Info.plist
-s295785788.493673
-e295785788.496858
-r1
-xProcessInfoPlistFile
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/Info.plist
-xiInteract-Info.plist
-lSLF07#2@28"Process iInteract-Info.plist295785788#295785788#0(0"0(0#0#74"/Users/majjaz/Documents/Iphone Developement/iInteract/iInteract-Info.plist4300911832#659"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    builtin-infoPlistUtility iInteract-Info.plist -genpkginfo "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/PkgInfo" -expandbuildsettings -format binary -platform iphoneos -resourcerulesfile "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/ResourceRules.plist" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/Info.plist"0#
-
-CProcessPCH /var/folders/K2/K2kJLZvcH80lpwAteO9yeU+++TI/-Caches-/com.apple.Xcode.501/SharedPrecompiledHeaders/iInteract_Prefix-bvhpwhwzqvfjifgzbctafnjvhtmt/iInteract_Prefix.pch.gch iInteract_Prefix.pch normal armv6 objective-c com.apple.compilers.gcc.4_2
-r0
-
-CProcessProductPackaging "/Users/majjaz/Library/MobileDevice/Provisioning Profiles/D4F856E0-1723-408B-A70A-BA05129EED1F.mobileprovision" "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision"
-s295785792.767174
-e295785792.793767
-r1
-xProcessProductPackaging
-x/Users/majjaz/Library/MobileDevice/Provisioning Profiles/D4F856E0-1723-408B-A70A-BA05129EED1F.mobileprovision
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision
-lSLF07#2@202"ProcessProductPackaging "/Users/majjaz/Library/MobileDevice/Provisioning Profiles/D4F856E0-1723-408B-A70A-BA05129EED1F.mobileprovision" build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision295785792#295785792#0(0"0(0#0#120"/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision4300911832#467"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    <com.apple.tools.product-pkg-utility> "/Users/majjaz/Library/MobileDevice/Provisioning Profiles/D4F856E0-1723-408B-A70A-BA05129EED1F.mobileprovision" -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app/embedded.mobileprovision"0#
-
-CProcessProductPackaging /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/Entitlements.plist "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent"
-s295785792.800974
-e295785792.847041
-r1
-xProcessProductPackaging
-x/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/Entitlements.plist
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent
-lSLF07#2@190"ProcessProductPackaging /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/Entitlements.plist build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent295785792#295785792#0(0"0(0#0#129"/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent4300911832#481"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    <com.apple.tools.product-pkg-utility> /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS3.1.2.sdk/Entitlements.plist -entitlements -format xml -o "/Users/majjaz/Documents/Iphone Developement/iInteract/build/iInteract.build/Distribution-iphoneos/iInteract.build/iInteract.xcent"0#
-
-CTouch "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"
-s295785792.793855
-e295785792.800864
-r1
-xTouch
-x/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app
-lSLF07#2@101"Touch /Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app295785792#295785792#0(0"0(0#0#0"4300911832#307"    cd "/Users/majjaz/Documents/Iphone Developement/iInteract"    setenv PATH "/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Developer/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin"    /usr/bin/touch -c "/Users/majjaz/Documents/Iphone Developement/iInteract/build/Distribution-iphoneos/iInteract.app"0#
-
