@@ -95,7 +95,7 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="Pnn-mu-mov" userLabel="Row1">
                                         <rect key="frame" x="0.0" y="0.0" width="371" height="176"/>
                                         <subviews>
-                                            <imageView tag="-1" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="dzL-CX-5CP">
+                                            <imageView tag="-1" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="dzL-CX-5CP">
                                                 <rect key="frame" x="0.0" y="0.0" width="176" height="176"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -106,7 +106,7 @@
                                                     <outletCollection property="gestureRecognizers" destination="xWH-Ye-75Y" appends="YES" id="q71-Tk-lBq"/>
                                                 </connections>
                                             </imageView>
-                                            <imageView contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cookie" translatesAutoresizingMaskIntoConstraints="NO" id="YfR-0Y-pqB">
+                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cookie" translatesAutoresizingMaskIntoConstraints="NO" id="YfR-0Y-pqB">
                                                 <rect key="frame" x="196" y="0.0" width="176" height="176"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -124,7 +124,7 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="9hi-wp-Dtc" userLabel="Row2">
                                         <rect key="frame" x="0.0" y="196" width="371" height="176"/>
                                         <subviews>
-                                            <imageView contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="dessert" translatesAutoresizingMaskIntoConstraints="NO" id="Nwh-8o-iHu">
+                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="dessert" translatesAutoresizingMaskIntoConstraints="NO" id="Nwh-8o-iHu">
                                                 <rect key="frame" x="0.0" y="0.0" width="176" height="176"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -132,7 +132,7 @@
                                                     <outletCollection property="gestureRecognizers" destination="Bd6-o1-YkO" appends="YES" id="n59-Tq-yAm"/>
                                                 </connections>
                                             </imageView>
-                                            <imageView contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cut" translatesAutoresizingMaskIntoConstraints="NO" id="Vf8-8b-jYV">
+                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cut" translatesAutoresizingMaskIntoConstraints="NO" id="Vf8-8b-jYV">
                                                 <rect key="frame" x="196" y="0.0" width="176" height="176"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -150,11 +150,11 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="Jjp-xp-jCy" userLabel="Row3">
                                         <rect key="frame" x="0.0" y="392" width="371" height="176"/>
                                         <subviews>
-                                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="c8m-GO-ZuV" userLabel="Button5">
+                                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="c8m-GO-ZuV" userLabel="Button5">
                                                 <rect key="frame" x="0.0" y="0.0" width="176" height="176"/>
                                                 <animations/>
                                             </imageView>
-                                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="happy" translatesAutoresizingMaskIntoConstraints="NO" id="4yK-NO-UOO" userLabel="Button6">
+                                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="happy" translatesAutoresizingMaskIntoConstraints="NO" id="4yK-NO-UOO" userLabel="Button6">
                                                 <rect key="frame" x="196" y="0.0" width="176" height="176"/>
                                                 <animations/>
                                             </imageView>
