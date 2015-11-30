@@ -75,14 +75,6 @@
                         <rect key="frame" x="0.0" y="0.0" width="600" height="700"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView hidden="YES" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tfn-h9-BFD" userLabel="Interaction">
-                                <rect key="frame" x="-61" y="67" width="75" height="36"/>
-                                <animations/>
-                                <gestureRecognizers/>
-                                <connections>
-                                    <outletCollection property="gestureRecognizers" destination="5sM-AV-iJf" appends="YES" id="0z5-FX-30Y"/>
-                                </connections>
-                            </imageView>
                             <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="Title" textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="c0J-mi-IYv">
                                 <rect key="frame" x="20" y="74" width="560" height="29"/>
                                 <animations/>
@@ -90,13 +82,13 @@
                                 <textInputTraits key="textInputTraits"/>
                             </textField>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="7at-PU-ir3">
-                                <rect key="frame" x="115" y="113" width="371" height="567"/>
+                                <rect key="frame" x="20" y="113" width="560" height="560"/>
                                 <subviews>
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="Pnn-mu-mov" userLabel="Row1">
-                                        <rect key="frame" x="0.0" y="0.0" width="371" height="176"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="560" height="270"/>
                                         <subviews>
                                             <imageView tag="-1" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="dzL-CX-5CP">
-                                                <rect key="frame" x="0.0" y="0.0" width="176" height="176"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
                                                 <constraints>
@@ -107,7 +99,7 @@
                                                 </connections>
                                             </imageView>
                                             <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cookie" translatesAutoresizingMaskIntoConstraints="NO" id="YfR-0Y-pqB">
-                                                <rect key="frame" x="196" y="0.0" width="176" height="176"/>
+                                                <rect key="frame" x="290" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
                                                 <connections>
@@ -122,10 +114,10 @@
                                         </constraints>
                                     </stackView>
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="9hi-wp-Dtc" userLabel="Row2">
-                                        <rect key="frame" x="0.0" y="196" width="371" height="176"/>
+                                        <rect key="frame" x="0.0" y="290" width="560" height="270"/>
                                         <subviews>
                                             <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="dessert" translatesAutoresizingMaskIntoConstraints="NO" id="Nwh-8o-iHu">
-                                                <rect key="frame" x="0.0" y="0.0" width="176" height="176"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
                                                 <connections>
@@ -133,7 +125,7 @@
                                                 </connections>
                                             </imageView>
                                             <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cut" translatesAutoresizingMaskIntoConstraints="NO" id="Vf8-8b-jYV">
-                                                <rect key="frame" x="196" y="0.0" width="176" height="176"/>
+                                                <rect key="frame" x="290" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
                                                 <connections>
@@ -147,45 +139,38 @@
                                             <constraint firstItem="Vf8-8b-jYV" firstAttribute="width" secondItem="Nwh-8o-iHu" secondAttribute="width" id="ZKU-qa-Rm9"/>
                                         </constraints>
                                     </stackView>
-                                    <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="Jjp-xp-jCy" userLabel="Row3">
-                                        <rect key="frame" x="0.0" y="392" width="371" height="176"/>
-                                        <subviews>
-                                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="c8m-GO-ZuV" userLabel="Button5">
-                                                <rect key="frame" x="0.0" y="0.0" width="176" height="176"/>
-                                                <animations/>
-                                            </imageView>
-                                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="happy" translatesAutoresizingMaskIntoConstraints="NO" id="4yK-NO-UOO" userLabel="Button6">
-                                                <rect key="frame" x="196" y="0.0" width="176" height="176"/>
-                                                <animations/>
-                                            </imageView>
-                                        </subviews>
-                                        <animations/>
-                                        <constraints>
-                                            <constraint firstItem="4yK-NO-UOO" firstAttribute="height" secondItem="c8m-GO-ZuV" secondAttribute="height" id="7SW-Vq-oRa"/>
-                                            <constraint firstItem="4yK-NO-UOO" firstAttribute="width" secondItem="c8m-GO-ZuV" secondAttribute="width" id="ijK-Md-001"/>
-                                        </constraints>
-                                    </stackView>
                                 </subviews>
                                 <animations/>
                                 <constraints>
                                     <constraint firstItem="9hi-wp-Dtc" firstAttribute="height" secondItem="Pnn-mu-mov" secondAttribute="height" id="4Np-av-AMm"/>
                                     <constraint firstItem="Nwh-8o-iHu" firstAttribute="width" secondItem="dzL-CX-5CP" secondAttribute="width" id="DGO-TZ-JL4"/>
-                                    <constraint firstItem="Jjp-xp-jCy" firstAttribute="height" secondItem="Pnn-mu-mov" secondAttribute="height" id="MPC-Qf-wlD"/>
                                     <constraint firstItem="Nwh-8o-iHu" firstAttribute="height" secondItem="dzL-CX-5CP" secondAttribute="height" id="UIM-0Q-04S"/>
                                 </constraints>
                             </stackView>
+                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="tfn-h9-BFD" userLabel="Interaction">
+                                <rect key="frame" x="20" y="113" width="560" height="560"/>
+                                <animations/>
+                                <gestureRecognizers/>
+                                <connections>
+                                    <outletCollection property="gestureRecognizers" destination="5sM-AV-iJf" appends="YES" id="0z5-FX-30Y"/>
+                                </connections>
+                            </imageView>
                         </subviews>
                         <animations/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
                             <constraint firstItem="c0J-mi-IYv" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" id="1pW-qR-byh"/>
+                            <constraint firstItem="tfn-h9-BFD" firstAttribute="top" secondItem="7at-PU-ir3" secondAttribute="top" id="1qz-0e-Bvx"/>
                             <constraint firstAttribute="trailingMargin" secondItem="7at-PU-ir3" secondAttribute="trailingMargin" priority="750" id="4Ve-ot-fNt"/>
                             <constraint firstItem="7at-PU-ir3" firstAttribute="top" secondItem="c0J-mi-IYv" secondAttribute="bottom" constant="10" id="6bw-SJ-jHW"/>
                             <constraint firstItem="c0J-mi-IYv" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="10" id="H6q-jY-Z8b"/>
                             <constraint firstItem="7at-PU-ir3" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Q7H-po-yyj"/>
+                            <constraint firstItem="tfn-h9-BFD" firstAttribute="trailing" secondItem="7at-PU-ir3" secondAttribute="trailing" id="a5D-0R-wf0"/>
                             <constraint firstItem="7at-PU-ir3" firstAttribute="bottom" relation="lessThanOrEqual" secondItem="wfy-db-euE" secondAttribute="top" constant="-20" id="h6J-b6-GJz"/>
-                            <constraint firstItem="7at-PU-ir3" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" priority="750" id="lcP-TK-jsT"/>
+                            <constraint firstItem="7at-PU-ir3" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" id="lcP-TK-jsT"/>
+                            <constraint firstItem="tfn-h9-BFD" firstAttribute="bottom" secondItem="7at-PU-ir3" secondAttribute="bottom" id="q1t-Ar-bgS"/>
                             <constraint firstItem="c0J-mi-IYv" firstAttribute="trailing" secondItem="8bC-Xf-vdC" secondAttribute="trailingMargin" id="y5O-s3-XCq"/>
+                            <constraint firstItem="tfn-h9-BFD" firstAttribute="leading" secondItem="7at-PU-ir3" secondAttribute="leading" id="ysb-bS-lap"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" title="New Panel" id="OLA-Dx-PHu">
@@ -302,7 +287,6 @@
         <image name="cookie" width="150" height="150"/>
         <image name="cut" width="150" height="150"/>
         <image name="dessert" width="150" height="150"/>
-        <image name="happy" width="72" height="85"/>
     </resources>
     <inferredMetricsTieBreakers>
         <segue reference="bfc-tz-Nfd"/>
