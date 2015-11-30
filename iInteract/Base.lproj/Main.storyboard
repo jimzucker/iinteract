@@ -87,7 +87,7 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="Pnn-mu-mov" userLabel="Row1">
                                         <rect key="frame" x="0.0" y="0.0" width="560" height="270"/>
                                         <subviews>
-                                            <imageView tag="-1" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="break" translatesAutoresizingMaskIntoConstraints="NO" id="dzL-CX-5CP">
+                                            <imageView tag="-1" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="dzL-CX-5CP">
                                                 <rect key="frame" x="0.0" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -98,7 +98,7 @@
                                                     <outletCollection property="gestureRecognizers" destination="xWH-Ye-75Y" appends="YES" id="q71-Tk-lBq"/>
                                                 </connections>
                                             </imageView>
-                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cookie" translatesAutoresizingMaskIntoConstraints="NO" id="YfR-0Y-pqB">
+                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="YfR-0Y-pqB">
                                                 <rect key="frame" x="290" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -116,7 +116,7 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="9hi-wp-Dtc" userLabel="Row2">
                                         <rect key="frame" x="0.0" y="290" width="560" height="270"/>
                                         <subviews>
-                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="dessert" translatesAutoresizingMaskIntoConstraints="NO" id="Nwh-8o-iHu">
+                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Nwh-8o-iHu">
                                                 <rect key="frame" x="0.0" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -124,7 +124,7 @@
                                                     <outletCollection property="gestureRecognizers" destination="Bd6-o1-YkO" appends="YES" id="n59-Tq-yAm"/>
                                                 </connections>
                                             </imageView>
-                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="cut" translatesAutoresizingMaskIntoConstraints="NO" id="Vf8-8b-jYV">
+                                            <imageView contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Vf8-8b-jYV">
                                                 <rect key="frame" x="290" y="0.0" width="270" height="270"/>
                                                 <animations/>
                                                 <gestureRecognizers/>
@@ -223,7 +223,7 @@
                     </connections>
                 </tapGestureRecognizer>
             </objects>
-            <point key="canvasLocation" x="1055" y="141"/>
+            <point key="canvasLocation" x="996" y="20"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="mUK-rB-VTm">
@@ -261,34 +261,10 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="hJc-8E-DQx" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="269" y="368"/>
-        </scene>
-        <!--View Controller-->
-        <scene sceneID="fnp-Ko-xDa">
-            <objects>
-                <viewController id="Bgk-lZ-Upg" sceneMemberID="viewController">
-                    <layoutGuides>
-                        <viewControllerLayoutGuide type="top" id="OKM-Hb-oiD"/>
-                        <viewControllerLayoutGuide type="bottom" id="fTc-fr-kRD"/>
-                    </layoutGuides>
-                    <view key="view" contentMode="scaleToFill" id="Xow-jy-kM0">
-                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <animations/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                    </view>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="Olu-lH-RsM" userLabel="First Responder" sceneMemberID="firstResponder"/>
-            </objects>
+            <point key="canvasLocation" x="286" y="482"/>
         </scene>
     </scenes>
-    <resources>
-        <image name="break" width="150" height="150"/>
-        <image name="cookie" width="150" height="150"/>
-        <image name="cut" width="150" height="150"/>
-        <image name="dessert" width="150" height="150"/>
-    </resources>
     <inferredMetricsTieBreakers>
-        <segue reference="bfc-tz-Nfd"/>
+        <segue reference="akx-2k-Gh6"/>
     </inferredMetricsTieBreakers>
 </document>

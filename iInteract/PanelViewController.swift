@@ -54,11 +54,18 @@ class PanelViewController: UIViewController {
             panelTitle.backgroundColor = panel.color
             panelTitle.font = self.font
             self.panelView.backgroundColor = panel.color
-                        
+            
+            //disable everything
+            for var index = 0; index < buttons.count; ++index {
+                buttons[index].userInteractionEnabled = false
+            }
+
             let numButtons = panel.interactions.count
 
             for var index = 0; index < numButtons; ++index {
-                buttons[index].image = panel.interactions[index].picture
+                let btn = buttons[index]
+                btn.image = panel.interactions[index].picture
+                btn.userInteractionEnabled = true
             }
             
             //Hide the buttons & title we need for a 'new'
