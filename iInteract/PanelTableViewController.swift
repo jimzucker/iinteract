@@ -27,47 +27,55 @@ class PanelTableViewController: UITableViewController {
    private func loadSamplePanels() {
         
         panels = [
-            Panel(title: "I feel", color: UIColor.blueColor()
+            Panel(title: "I feel"
+                , color: UIColor(red: 87.0/255.0, green: 192.0/255.0, blue: 255.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "happy" )
                     , Interaction(interactionName: "sad")
                     , Interaction(interactionName: "angry")]
             )
             
-            , Panel(title: "I need", color: UIColor.greenColor()
+            , Panel(title: "I need"
+                , color: UIColor(colorLiteralRed: 255.0/255.0, green: 255.0/255.0, blue: 83.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "drink" )
                     , Interaction(interactionName: "eat")
                     , Interaction(interactionName: "bathroom")
                     , Interaction(interactionName: "break")]
             )
             
-            , Panel(title: "I want to", color: UIColor.orangeColor()
+            , Panel(title: "I want to"
+                , color: UIColor(colorLiteralRed: 253.0/255.0, green: 135.0/255.0, blue: 39.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "tv" )
                     , Interaction(interactionName: "play")
                     , Interaction(interactionName: "book")
                     , Interaction(interactionName: "computer")]
             )
             
-            , Panel(title: "I need help", color: UIColor.redColor()
+            , Panel(title: "I need help"
+                , color: UIColor(colorLiteralRed: 251.0/255.0, green: 0.0/255.0, blue: 6.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "headache" )
                     , Interaction(interactionName: "stomach")
                     , Interaction(interactionName: "cut")]
             )
             
-            , Panel(title: "Food", color: UIColor.greenColor()
+            , Panel(title: "Food"
+                , color: UIColor(colorLiteralRed: 18.0/255.0, green: 136.0/255.0, blue: 67.0/255.0, alpha: 1.0)
+               // , color: UIColor(colorLiteralRed: 11.0/255.0, green: 85.0/255.0, blue: 39.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "breakfast" )
                     , Interaction(interactionName: "lunch")
                     , Interaction(interactionName: "dinner")
                     , Interaction(interactionName: "dessert")]
             )
             
-            , Panel(title: "Drink", color: UIColor.blueColor()
+            , Panel(title: "Drink"
+                , color: UIColor(colorLiteralRed: 42.0/255.0, green: 130.0/255.0, blue: 255.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "milk" )
                     , Interaction(interactionName: "water")
                     , Interaction(interactionName: "juice")
                     , Interaction(interactionName: "soda")]
             )
             
-            , Panel(title: "Snacks", color: UIColor.greenColor()
+            , Panel(title: "Snacks"
+                , color: UIColor(colorLiteralRed: 88.0/255.0, green: 197.0/255.0, blue: 84.0/255.0, alpha: 1.0)
                 , interactions: [Interaction(interactionName: "chips" )
                     , Interaction(interactionName: "cookie")
                     , Interaction(interactionName: "pretzel")
@@ -202,12 +210,12 @@ class PanelTableViewController: UITableViewController {
             
             // Get the cell that generated this segue.
             if let cell = sender as? PanelTableViewCell {
-                let indexPath = tableView.indexPathForCell(cell)!
-                let selectedPanel = panels[indexPath.row]
-                panelViewController.panel = selectedPanel
+                let indexPath               = tableView.indexPathForCell(cell)!
+                let selectedPanel           = panels[indexPath.row]
+                panelViewController.panel   = selectedPanel
 
                 //make the title size/font match on the list ant the panel
-                panelViewController.font = cell.panelTitle.font
+                panelViewController.font    = cell.panelTitle.font
                 
                 //setup the voice
                 panelViewController.voiceEnabled    = self.voiceEnabled
