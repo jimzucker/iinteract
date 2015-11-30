@@ -8,6 +8,7 @@
 
 
 import UIKit
+import AVFoundation
 
 class Interaction {
     
@@ -15,26 +16,66 @@ class Interaction {
     var picture: UIImage?
     var boySound: NSURL?
     var girlSound: NSURL?
-    
+
+    var audioPlayer : AVAudioPlayer?
+
     //convience method for default interactions
     init(interactionName: String) {
         
         self.picture = UIImage(named: interactionName)
         
-        if let path = NSBundle.mainBundle().pathForResource("sounds/boy_" + interactionName , ofType: "mp3") {
+/*
+        
+        let docsPath = NSBundle.mainBundle().resourcePath! + "/sounds"
+        print(docsPath)
+        let fileManager = NSFileManager.defaultManager()
+        
+        do {
+            let docsArray = try fileManager.contentsOfDirectoryAtPath(docsPath)
+            print(docsArray)
+        } catch {
+            print(error)
+        }
+
+        let xx = NSBundle.mainBundle().pathForResource("boy_" + interactionName , ofType: "mp3", inDirectory: "sounds" )
+
+        print(xx)
+        let url = NSURL.fileURLWithPath(xx!)
+        print(url)
+
+        
+        do {
+            try  audioPlayer = AVAudioPlayer(contentsOfURL: url)
+            print("Created Audio Play")
+
+        }
+        catch {
+            print(error)
+        }
+*/
+        
+        if let path = NSBundle.mainBundle().pathForResource("boy_" + interactionName , ofType: "mp3", inDirectory: "sounds" ) {
             self.boySound = NSURL.fileURLWithPath(path)
+/*
+            do {
+                try  audioPlayer = AVAudioPlayer(contentsOfURL: self.boySound!)
+                audioPlayer?.prepareToPlay()
+                print("Created Audio Play")
+                audioPlayer!.play()
+ 
+            }
+            catch {
+                print(error)
+            }
+*/
+            
         }
         else {
             self.boySound = nil
         }
 
-        if let path = NSBundle.mainBundle().pathForResource("sounds/girl_" + interactionName , ofType: "mp3") {
-            self.girlSound = NSURL.fileURLWithPath(path)
-        }
-        else {
-            self.girlSound = nil
-        }
 
+        
     }
     
 
