@@ -104,8 +104,12 @@ class PanelViewController: UIViewController {
     @IBAction func selectInteraction(recongnizer: UITapGestureRecognizer) {
         var duration = 1.0      //min duration for a transiation
         let delay = 0.5         //delay % of calculated duration
-        
+
         if let button: UIImageView = (recongnizer.view as! UIImageView) {
+            
+            //disable user interaction so it is not dismissed before the voice finishes.
+            
+            button.userInteractionEnabled = false
             
             //set the image to display
             interactionButton.alpha = hidden
@@ -143,12 +147,18 @@ class PanelViewController: UIViewController {
                 }
             }
 
-
                 //do the animation, syncronized with the audio
             UIView.animateWithDuration(duration, delay: 0.0, options: UIViewAnimationOptions.CurveEaseOut, animations: {
                 self.interactionButton.alpha = self.visible
                 }, completion: nil)
-
+            
+            //enable user interaction so the user can dismiss it
+            //delay to ensure the voice finishses first
+            let nanosec = Int64(Int(round(duration + delay*2))*Int(NSEC_PER_SEC))
+            let time = dispatch_time(dispatch_time_t(DISPATCH_TIME_NOW), nanosec)
+            dispatch_after(time, dispatch_get_main_queue()) {
+                button.userInteractionEnabled = true
+            }
         }
         
     }
