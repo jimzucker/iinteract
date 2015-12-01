@@ -103,12 +103,10 @@ class PanelViewController: UIViewController {
     
     @IBAction func selectInteraction(recongnizer: UITapGestureRecognizer) {
         var duration = 1.0      //min duration for a transiation
-        let delay = 0.5         //delay % of calculated duration
 
         if let button: UIImageView = (recongnizer.view as! UIImageView) {
             
             //disable user interaction so it is not dismissed before the voice finishes.
-            
             button.userInteractionEnabled = false
             
             //set the image to display
@@ -126,39 +124,40 @@ class PanelViewController: UIViewController {
                     }
                     
                         //create the new voice
+                    var voiceSelected : NSURL?
                     if self.voiceStyle == "girl" {
-                        try audioPlayer = AVAudioPlayer(contentsOfURL: panel!.interactions[index!].girlSound!)
+                        voiceSelected =  panel!.interactions[index!].girlSound
                     } else {
-                        try audioPlayer = AVAudioPlayer(contentsOfURL: panel!.interactions[index!].boySound!)
+                        voiceSelected =  panel!.interactions[index!].boySound
                     }
                     
-                        //get it ready to play and figure out the duration (if we dont do the prepare duration returns 0)
-                    audioPlayer?.prepareToPlay()
-                    if let recordingDuration = audioPlayer?.duration where recordingDuration > duration {
-                        duration = recordingDuration
-                    }
-                    duration -= (duration * delay)
-                    
+                    if voiceSelected != nil {
+                        
+                        try audioPlayer = AVAudioPlayer(contentsOfURL: panel!.interactions[index!].girlSound!)
+
+                            //get it ready to play and figure out the duration (if we dont do the prepare duration returns 0)
+                        audioPlayer?.prepareToPlay()
+                        if let recordingDuration = audioPlayer?.duration where recordingDuration > duration {
+                            duration = recordingDuration
+                        }
+                        
                         //ok now play it
-                    audioPlayer!.play()
+                        audioPlayer!.play()
+                    }
+                    else {
+                        print("Error sound not found: " + self.voiceStyle)
+                    }
                     
                 } catch {
-                    print("Error playing sound")
+                    print("Error creating AVAudioPlayer for: "  + self.voiceStyle)
                 }
             }
 
                 //do the animation, syncronized with the audio
             UIView.animateWithDuration(duration, delay: 0.0, options: UIViewAnimationOptions.CurveEaseOut, animations: {
                 self.interactionButton.alpha = self.visible
-                }, completion: nil)
-            
-            //enable user interaction so the user can dismiss it
-            //delay to ensure the voice finishses first
-            let nanosec = Int64(Int(round(duration + delay*2))*Int(NSEC_PER_SEC))
-            let time = dispatch_time(dispatch_time_t(DISPATCH_TIME_NOW), nanosec)
-            dispatch_after(time, dispatch_get_main_queue()) {
                 button.userInteractionEnabled = true
-            }
+                }, completion: nil)
         }
         
     }

@@ -24,7 +24,7 @@ class Interaction {
         
         self.picture = UIImage(named: interactionName)
         
-/*
+/* debug code for path to resources
         
         let docsPath = NSBundle.mainBundle().resourcePath! + "/sounds"
         print(docsPath)
@@ -53,27 +53,15 @@ class Interaction {
             print(error)
         }
 */
-        
+
+            //set boy and girl sounds
         if let path = NSBundle.mainBundle().pathForResource("boy_" + interactionName , ofType: "mp3", inDirectory: "sounds" ) {
             self.boySound = NSURL.fileURLWithPath(path)
-/*
-            do {
-                try  audioPlayer = AVAudioPlayer(contentsOfURL: self.boySound!)
-                audioPlayer?.prepareToPlay()
-                print("Created Audio Play")
-                audioPlayer!.play()
- 
-            }
-            catch {
-                print(error)
-            }
-*/
-            
         }
-        else {
-            self.boySound = nil
+        
+        if let path = NSBundle.mainBundle().pathForResource("girl_" + interactionName , ofType: "mp3", inDirectory: "sounds" ) {
+            self.girlSound = NSURL.fileURLWithPath(path)
         }
-
 
         
     }
