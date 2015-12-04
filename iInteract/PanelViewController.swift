@@ -133,7 +133,7 @@ class PanelViewController: UIViewController {
                     
                     if voiceSelected != nil {
                         
-                        try audioPlayer = AVAudioPlayer(contentsOfURL: panel!.interactions[index!].girlSound!)
+                        try audioPlayer = AVAudioPlayer(contentsOfURL: voiceSelected!)
 
                             //get it ready to play and figure out the duration (if we dont do the prepare duration returns 0)
                         audioPlayer?.prepareToPlay()
