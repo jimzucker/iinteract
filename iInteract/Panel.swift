@@ -7,6 +7,8 @@
 //
 
 import UIKit
+import Foundation
+
 
 class Panel {
     // MARK: Properties
@@ -23,6 +25,37 @@ class Panel {
         self.interactions = interactions
     }
     
+    init( dataDictionary:Dictionary<String,NSObject> ) {
+        self.title = dataDictionary["title"] as! String
+        
+        let RGB     : Dictionary<String,float_t> = dataDictionary["color"] as! Dictionary<String,float_t>
+        let red     : float_t = RGB["red"]!
+        let green   : float_t = RGB["green"]!
+        let blue    : float_t = RGB["blue"]!
+        self.color = UIColor(colorLiteralRed: red/255.0, green: green/255.0, blue: blue/255.0, alpha: 1.0)
+        
+        let interactions = dataDictionary["interactions"] as! [String]
+        
+        for item in interactions
+        {
+            self.interactions.append(Interaction(interactionName: item))
+        }
+    }
+
+    class func readFromPlist() -> [Panel] {
+        
+        var array = [Panel]()
+        let dataPath = NSBundle.mainBundle().pathForResource("panels", ofType: "plist")
+        
+        let plist = NSArray(contentsOfFile: dataPath!)
+        
+        for line in plist as! [Dictionary<String, NSObject>] {
+            let panel = Panel(dataDictionary: line)
+            array.append(panel)
+        }
+        
+        return array
+    }
 
 
 }

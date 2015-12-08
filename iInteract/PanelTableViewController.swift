@@ -25,7 +25,9 @@ class PanelTableViewController: UITableViewController {
     var displaySplashScreen : String     = ""
     
    private func loadSamplePanels() {
-        
+        panels = Panel.readFromPlist()
+    
+       /*
         panels = [
             Panel(title: "I feel"
                 , color: UIColor(red: 87.0/255.0, green: 192.0/255.0, blue: 255.0/255.0, alpha: 1.0)
@@ -83,6 +85,8 @@ class PanelTableViewController: UITableViewController {
             )
             
         ]
+    */
+
     }
 
     override func viewDidLoad() {
