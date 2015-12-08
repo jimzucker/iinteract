@@ -75,7 +75,7 @@
                                             </connections>
                                         </button>
                                     </items>
-                                    <edgeInsets key="margins" left="4" right="4" top="2" bottom="8"/>
+                                    <edgeInsets key="margins" left="4" right="4" top="2" bottom="4"/>
                                 </group>
                             </items>
                             <color key="backgroundColor" red="1" green="0.50196081400000003" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>

@@ -15,6 +15,8 @@ class InteractionInterfaceController: WKInterfaceController {
     @IBOutlet var InteractionButton: WKInterfaceButton!
     @IBOutlet var backgroundGroup: WKInterfaceGroup!
     
+   // var player : WKAudioFilePlayer?
+    
     override func awakeWithContext(context: AnyObject?) {
         super.awakeWithContext(context)
         
@@ -22,10 +24,23 @@ class InteractionInterfaceController: WKInterfaceController {
         let params = context as? [AnyObject]
         
         let interaction = params![0] as? Interaction
-        InteractionButton.setBackgroundImage(interaction?.picture)
+        let picture = interaction?.picture
+        InteractionButton.setBackgroundImage(picture)
 
         let color = params![1] as? UIColor
         backgroundGroup.setBackgroundColor(color)
+       
+/* sound seems to need a bluetooth headset
+  
+        let sound = interaction?.boySound
+        if sound != nil {
+            let asset = WKAudioFileAsset(URL: sound!)
+            let playerItem = WKAudioFilePlayerItem(asset: asset)
+            player = WKAudioFilePlayer(playerItem: playerItem)
+            player!.play()
+        }
+
+*/
     }
 
     override func willActivate() {
