@@ -42,32 +42,76 @@
             <objects>
                 <controller contentMode="scaleAspectFit" id="mRS-Ni-ZcM" customClass="PanelController" customModule="iInteractWatch_Extension">
                     <items>
-                        <imageView width="1" height="1" alignment="left" hidden="YES" image="bathroom" contentMode="scaleAspectFit" id="5Wi-xZ-WaQ"/>
-                        <group width="1" alignment="left" id="3yg-xs-xYb">
+                        <group width="1" alignment="center" layout="vertical" id="ded-0m-Y2d">
                             <items>
-                                <imageView width="55" height="55" alignment="left" contentMode="scaleAspectFit" id="Sfq-qo-44q"/>
-                                <imageView width="55" height="55" alignment="right" contentMode="scaleAspectFit" id="gpz-31-D0e"/>
+                                <label width="1" alignment="left" text="Label" textAlignment="center" id="JTH-la-6RK">
+                                    <color key="textColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                </label>
+                                <group width="1" alignment="center" spacing="8" id="3yg-xs-xYb">
+                                    <items>
+                                        <button width="55" height="55" alignment="center" id="9zN-UN-yP0">
+                                            <connections>
+                                                <segue destination="t47-vx-Q6r" kind="push" identifier="0" id="M69-iK-t9F"/>
+                                            </connections>
+                                        </button>
+                                        <button width="55" height="55" alignment="center" id="2vG-lZ-shh">
+                                            <connections>
+                                                <segue destination="t47-vx-Q6r" kind="push" identifier="1" id="xAz-49-2qD"/>
+                                            </connections>
+                                        </button>
+                                    </items>
+                                    <edgeInsets key="margins" left="4" right="4" top="4" bottom="2"/>
+                                </group>
+                                <group width="1" alignment="center" spacing="8" id="9XZ-zk-oRG">
+                                    <items>
+                                        <button width="55" height="55" alignment="center" id="GdC-vv-eFN">
+                                            <connections>
+                                                <segue destination="t47-vx-Q6r" kind="push" identifier="2" id="kWw-de-8aS"/>
+                                            </connections>
+                                        </button>
+                                        <button width="55" height="55" alignment="center" id="tay-qv-fin">
+                                            <connections>
+                                                <segue destination="t47-vx-Q6r" kind="push" identifier="3" id="Hcd-XA-7Af"/>
+                                            </connections>
+                                        </button>
+                                    </items>
+                                    <edgeInsets key="margins" left="4" right="4" top="2" bottom="8"/>
+                                </group>
                             </items>
-                            <edgeInsets key="margins" left="8" right="8" top="8" bottom="4"/>
-                        </group>
-                        <group width="1" alignment="left" id="9XZ-zk-oRG">
-                            <items>
-                                <imageView width="55" height="55" alignment="left" verticalAlignment="bottom" contentMode="scaleAspectFit" id="Stl-rC-mLg"/>
-                                <imageView width="55" height="55" alignment="right" verticalAlignment="bottom" contentMode="scaleAspectFit" id="bxh-dj-D89"/>
-                            </items>
-                            <edgeInsets key="margins" left="8" right="8" top="4" bottom="8"/>
+                            <color key="backgroundColor" red="1" green="0.50196081400000003" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                         </group>
                     </items>
                     <connections>
-                        <outlet property="Button1" destination="Sfq-qo-44q" id="2wt-Jl-qHk"/>
-                        <outlet property="Button2" destination="gpz-31-D0e" id="nD8-A4-hg7"/>
-                        <outlet property="Button3" destination="Stl-rC-mLg" id="fz4-ay-wcj"/>
-                        <outlet property="Button4" destination="bxh-dj-D89" id="ye8-qL-Usg"/>
-                        <outlet property="interactionButton" destination="5Wi-xZ-WaQ" id="DLf-QE-DUG"/>
+                        <outlet property="Button1" destination="9zN-UN-yP0" id="fFT-Lg-FSE"/>
+                        <outlet property="Button2" destination="2vG-lZ-shh" id="fBy-Ai-f1Q"/>
+                        <outlet property="Button3" destination="GdC-vv-eFN" id="pfn-cD-KTp"/>
+                        <outlet property="Button4" destination="tay-qv-fin" id="4Tb-8f-P5Y"/>
+                        <outlet property="PanelTitle" destination="JTH-la-6RK" id="Thl-Cq-Ss5"/>
+                        <outlet property="PanelVerticalGroup" destination="ded-0m-Y2d" id="gRo-py-WHT"/>
                     </connections>
                 </controller>
             </objects>
-            <point key="canvasLocation" x="509" y="346"/>
+            <point key="canvasLocation" x="471" y="347"/>
+        </scene>
+        <!--InterfaceController-->
+        <scene sceneID="zTS-yW-dFv">
+            <objects>
+                <controller identifier="InterfaceController" id="t47-vx-Q6r" customClass="InteractionInterfaceController" customModule="iInteractWatch_Extension">
+                    <items>
+                        <group width="1" height="1" alignment="left" id="5wn-4N-aTS">
+                            <items>
+                                <button width="0.84999999999999998" height="0.84999999999999998" alignment="center" verticalAlignment="center" id="oYA-Df-Xt8"/>
+                            </items>
+                            <color key="backgroundColor" red="1" green="1" blue="0.40000000600000002" alpha="1" colorSpace="calibratedRGB"/>
+                        </group>
+                    </items>
+                    <connections>
+                        <outlet property="InteractionButton" destination="oYA-Df-Xt8" id="szq-q7-ORu"/>
+                        <outlet property="backgroundGroup" destination="5wn-4N-aTS" id="3od-hb-nxi"/>
+                    </connections>
+                </controller>
+            </objects>
+            <point key="canvasLocation" x="736" y="343"/>
         </scene>
         <!--Glance Interface Controller-->
         <scene sceneID="BOz-TT-tkC">
@@ -106,4 +150,7 @@
             <point key="canvasLocation" x="553" y="1001"/>
         </scene>
     </scenes>
+    <inferredMetricsTieBreakers>
+        <segue reference="Hcd-XA-7Af"/>
+    </inferredMetricsTieBreakers>
 </document>

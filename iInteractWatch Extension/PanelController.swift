@@ -13,38 +13,39 @@ import Foundation
 class PanelController: WKInterfaceController {
 
     //Mark : Properties
-    @IBOutlet var Button1: WKInterfaceImage!
-    @IBOutlet var Button2: WKInterfaceImage!
-    @IBOutlet var Button3: WKInterfaceImage!
-    @IBOutlet var Button4: WKInterfaceImage!
-    @IBOutlet var interactionButton: WKInterfaceImage!
+    @IBOutlet var PanelVerticalGroup: WKInterfaceGroup!
+    @IBOutlet var PanelTitle: WKInterfaceLabel!
+    @IBOutlet var Button1: WKInterfaceButton!
+    @IBOutlet var Button2: WKInterfaceButton!
+    @IBOutlet var Button3: WKInterfaceButton!
+    @IBOutlet var Button4: WKInterfaceButton!
     
     
-    var buttons = [WKInterfaceImage]()
-
+    var panel : Panel?
+    
     //Mark :  Functions
     override func awakeWithContext(context: AnyObject?) {
         super.awakeWithContext(context)
         
-        buttons = [self.Button1,self.Button2,self.Button3,self.Button4]
-        interactionButton.setHidden(true)
+        let buttons = [self.Button1,self.Button2,self.Button3,self.Button4]
         
         for button in buttons {
             button.setHidden(true)
         }
-        
-        if self.Button1 != nil {
-            // Configure interface objects here.
-            let panel = context as! Panel
-            var i = 0
-            for interaction in panel.interactions {
-                let button = buttons[i++]
-                button.setHidden(false)
-                button.setImage(interaction.picture)
-            }
+    
+        // Configure interface objects here.
+        self.panel = context as? Panel
+        PanelVerticalGroup.setBackgroundColor(panel!.color)
+        PanelTitle.setText(panel!.title + " ...")
+        PanelTitle.setTextColor(UIColor.blackColor())
+
+        var i = 0
+        for interaction in panel!.interactions {
+            let button = buttons[i++]
+            button.setHidden(false)
+            button.setBackgroundImage(interaction.picture)
         }
 
-    
     }
 
     override func willActivate() {
@@ -57,12 +58,15 @@ class PanelController: WKInterfaceController {
         super.didDeactivate()
     }
     
-    private func showSplashScreen() {
-        interactionButton.setHidden(true)
+    
+    override func contextForSegueWithIdentifier(segueIdentifier: String) -> AnyObject? {
+        let index = Int(segueIdentifier)
+        
+        //return the interaction object so we can draw the button etc
+        let interaction = panel!.interactions[index!]
+        let color = panel!.color
+        let params : [AnyObject]? = [interaction,color]
+        return params
     }
     
-    private func hideSplashScreen() {
-        interactionButton.setHidden(false)
-    }
-
 }
