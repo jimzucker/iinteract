@@ -53,4 +53,7 @@ class InteractionInterfaceController: WKInterfaceController {
         super.didDeactivate()
     }
 
+    @IBAction func cancel() {
+        popController()
+    }
 }

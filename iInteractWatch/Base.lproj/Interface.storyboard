@@ -107,7 +107,11 @@
                     <items>
                         <group width="1" height="1" alignment="left" id="5wn-4N-aTS">
                             <items>
-                                <button width="0.84999999999999998" height="0.84999999999999998" alignment="center" verticalAlignment="center" id="oYA-Df-Xt8"/>
+                                <button width="0.84999999999999998" height="0.84999999999999998" alignment="center" verticalAlignment="center" id="oYA-Df-Xt8">
+                                    <connections>
+                                        <action selector="cancel" destination="t47-vx-Q6r" id="hz0-1I-M2Y"/>
+                                    </connections>
+                                </button>
                             </items>
                             <color key="backgroundColor" red="1" green="1" blue="0.40000000600000002" alpha="1" colorSpace="calibratedRGB"/>
                         </group>
