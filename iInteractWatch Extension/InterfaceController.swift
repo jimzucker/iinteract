@@ -16,8 +16,8 @@ class InterfaceController: WKInterfaceController {
     var panels:[Panel] = [Panel]()
     
     override func awakeWithContext(context: AnyObject?) {
-        panels = Panel.readFromPlist()
         super.awakeWithContext(context)
+        panels = Panel.readFromPlist()
     }
     
     override func willActivate() {

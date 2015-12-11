@@ -27,14 +27,16 @@ class PanelController: WKInterfaceController {
     override func awakeWithContext(context: AnyObject?) {
         super.awakeWithContext(context)
         
+        let selectedPanel = context as? Panel
+
+        //if we are already configured skip this ;)
         let buttons = [self.Button1,self.Button2,self.Button3,self.Button4]
-        
         for button in buttons {
             button.setHidden(true)
         }
     
         // Configure interface objects here.
-        self.panel = context as? Panel
+        self.panel = selectedPanel
         PanelVerticalGroup.setBackgroundColor(panel!.color)
         PanelTitle.setText(panel!.title + " ...")
         PanelTitle.setTextColor(UIColor.blackColor())

@@ -14,7 +14,8 @@ class ComplicationController: NSObject, CLKComplicationDataSource {
     // MARK: - Timeline Configuration
     
     func getSupportedTimeTravelDirectionsForComplication(complication: CLKComplication, withHandler handler: (CLKComplicationTimeTravelDirections) -> Void) {
-        handler([.Forward, .Backward])
+        // Turn off time travelling
+        handler([.None])
     }
     
     func getTimelineStartDateForComplication(complication: CLKComplication, withHandler handler: (NSDate?) -> Void) {
@@ -57,7 +58,31 @@ class ComplicationController: NSObject, CLKComplicationDataSource {
     
     func getPlaceholderTemplateForComplication(complication: CLKComplication, withHandler handler: (CLKComplicationTemplate?) -> Void) {
         // This method will be called once per supported complication, and the results will be cached
-        handler(nil)
+        var template: CLKComplicationTemplate? = nil
+//        let iconColor = UIColor(red: 255.0, green: 222.0, blue: 0.0, alpha: 1.0)
+        let iconColor = UIColor.yellowColor()
+        
+        switch complication.family {
+        case .ModularSmall:
+            let imageTemplate = CLKComplicationTemplateModularSmallSimpleImage()
+            imageTemplate.imageProvider = CLKImageProvider(onePieceImage: UIImage(named: "Complication/Modular")!)
+            imageTemplate.tintColor = iconColor
+            template = imageTemplate as CLKComplicationTemplate
+        case .ModularLarge:
+            template = nil
+        case .UtilitarianSmall:
+            let imageTemplate = CLKComplicationTemplateUtilitarianSmallRingImage()
+            imageTemplate.imageProvider = CLKImageProvider(onePieceImage: UIImage(named: "Complication/Utilitarian")!)
+            imageTemplate.tintColor = iconColor
+            template = imageTemplate as CLKComplicationTemplate
+        case .UtilitarianLarge:
+            template = nil
+        case .CircularSmall:
+            let imageTemplate = CLKComplicationTemplateCircularSmallSimpleImage()
+            imageTemplate.imageProvider = CLKImageProvider(onePieceImage: UIImage(named: "Complication/Circular")!)
+            imageTemplate.tintColor = iconColor
+            template = imageTemplate as CLKComplicationTemplate
+        }
+        handler(template)
     }
-    
 }
