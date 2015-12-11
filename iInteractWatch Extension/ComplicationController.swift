@@ -59,8 +59,8 @@ class ComplicationController: NSObject, CLKComplicationDataSource {
     func getPlaceholderTemplateForComplication(complication: CLKComplication, withHandler handler: (CLKComplicationTemplate?) -> Void) {
         // This method will be called once per supported complication, and the results will be cached
         var template: CLKComplicationTemplate? = nil
-//        let iconColor = UIColor(red: 255.0, green: 222.0, blue: 0.0, alpha: 1.0)
-        let iconColor = UIColor.yellowColor()
+        let iconColor = UIColor(red: 255.0, green: 222.0, blue: 0.0, alpha: 1.0)
+//        let iconColor = UIColor.yellowColor()
         
         switch complication.family {
         case .ModularSmall:

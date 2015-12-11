@@ -21,7 +21,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>3</string>
 	<key>CLKComplicationPrincipalClass</key>
 	<string>$(PRODUCT_MODULE_NAME).ComplicationController</string>
 	<key>CLKComplicationSupportedFamilies</key>
@@ -29,6 +29,7 @@
 		<string>CLKComplicationFamilyUtilitarianSmall</string>
 		<string>CLKComplicationFamilyModularSmall</string>
 		<string>CLKComplicationFamilyCircularSmall</string>
+		<string>CLKComplicationFamilyModularLarge</string>
 	</array>
 	<key>NSExtension</key>
 	<dict>
