@@ -43,7 +43,8 @@ class PanelController: WKInterfaceController {
 
         var i = 0
         for interaction in panel!.interactions {
-            let button = buttons[i++]
+            let button = buttons[i]
+            i+=1
             button.setHidden(false)
             button.setBackgroundImage(interaction.picture)
         }

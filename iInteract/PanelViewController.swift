@@ -56,13 +56,13 @@ class PanelViewController: UIViewController {
             self.panelView.backgroundColor = panel.color
             
             //disable everything
-            for var index = 0; index < buttons.count; ++index {
+            for index in 0 ..< buttons.count {
                 buttons[index].userInteractionEnabled = false
             }
 
             let numButtons = panel.interactions.count
 
-            for var index = 0; index < numButtons; ++index {
+            for index in 0 ..< numButtons {
                 let btn = buttons[index]
                 btn.image = panel.interactions[index].picture
                 btn.userInteractionEnabled = true

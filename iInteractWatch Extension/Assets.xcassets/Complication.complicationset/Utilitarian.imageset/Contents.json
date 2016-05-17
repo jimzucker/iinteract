@@ -2,6 +2,10 @@
   "images" : [
     {
       "idiom" : "watch",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "watch",
       "filename" : "Watch38MMSquareComplicationUtility.png",
       "screen-width" : "<=145",
       "scale" : "2x"

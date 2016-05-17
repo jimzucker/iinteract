@@ -35,7 +35,7 @@ class InterfaceController: WKInterfaceController {
         
         tableView.setRowTypes(rowTypesList)
         
-        for var i = 0; i < tableView.numberOfRows; i++ {
+        for var i = 0; i < tableView.numberOfRows; i += 1 {
             
             let panelRow = tableView.rowControllerAtIndex(i) as! PanelRow
             let panel = panels[i]

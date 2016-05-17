@@ -99,7 +99,7 @@ class PanelTableViewController: UITableViewController {
         }
         
         //register for settings
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "settingsChanged", name: NSUserDefaultsDidChangeNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(PanelTableViewController.settingsChanged), name: NSUserDefaultsDidChangeNotification, object: nil)
   
         //update settings
         updateSettings()
