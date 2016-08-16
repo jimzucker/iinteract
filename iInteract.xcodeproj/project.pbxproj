@@ -39,8 +39,6 @@
 		6DDF8DF21C1207B100A156E5 /* iInteractWatch Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 6DDF8DF11C1207B100A156E5 /* iInteractWatch Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6DDF8DF91C1207B100A156E5 /* InterfaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8DF81C1207B100A156E5 /* InterfaceController.swift */; };
 		6DDF8DFB1C1207B100A156E5 /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */; };
-		6DDF8DFF1C1207B100A156E5 /* GlanceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8DFE1C1207B100A156E5 /* GlanceController.swift */; };
-		6DDF8E011C1207B100A156E5 /* ComplicationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8E001C1207B100A156E5 /* ComplicationController.swift */; };
 		6DDF8E031C1207B100A156E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6DDF8E021C1207B100A156E5 /* Assets.xcassets */; };
 		6DDF8E071C1207B100A156E5 /* iInteractWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6DDF8DE51C1207B100A156E5 /* iInteractWatch.app */; };
 /* End PBXBuildFile section */
@@ -125,8 +123,6 @@
 		6DDF8DF71C1207B100A156E5 /* PushNotificationPayload.apns */ = {isa = PBXFileReference; lastKnownFileType = text; path = PushNotificationPayload.apns; sourceTree = "<group>"; };
 		6DDF8DF81C1207B100A156E5 /* InterfaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceController.swift; sourceTree = "<group>"; };
 		6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
-		6DDF8DFE1C1207B100A156E5 /* GlanceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlanceController.swift; sourceTree = "<group>"; };
-		6DDF8E001C1207B100A156E5 /* ComplicationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplicationController.swift; sourceTree = "<group>"; };
 		6DDF8E021C1207B100A156E5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6DDF8E041C1207B100A156E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = "iInteractWatch Extension/Info.plist"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -228,8 +224,6 @@
 				6D8DD4351C1644A1009C7AFB /* PanelRow.swift */,
 				6DDF8DF81C1207B100A156E5 /* InterfaceController.swift */,
 				6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */,
-				6DDF8DFE1C1207B100A156E5 /* GlanceController.swift */,
-				6DDF8E001C1207B100A156E5 /* ComplicationController.swift */,
 				6DDF8E021C1207B100A156E5 /* Assets.xcassets */,
 				6DDF8DF61C1207B100A156E5 /* Supporting Files */,
 			);
@@ -443,12 +437,10 @@
 				6D3A77F81C174E5E0007ED22 /* InteractionInterfaceController.swift in Sources */,
 				6D8DD43B1C165BD3009C7AFB /* PanelController.swift in Sources */,
 				6D8DD4371C1644A1009C7AFB /* PanelRow.swift in Sources */,
-				6DDF8E011C1207B100A156E5 /* ComplicationController.swift in Sources */,
 				6DDF8DF91C1207B100A156E5 /* InterfaceController.swift in Sources */,
 				6D8DD4341C164336009C7AFB /* Panel.swift in Sources */,
 				6D8DD42C1C162E5C009C7AFB /* Interaction.swift in Sources */,
 				6DDBF9CC1C125BC30094C150 /* Event.swift in Sources */,
-				6DDF8DFF1C1207B100A156E5 /* GlanceController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -668,7 +660,7 @@
 		6DDF8E0A1C1207B100A156E5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
+				ASSETCATALOG_COMPILER_COMPLICATION_NAME = "";
 				INFOPLIST_FILE = "iInteractWatch Extension/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp.watchkitextension;
@@ -683,7 +675,7 @@
 		6DDF8E0B1C1207B100A156E5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
+				ASSETCATALOG_COMPILER_COMPLICATION_NAME = "";
 				INFOPLIST_FILE = "iInteractWatch Extension/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp.watchkitextension;
