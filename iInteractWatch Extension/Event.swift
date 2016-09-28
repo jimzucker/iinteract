@@ -20,14 +20,14 @@ class Event {
         eventImageName = dataDictionary["eventImageName"]
     }
     
-    class func newEvent(dataDictionary:Dictionary<String,String>) -> Event {
+    class func newEvent(_ dataDictionary:Dictionary<String,String>) -> Event {
         return Event(dataDictionary: dataDictionary)
     }
     
     class func eventsList() -> [Event] {
         
         var array = [Event]()
-        let dataPath = NSBundle.mainBundle().pathForResource("events", ofType: "plist")
+        let dataPath = Bundle.main.path(forResource: "events", ofType: "plist")
         
         let data = NSArray(contentsOfFile: dataPath!)
         

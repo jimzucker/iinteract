@@ -14,8 +14,8 @@ class Interaction {
     // MARK: Properties
     var name: String?
     var picture: UIImage?
-    var boySound: NSURL?
-    var girlSound: NSURL?
+    var boySound: URL?
+    var girlSound: URL?
 
     //convience method for default interactions
     init(interactionName: String) {
@@ -24,17 +24,17 @@ class Interaction {
         self.picture = UIImage(named: name!)
 
             //set boy and girl sounds
-        if let path = NSBundle.mainBundle().pathForResource("boy_" + name! , ofType: "mp3", inDirectory: "sounds" ) {
-            self.boySound = NSURL.fileURLWithPath(path)
+        if let path = Bundle.main.path(forResource: "boy_" + name! , ofType: "mp3", inDirectory: "sounds" ) {
+            self.boySound = URL(fileURLWithPath: path)
         }
         
-        if let path = NSBundle.mainBundle().pathForResource("girl_" + name! , ofType: "mp3", inDirectory: "sounds" ) {
-            self.girlSound = NSURL.fileURLWithPath(path)
+        if let path = Bundle.main.path(forResource: "girl_" + name! , ofType: "mp3", inDirectory: "sounds" ) {
+            self.girlSound = URL(fileURLWithPath: path)
         }
     }
     
 
-    init(interactionName: String, picture: UIImage, boySound: NSURL?, girlSound: NSURL?) {
+    init(interactionName: String, picture: UIImage, boySound: URL?, girlSound: URL?) {
         self.name = interactionName
         self.picture = picture
         self.boySound = boySound

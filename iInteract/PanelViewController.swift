@@ -57,7 +57,7 @@ class PanelViewController: UIViewController {
             
             //disable everything
             for index in 0 ..< buttons.count {
-                buttons[index].userInteractionEnabled = false
+                buttons[index].isUserInteractionEnabled = false
             }
 
             let numButtons = panel.interactions.count
@@ -65,7 +65,7 @@ class PanelViewController: UIViewController {
             for index in 0 ..< numButtons {
                 let btn = buttons[index]
                 btn.image = panel.interactions[index].picture
-                btn.userInteractionEnabled = true
+                btn.isUserInteractionEnabled = true
             }
             
             //Hide the buttons & title we need for a 'new'
@@ -88,26 +88,26 @@ class PanelViewController: UIViewController {
     }
 
     // MARK: Actions
-    @IBAction func cancel(sender: UIBarButtonItem) {
+    @IBAction func cancel(_ sender: UIBarButtonItem) {
         
         // Depending on style of presentation (modal or push presentation), this view controller needs to be dismissed in two different ways.
         let isPresentingInAddMealMode = presentingViewController is UINavigationController
         if isPresentingInAddMealMode {
-            dismissViewControllerAnimated(true, completion: nil)
+            dismiss(animated: true, completion: nil)
         } else {
-            navigationController!.popViewControllerAnimated(true)
+            navigationController!.popViewController(animated: true)
         }
 
     }
     
     
-    @IBAction func selectInteraction(recongnizer: UITapGestureRecognizer) {
+    @IBAction func selectInteraction(_ recongnizer: UITapGestureRecognizer) {
         var duration = 1.0      //min duration for a transiation
 
-        if let button: UIImageView = (recongnizer.view as! UIImageView) {
+        if let button: UIImageView = recongnizer.view as! UIImageView? {
             
             //disable user interaction so it is not dismissed before the voice finishes.
-            button.userInteractionEnabled = false
+            button.isUserInteractionEnabled = false
             
             //set the image to display
             interactionButton.alpha = hidden
@@ -115,7 +115,7 @@ class PanelViewController: UIViewController {
 
                 //if the voice is enabled load it
             if self.voiceEnabled {
-                let index = buttons.indexOf(button)
+                let index = buttons.index(of: button)
                 do {
                         //ensure we cleaned up the last time we ran
                     if audioPlayer != nil {
@@ -124,20 +124,20 @@ class PanelViewController: UIViewController {
                     }
                     
                         //create the new voice
-                    var voiceSelected : NSURL?
+                    var voiceSelected : URL?
                     if self.voiceStyle == "girl" {
-                        voiceSelected =  panel!.interactions[index!].girlSound
+                        voiceSelected =  panel!.interactions[index!].girlSound as URL?
                     } else {
-                        voiceSelected =  panel!.interactions[index!].boySound
+                        voiceSelected =  panel!.interactions[index!].boySound as URL?
                     }
                     
                     if voiceSelected != nil {
                         
-                        try audioPlayer = AVAudioPlayer(contentsOfURL: voiceSelected!)
+                        try audioPlayer = AVAudioPlayer(contentsOf: voiceSelected!)
 
                             //get it ready to play and figure out the duration (if we dont do the prepare duration returns 0)
                         audioPlayer?.prepareToPlay()
-                        if let recordingDuration = audioPlayer?.duration where recordingDuration > duration {
+                        if let recordingDuration = audioPlayer?.duration , recordingDuration > duration {
                             duration = recordingDuration
                         }
                         
@@ -154,18 +154,18 @@ class PanelViewController: UIViewController {
             }
 
                 //do the animation, syncronized with the audio
-            UIView.animateWithDuration(duration, delay: 0.0, options: UIViewAnimationOptions.CurveEaseOut, animations: {
+            UIView.animate(withDuration: duration, delay: 0.0, options: UIViewAnimationOptions.curveEaseOut, animations: {
                 self.interactionButton.alpha = self.visible
-                button.userInteractionEnabled = true
+                button.isUserInteractionEnabled = true
                 }, completion: nil)
         }
         
     }
     
-    @IBAction func  hideInteraction(recongnizer: UITapGestureRecognizer) {
+    @IBAction func  hideInteraction(_ recongnizer: UITapGestureRecognizer) {
         let duration = 1.0
         
-        UIView.animateWithDuration(duration, delay: 0.0, options: UIViewAnimationOptions.CurveEaseOut, animations: {
+        UIView.animate(withDuration: duration, delay: 0.0, options: UIViewAnimationOptions.curveEaseOut, animations: {
             self.interactionButton.alpha = self.hidden
                 }, completion: nil)
     }

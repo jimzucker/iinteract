@@ -17,8 +17,8 @@ class InteractionInterfaceController: WKInterfaceController {
     
    // var player : WKAudioFilePlayer?
     
-    override func awakeWithContext(context: AnyObject?) {
-        super.awakeWithContext(context)
+    override func awake(withContext context: Any?) {
+        super.awake(withContext: context)
         
         // Configure interface objects here.
         let params = context as? [AnyObject]
@@ -54,6 +54,6 @@ class InteractionInterfaceController: WKInterfaceController {
     }
 
     @IBAction func cancel() {
-        popController()
+        pop()
     }
 }

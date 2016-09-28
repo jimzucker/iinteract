@@ -15,8 +15,8 @@ class InterfaceController: WKInterfaceController {
     @IBOutlet var tableView:WKInterfaceTable!
     var panels:[Panel] = [Panel]()
     
-    override func awakeWithContext(context: AnyObject?) {
-        super.awakeWithContext(context)
+    override func awake(withContext context: Any?) {
+        super.awake(withContext: context)
         panels = Panel.readFromPlist()
     }
     
@@ -25,7 +25,7 @@ class InterfaceController: WKInterfaceController {
         setupTable()
     }
     
-    private func setupTable() {
+    fileprivate func setupTable() {
 
         var rowTypesList = [String]()
         
@@ -37,7 +37,7 @@ class InterfaceController: WKInterfaceController {
         
         for i in 0 ..< tableView.numberOfRows {
             
-            let panelRow = tableView.rowControllerAtIndex(i) as! PanelRow
+            let panelRow = tableView.rowController(at: i) as! PanelRow
             let panel = panels[i]
             panelRow.button.setTitle(panel.title)
             panelRow.button.setBackgroundColor(panel.color)
@@ -45,7 +45,7 @@ class InterfaceController: WKInterfaceController {
         
     }
     
-    override func contextForSegueWithIdentifier(segueIdentifier: String, inTable table: WKInterfaceTable, rowIndex: Int) -> AnyObject? {
+    override func contextForSegue(withIdentifier segueIdentifier: String, in table: WKInterfaceTable, rowIndex: Int) -> Any? {
         return panels[rowIndex]
     }
     

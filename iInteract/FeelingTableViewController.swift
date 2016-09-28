@@ -1,5 +1,5 @@
 //
-//  PanelTableViewController.swift
+//  FeelingTableViewController.swift
 //  iInteract
 //
 //  Created by Jim Zucker on 11/17/15.
@@ -8,7 +8,7 @@
 
 import UIKit
 
-class PanelTableViewController: UITableViewController {
+class FeelingTableViewController: UITableViewController {
 
     // MARK: Properties
     
@@ -24,69 +24,8 @@ class PanelTableViewController: UITableViewController {
     //dislay splash screen 1 time then disable it by setting a preference, we use an int so we can show newer splash screens, it will be set to the current version # once it shows
     var displaySplashScreen : String     = ""
     
-   private func loadSamplePanels() {
+   fileprivate func loadPanels() {
         panels = Panel.readFromPlist()
-    
-       /*
-        panels = [
-            Panel(title: "I feel"
-                , color: UIColor(red: 87.0/255.0, green: 192.0/255.0, blue: 255.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "happy" )
-                    , Interaction(interactionName: "sad")
-                    , Interaction(interactionName: "angry")]
-            )
-            
-            , Panel(title: "I need"
-                , color: UIColor(colorLiteralRed: 255.0/255.0, green: 255.0/255.0, blue: 83.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "drink" )
-                    , Interaction(interactionName: "eat")
-                    , Interaction(interactionName: "bathroom")
-                    , Interaction(interactionName: "break")]
-            )
-            
-            , Panel(title: "I want to"
-                , color: UIColor(colorLiteralRed: 253.0/255.0, green: 135.0/255.0, blue: 39.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "tv" )
-                    , Interaction(interactionName: "play")
-                    , Interaction(interactionName: "book")
-                    , Interaction(interactionName: "computer")]
-            )
-            
-            , Panel(title: "I need help"
-                , color: UIColor(colorLiteralRed: 251.0/255.0, green: 0.0/255.0, blue: 6.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "headache" )
-                    , Interaction(interactionName: "stomach")
-                    , Interaction(interactionName: "cut")]
-            )
-            
-            , Panel(title: "Food"
-                , color: UIColor(colorLiteralRed: 18.0/255.0, green: 136.0/255.0, blue: 67.0/255.0, alpha: 1.0)
-               // , color: UIColor(colorLiteralRed: 11.0/255.0, green: 85.0/255.0, blue: 39.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "breakfast" )
-                    , Interaction(interactionName: "lunch")
-                    , Interaction(interactionName: "dinner")
-                    , Interaction(interactionName: "dessert")]
-            )
-            
-            , Panel(title: "Drink"
-                , color: UIColor(colorLiteralRed: 42.0/255.0, green: 130.0/255.0, blue: 255.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "milk" )
-                    , Interaction(interactionName: "water")
-                    , Interaction(interactionName: "juice")
-                    , Interaction(interactionName: "soda")]
-            )
-            
-            , Panel(title: "Snacks"
-                , color: UIColor(colorLiteralRed: 88.0/255.0, green: 197.0/255.0, blue: 84.0/255.0, alpha: 1.0)
-                , interactions: [Interaction(interactionName: "chips" )
-                    , Interaction(interactionName: "cookie")
-                    , Interaction(interactionName: "pretzel")
-                    , Interaction(interactionName: "fruit")]
-            )
-            
-        ]
-    */
-
     }
 
     override func viewDidLoad() {
@@ -99,7 +38,7 @@ class PanelTableViewController: UITableViewController {
         }
         
         //register for settings
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(PanelTableViewController.settingsChanged), name: NSUserDefaultsDidChangeNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.settingsChanged), name: UserDefaults.didChangeNotification, object: nil)
   
         //update settings
         updateSettings()
@@ -108,7 +47,7 @@ class PanelTableViewController: UITableViewController {
 //        UIApplication.sharedApplication().openURL(NSURL(string: UIApplicationOpenSettingsURLString)!)
         
         //load sample data
-        loadSamplePanels()
+        loadPanels()
         
         //show the splash screen if this is a new version
         showSplashScreen()
@@ -127,23 +66,23 @@ class PanelTableViewController: UITableViewController {
 
     // MARK: - Table view data source
 
-    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+    override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
 
-    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return panels.count
     }
 
     
-    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
  
         // Table view cells are reused and should be dequeued using a cell identifier.
-        let cellIdentifier = "PanelTableViewCell"
+        let cellIdentifier = "FeelingTableViewCell"
 
         //get panel for the selected cell
-        let cell = tableView.dequeueReusableCellWithIdentifier(cellIdentifier, forIndexPath: indexPath) as! PanelTableViewCell
-        let panel = panels[indexPath.row]
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier, for: indexPath) as! FeelingTableViewCell
+        let panel = panels[(indexPath as NSIndexPath).row]
 
         //update the cell
         cell.panelTitle.text = panel.title
@@ -154,14 +93,15 @@ class PanelTableViewController: UITableViewController {
     
 
     //new to review this when we add rows
-    override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
-
-        
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         //scale the cells to use the whole view
         let numberRows = panels.count
-        let heightView = tableView.frame.height - tableView.sectionHeaderHeight - tableView.sectionFooterHeight
-        let heightOfCell = heightView/CGFloat(numberRows)
+        let heightView = tableView.frame.size.height //this actually returns the height of the screen so we have to subtract StatusBar and NavBar
+        let navBarHeight = self.navigationController?.navigationBar.frame.size.height
+        let statusBarHeight = self.topLayoutGuide.length-(self.navigationController?.navigationBar.frame.height)!
+        let heightScrollView = heightView - navBarHeight! - statusBarHeight
 
+        let heightOfCell = heightScrollView/CGFloat(numberRows)
         return heightOfCell
     }
 
@@ -204,18 +144,18 @@ class PanelTableViewController: UITableViewController {
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Get the new view controller using segue.destinationViewController.
         // Pass the selected object to the new view controller.
         
         if segue.identifier == "ShowPanel" {
             
-            let panelViewController = segue.destinationViewController as! PanelViewController
+            let panelViewController = segue.destination as! PanelViewController
             
             // Get the cell that generated this segue.
-            if let cell = sender as? PanelTableViewCell {
-                let indexPath               = tableView.indexPathForCell(cell)!
-                let selectedPanel           = panels[indexPath.row]
+            if let cell = sender as? FeelingTableViewCell {
+                let indexPath               = tableView.indexPath(for: cell)!
+                let selectedPanel           = panels[(indexPath as NSIndexPath).row]
                 panelViewController.panel   = selectedPanel
 
                 //make the title size/font match on the list ant the panel
@@ -235,12 +175,12 @@ class PanelTableViewController: UITableViewController {
     
     // MARK: - Settings
  
-    private func updateSettings() {
-        let userDefaults = NSUserDefaults.standardUserDefaults()
-        voiceEnabled = userDefaults.boolForKey("voice_enabled")
-        voiceStyle = userDefaults.stringForKey("voice_style")!
-        enableConfiguration = userDefaults.boolForKey("configuration_enabled")
-        displaySplashScreen = userDefaults.stringForKey("displaySplashScreen")!
+    fileprivate func updateSettings() {
+        let userDefaults = UserDefaults.standard
+        voiceEnabled = userDefaults.bool(forKey: "voice_enabled")
+        voiceStyle = userDefaults.string(forKey: "voice_style")!
+        enableConfiguration = userDefaults.bool(forKey: "configuration_enabled")
+        displaySplashScreen = userDefaults.string(forKey: "displaySplashScreen")!
         
             //show hide the configuration buttons
         if !enableConfiguration {
@@ -257,8 +197,8 @@ class PanelTableViewController: UITableViewController {
     }
     
     // Mark: Splash Screen
-    private func showSplashScreen() {
-        let nsObject: AnyObject? = NSBundle.mainBundle().infoDictionary!["CFBundleShortVersionString"]
+    fileprivate func showSplashScreen() {
+        let nsObject: AnyObject? = Bundle.main.infoDictionary!["CFBundleShortVersionString"] as AnyObject?
         let appVersion = nsObject as! String
 
         if displaySplashScreen != appVersion {
@@ -267,30 +207,30 @@ class PanelTableViewController: UITableViewController {
             //Create the AlertController
             let actionSheetController: UIAlertController = UIAlertController(title: "Voice Style"
                 , message: "Select default voice, you can change it any time under settings."
-                , preferredStyle: .Alert)
+                , preferredStyle: .alert)
             
             //Create the choices
-            let boyVoice: UIAlertAction = UIAlertAction(title: "Boy", style: .Default) { action -> Void in
+            let boyVoice: UIAlertAction = UIAlertAction(title: "Boy", style: .default) { action -> Void in
                 self.voiceStyle = "boy"
-                let userDefaults = NSUserDefaults.standardUserDefaults()
-                userDefaults.setObject( self.voiceStyle , forKey: "voice_style")
+                let userDefaults = UserDefaults.standard
+                userDefaults.set( self.voiceStyle , forKey: "voice_style")
                 userDefaults.synchronize()
             }
             actionSheetController.addAction(boyVoice)
-            let girlVoice: UIAlertAction = UIAlertAction(title: "Girl", style: .Default) { action -> Void in
+            let girlVoice: UIAlertAction = UIAlertAction(title: "Girl", style: .default) { action -> Void in
                 self.voiceStyle = "girl"
-                let userDefaults = NSUserDefaults.standardUserDefaults()
-                userDefaults.setObject( self.voiceStyle , forKey: "voice_style")
+                let userDefaults = UserDefaults.standard
+                userDefaults.set( self.voiceStyle , forKey: "voice_style")
                 userDefaults.synchronize()
             }
             actionSheetController.addAction(girlVoice)
 
             //Present the AlertController
-            self.presentViewController(actionSheetController, animated: true, completion: nil)
+            self.present(actionSheetController, animated: true, completion: nil)
 
             //Remember not to show it again!
-            let userDefaults = NSUserDefaults.standardUserDefaults()
-            userDefaults.setObject( appVersion , forKey: "displaySplashScreen")
+            let userDefaults = UserDefaults.standard
+            userDefaults.set( appVersion , forKey: "displaySplashScreen")
             userDefaults.synchronize()
         }
     }

@@ -1,5 +1,5 @@
 //
-//  PanelTableViewCell.swift
+//  FeelingTableViewCell.swift
 //  iInteract
 //
 //  Created by Jim Zucker on 11/17/15.
@@ -8,7 +8,7 @@
 
 import UIKit
 
-class PanelTableViewCell: UITableViewCell {
+class FeelingTableViewCell: UITableViewCell {
 
     
     // MARK: Properties
@@ -19,7 +19,7 @@ class PanelTableViewCell: UITableViewCell {
         // Initialization code
     }
 
-    override func setSelected(selected: Bool, animated: Bool) {
+    override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
 
         // Configure the view for the selected state

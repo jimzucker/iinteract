@@ -45,7 +45,7 @@ class Panel {
     class func readFromPlist() -> [Panel] {
         
         var array = [Panel]()
-        let dataPath = NSBundle.mainBundle().pathForResource("panels", ofType: "plist")
+        let dataPath = Bundle.main.path(forResource: "panels", ofType: "plist")
         
         let plist = NSArray(contentsOfFile: dataPath!)
         
