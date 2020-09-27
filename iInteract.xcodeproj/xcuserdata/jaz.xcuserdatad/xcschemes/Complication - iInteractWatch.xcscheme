@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6DDF8DE41C1207B100A156E5"
+               BlueprintIdentifier = "6D5FA5EB252143D3004F3439"
                BuildableName = "iInteractWatch.app"
                BlueprintName = "iInteractWatch"
                ReferencedContainer = "container:iInteract.xcodeproj">
@@ -42,7 +42,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6DDF8DF01C1207B100A156E5"
+               BlueprintIdentifier = "6D5FA5F4252143D7004F3439"
                BuildableName = "iInteractWatch Extension.appex"
                BlueprintName = "iInteractWatch Extension"
                ReferencedContainer = "container:iInteract.xcodeproj">
@@ -58,7 +58,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6DDF8DE41C1207B100A156E5"
+            BlueprintIdentifier = "6D5FA5EB252143D3004F3439"
             BuildableName = "iInteractWatch.app"
             BlueprintName = "iInteractWatch"
             ReferencedContainer = "container:iInteract.xcodeproj">
@@ -84,7 +84,7 @@
          RemotePath = "/iInteract">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6DDF8DE41C1207B100A156E5"
+            BlueprintIdentifier = "6D5FA5EB252143D3004F3439"
             BuildableName = "iInteractWatch.app"
             BlueprintName = "iInteractWatch"
             ReferencedContainer = "container:iInteract.xcodeproj">
@@ -104,7 +104,7 @@
          RemotePath = "/iInteract">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6DDF8DE41C1207B100A156E5"
+            BlueprintIdentifier = "6D5FA5EB252143D3004F3439"
             BuildableName = "iInteractWatch.app"
             BlueprintName = "iInteractWatch"
             ReferencedContainer = "container:iInteract.xcodeproj">
@@ -113,7 +113,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6DDF8DE41C1207B100A156E5"
+            BlueprintIdentifier = "6D5FA5EB252143D3004F3439"
             BuildableName = "iInteractWatch.app"
             BlueprintName = "iInteractWatch"
             ReferencedContainer = "container:iInteract.xcodeproj">
