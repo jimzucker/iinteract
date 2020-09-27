@@ -1,11 +1,11 @@
 # iInteract: i Feel, i Speak
 Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy Schaeffer, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
 
-![Image of Version 2.0](https://github.com/jimzucker/iinteract/blob/documentation/images/iInteract-v2-mock.png)
+![Image of Version 2.0](https://github.com/jimzucker/iinteract/blob/master/images/iInteract-v2-mock.png)
 
  
 ## Overview
-<img width="300" height="300" align="right" src="https://github.com/jimzucker/iinteract/blob/documentation/images/InteractIcon.png">
+<img width="300" height="300" align="right" src="https://github.com/jimzucker/iinteract/blob/master/images/InteractIcon.png">
 
 iInteract: i Feel, i Speak app for the iPhone, iPod touch and iPad is used by parents, therapists and special education teachers to promote basic communication skills.
 
