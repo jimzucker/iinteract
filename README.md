@@ -1,5 +1,5 @@
 # iInteract: i Feel, i Speak
-Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy Schaeffer, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
+Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy DeMarco, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
 
 ![Image of Version 2.0](https://github.com/jimzucker/iinteract/blob/master/images/iInteract-v2-mock.png)
 ## Upcoming 2.0 release will include
