@@ -2,6 +2,13 @@
 Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy Schaeffer, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
 
 ![Image of Version 2.0](https://github.com/jimzucker/iinteract/blob/master/images/iInteract-v2-mock.png)
+## Upcoming 2.0 release will include
+The big news is version 2.0, we are going to allow you to create your own pages using your own pictures and sounds!
+
+Above is the proposed story board for version 2.0 to make the application configurable.  We are trying to make it intuitive and use standard iPhone interactions based on:
+*   Arrange items on a page - we used the Clock application screen for alarms 
+*   Adding Pictures - General pattern for adding a picture for a placeholder (like the you set a profile picture 
+*   RecordingSound - based on the 'Messages' app 
 
  
 ## Overview
