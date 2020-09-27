@@ -195,7 +195,7 @@ class FeelingTableViewController: UITableViewController {
 
     }
   
-    func settingsChanged() {
+    @objc func settingsChanged() {
             //note currently if the panel is showing this does not take effect until the close and go back to the main menu this is becuase we currently set this in 'prepareForSegue'
         updateSettings()
     }

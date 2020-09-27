@@ -36,8 +36,11 @@ class Panel {
         let red     : float_t = RGB["red"]!
         let green   : float_t = RGB["green"]!
         let blue    : float_t = RGB["blue"]!
-        self.color = UIColor(colorLiteralRed: red/255.0, green: green/255.0, blue: blue/255.0, alpha: 1.0)
         
+        //updated for swift 4.0 see:
+        //    https://stackoverflow.com/questions/45361704/initcolorliteralred-green-blue-alpha-deprecated-in-swift-4/46350529#46350529
+        self.color = UIColor(displayP3Red: CGFloat(red/255.0), green: CGFloat(green/255.0), blue: CGFloat(blue/255.0), alpha: 1.0)
+
         let interactions = dataDictionary["interactions"] as! [String]
         
         for item in interactions

@@ -158,7 +158,7 @@ class PanelViewController: UIViewController {
             }
 
                 //do the animation, syncronized with the audio
-            UIView.animate(withDuration: duration, delay: 0.0, options: UIViewAnimationOptions.curveEaseOut, animations: {
+            UIView.animate(withDuration: duration, delay: 0.0, options: UIView.AnimationOptions.curveEaseOut, animations: {
                 self.interactionButton.alpha = self.visible
                 button.isUserInteractionEnabled = true
                 }, completion: nil)
@@ -169,7 +169,7 @@ class PanelViewController: UIViewController {
     @IBAction func  hideInteraction(_ recongnizer: UITapGestureRecognizer) {
         let duration = 1.0
         
-        UIView.animate(withDuration: duration, delay: 0.0, options: UIViewAnimationOptions.curveEaseOut, animations: {
+        UIView.animate(withDuration: duration, delay: 0.0, options: UIView.AnimationOptions.curveEaseOut, animations: {
             self.interactionButton.alpha = self.hidden
                 }, completion: nil)
     }
