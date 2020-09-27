@@ -23,6 +23,7 @@ Our concept is to provide visual and audio feedback to the child's selection on 
 
 
 ## Release notes
+* 1.5 - Sep 2020 Upgraded to Swift 5/XCode 12, Apple Watch support disabled
 * 1.4 - Dec 11, 2015 Apple Watch support Added
 * 1.3 - Dec 4, 2015 Application changed to be Free in the App Store
 * 1.0 - 2010 Released
