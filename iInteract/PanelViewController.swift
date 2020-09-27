@@ -119,7 +119,7 @@ class PanelViewController: UIViewController {
 
                 //if the voice is enabled load it
             if self.voiceEnabled {
-                let index = buttons.index(of: button)
+                let index = buttons.firstIndex(of: button)
                 do {
                         //ensure we cleaned up the last time we ran
                     if audioPlayer != nil {

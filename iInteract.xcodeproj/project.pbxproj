@@ -190,11 +190,11 @@
 					6D0D7D6E1BFBE3C1002B9090 = {
 						CreatedOnToolsVersion = 7.1.1;
 						DevelopmentTeam = 583XUQ99J6;
-						LastSwiftMigration = 1010;
+						LastSwiftMigration = 1200;
 					};
 					6D0D7D821BFBE3C1002B9090 = {
 						CreatedOnToolsVersion = 7.1.1;
-						LastSwiftMigration = 1010;
+						LastSwiftMigration = 1200;
 						TestTargetID = 6D0D7D6E1BFBE3C1002B9090;
 					};
 				};
@@ -419,7 +419,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -433,7 +433,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -446,7 +446,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteractTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iInteract.app/iInteract";
 			};
 			name = Debug;
@@ -460,7 +460,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteractTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iInteract.app/iInteract";
 			};
 			name = Release;
