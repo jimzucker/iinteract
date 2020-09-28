@@ -338,7 +338,7 @@
 					6DDF8DF01C1207B100A156E5 = {
 						CreatedOnToolsVersion = 7.1.1;
 						DevelopmentTeam = 583XUQ99J6;
-						LastSwiftMigration = 1010;
+						LastSwiftMigration = 1200;
 					};
 				};
 			};
@@ -716,7 +716,7 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 3.0;
 			};
@@ -734,7 +734,7 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 3.0;
 			};
