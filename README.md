@@ -1,5 +1,7 @@
 # iInteract: i Feel, i Speak
-Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy DeMarco, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
+Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy DeMarco, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)  
+[Click here to open in the App Store](https://apps.apple.com/us/app/iinteract/id363448448)
+
 
 ![Image of Version 2.0](https://github.com/jimzucker/iinteract/blob/master/images/iInteract-v2-mock.png)
 ## Upcoming 2.0 release will include
