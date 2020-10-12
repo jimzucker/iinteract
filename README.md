@@ -32,6 +32,7 @@ Our concept is to provide visual and audio feedback to the child's selection on 
 
 
 ## Release notes
+* 1.7 - Enabled MacOS support
 * 1.6 - Enabled Apple Watch support
 * 1.5 - Sep 2020 Upgraded to Swift 5/XCode 12, Apple Watch support disabled
 * 1.4 - Dec 11, 2015 Apple Watch support Added
