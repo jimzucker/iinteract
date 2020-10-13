@@ -1,9 +1,9 @@
 # iInteract: i Feel, i Speak
-Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy DeMarco, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)  
-[Click here to open in the App Store](https://apps.apple.com/us/app/iinteract/id363448448)
+Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy DeMarco, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
 
+[![App Store](images/AppStore/Download_on_the_App_Store_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448) [![Mac App Store](images/AppStore/Download_on_the_Mac_App_Store_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448) [![Apple TV Store](images/AppStore/Download_on_Apple_TV_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448)
 
-![Image of Version 2.0](https://github.com/jimzucker/iinteract/blob/master/images/iInteract-v2-mock.png)
+![Image of Version 2.0](images/iInteract-v2-mock.png)
 ## Upcoming 2.0 release will include
 The big news is version 2.0, we are going to allow you to create your own pages using your own pictures and sounds!
 
@@ -14,7 +14,7 @@ Above is the proposed story board for version 2.0 to make the application config
 
  
 ## Overview
-<img width="300" height="300" align="right" src="https://github.com/jimzucker/iinteract/blob/master/images/InteractIcon.png">
+<img width="300" height="300" align="right" src="images/InteractIcon.png">
 
 iInteract: i Feel, i Speak app for the iPhone, iPod touch and iPad is used by parents, therapists and special education teachers to promote basic communication skills.
 
