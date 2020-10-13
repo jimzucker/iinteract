@@ -1,7 +1,7 @@
 # iInteract: i Feel, i Speak
 Created By:  Jim Zucker[(LinkedIn)](https://www.linkedin.com/in/jamesazucker/), Cathy DeMarco, Tricia Zucker[(LinkedIn)](https://www.linkedin.com/in/triciazucker/)
 
-[![App Store](images/AppStore/Download_on_the_App_Store_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448) [![Mac App Store](images/AppStore/Download_on_the_Mac_App_Store_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448) [![Apple TV Store](images/AppStore/Download_on_Apple_TV_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448)
+[![App Store](images/AppStore/Download_on_the_App_Store_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448) [![Mac App Store](images/AppStore/Download_on_the_Mac_App_Store_Badge_US-UK_blk_092917.png)](https://apps.apple.com/us/app/iinteract/id363448448)
 
 ![Image of Version 2.0](images/iInteract-v2-mock.png)
 ## Upcoming 2.0 release will include
