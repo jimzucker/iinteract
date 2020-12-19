@@ -102,7 +102,7 @@ class FeelingTableViewController: UITableViewController {
         let numberRows = panels.count
         let heightView = tableView.frame.size.height //this actually returns the height of the screen so we have to subtract StatusBar and NavBar
         let navBarHeight = self.navigationController?.navigationBar.frame.size.height
-        let statusBarHeight = view.window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0;
+        let statusBarHeight = self.topLayoutGuide.length-(self.navigationController?.navigationBar.frame.height)!
         let heightScrollView = heightView - navBarHeight! - statusBarHeight
 
         let heightOfCell = heightScrollView/CGFloat(numberRows)
