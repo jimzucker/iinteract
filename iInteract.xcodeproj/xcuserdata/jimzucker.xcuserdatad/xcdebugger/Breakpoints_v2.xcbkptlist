@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "EE3A488F-EF38-4639-AACC-F51EB372379B"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "D32C0109-D29F-4ADD-B87F-54D609282465"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "iInteract/FeelingTableViewController.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "105"
+            endingLineNumber = "105"
+            landmarkName = "tableView(_:heightForRowAt:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "D32C0109-D29F-4ADD-B87F-54D609282465 - 94f8ea317a03bf55"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "iInteract.FeelingTableViewController.tableView(_: __C.UITableView, heightForRowAt: Foundation.IndexPath) -&gt; CoreGraphics.CGFloat"
+                  moduleName = "iInteract"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jimzucker/Library/Mobile%20Documents/com~apple~CloudDocs/jim-icloud-drive/iphone_dev/iInteract/iInteract/FeelingTableViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "105"
+                  endingLineNumber = "105">
+               </Location>
+               <Location
+                  uuid = "D32C0109-D29F-4ADD-B87F-54D609282465 - 3bad4105a45d797f"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 (__C.UIWindow) -&gt; Swift.Bool in iInteract.FeelingTableViewController.tableView(_: __C.UITableView, heightForRowAt: Foundation.IndexPath) -&gt; CoreGraphics.CGFloat"
+                  moduleName = "iInteract"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jimzucker/Library/Mobile%20Documents/com~apple~CloudDocs/jim-icloud-drive/iphone_dev/iInteract/iInteract/FeelingTableViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "105"
+                  endingLineNumber = "105">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "62F07DC4-AEA3-494E-99D0-61BB85BA5B86"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "iInteract/FeelingTableViewController.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "106"
+            endingLineNumber = "106"
+            landmarkName = "tableView(_:heightForRowAt:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "62F07DC4-AEA3-494E-99D0-61BB85BA5B86 - 94f8ea317a03bf76"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "iInteract.FeelingTableViewController.tableView(_: __C.UITableView, heightForRowAt: Foundation.IndexPath) -&gt; CoreGraphics.CGFloat"
+                  moduleName = "iInteract"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jimzucker/Library/Mobile%20Documents/com~apple~CloudDocs/jim-icloud-drive/iphone_dev/iInteract/iInteract/FeelingTableViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "106"
+                  endingLineNumber = "106">
+               </Location>
+               <Location
+                  uuid = "62F07DC4-AEA3-494E-99D0-61BB85BA5B86 - b84aa74e88614694"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "statusBarHeight.getter : CoreGraphics.CGFloat"
+                  moduleName = "iInteract"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jimzucker/Library/Mobile%20Documents/com~apple~CloudDocs/jim-icloud-drive/iphone_dev/iInteract/iInteract/FeelingTableViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "106"
+                  endingLineNumber = "106">
+               </Location>
+               <Location
+                  uuid = "62F07DC4-AEA3-494E-99D0-61BB85BA5B86 - b84aa74e88614694"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "statusBarHeight.getter : CoreGraphics.CGFloat"
+                  moduleName = "iInteract"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/jimzucker/Library/Mobile%20Documents/com~apple~CloudDocs/jim-icloud-drive/iphone_dev/iInteract/iInteract/FeelingTableViewController.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "106"
+                  endingLineNumber = "106">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>
