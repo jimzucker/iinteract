@@ -32,14 +32,11 @@ class Panel {
     init( dataDictionary:Dictionary<String,NSObject> ) {
         self.title = dataDictionary["title"] as! String
         
-        let RGB     : Dictionary<String,float_t> = dataDictionary["color"] as! Dictionary<String,float_t>
-        let red     : float_t = RGB["red"]!
-        let green   : float_t = RGB["green"]!
-        let blue    : float_t = RGB["blue"]!
-        
-        //updated for swift 4.0 see:
-        //    https://stackoverflow.com/questions/45361704/initcolorliteralred-green-blue-alpha-deprecated-in-swift-4/46350529#46350529
-        self.color = UIColor(displayP3Red: CGFloat(red/255.0), green: CGFloat(green/255.0), blue: CGFloat(blue/255.0), alpha: 1.0)
+        let RGB   = dataDictionary["color"] as! [String: NSNumber]
+        let red   = CGFloat(RGB["red"]!.floatValue)   / 255.0
+        let green = CGFloat(RGB["green"]!.floatValue) / 255.0
+        let blue  = CGFloat(RGB["blue"]!.floatValue)  / 255.0
+        self.color = UIColor(red: red, green: green, blue: blue, alpha: 1.0)
 
         let interactions = dataDictionary["interactions"] as! [String]
         
