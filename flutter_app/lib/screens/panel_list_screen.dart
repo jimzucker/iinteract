@@ -103,8 +103,10 @@ class _PanelTile extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Text(
           panel.title,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white,
-            shadows: [Shadow(blurRadius: 2, color: Colors.black45)],
+          style: const TextStyle(
+            fontSize: 40,
+            fontFamily: 'HelveticaNeue',
+            color: Colors.black,
           ),
         ),
       ),
