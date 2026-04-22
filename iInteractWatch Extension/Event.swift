@@ -1,42 +1,36 @@
 //
 //  Event.swift
-//  Watchkit_Swift
+//  iInteractWatch Extension
 //
-//  Created by Olga Dalton on 29/11/14.
-//  Copyright (c) 2014 swiftiostutorials.com. All rights reserved.
+//  Copyright © 2015 - 2026 Jim Zucker, Cathy DeMarco, Tricia Zucker
+//
+//  This Source Code Form is subject to the terms of the Mozilla Public
+//  License, v. 2.0. If a copy of the MPL was not distributed with this
+//  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
 import Foundation
 
-class Event {
-    
-    var eventTitle:String
-    var eventTime:String
-    var eventImageName:String?
-    
-    init(dataDictionary:Dictionary<String,String>) {
-        eventTime = dataDictionary["eventTime"]!
-        eventTitle = dataDictionary["eventTitle"]!
-        eventImageName = dataDictionary["eventImageName"]
-    }
-    
-    class func newEvent(_ dataDictionary:Dictionary<String,String>) -> Event {
-        return Event(dataDictionary: dataDictionary)
-    }
-    
-    class func eventsList() -> [Event] {
-        
-        var array = [Event]()
-        let dataPath = Bundle.main.path(forResource: "events", ofType: "plist")
-        
-        let data = NSArray(contentsOfFile: dataPath!)
-        
-        for e in data as! [Dictionary<String, String>] {
-            let event = Event(dataDictionary: e)
-            array.append(event)
+struct Event {
+    let title: String
+    let time: String
+    let imageName: String?
+
+    init?(from dictionary: [String: String]) {
+        guard let title = dictionary["eventTitle"],
+              let time = dictionary["eventTime"] else {
+            return nil
         }
-        
-        return array
+        self.title = title
+        self.time = time
+        self.imageName = dictionary["eventImageName"]
     }
-    
+
+    static func loadAll() -> [Event] {
+        guard let path = Bundle.main.path(forResource: "events", ofType: "plist"),
+              let entries = NSArray(contentsOfFile: path) as? [[String: String]] else {
+            return []
+        }
+        return entries.compactMap(Event.init(from:))
+    }
 }
