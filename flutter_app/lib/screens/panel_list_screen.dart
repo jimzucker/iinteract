@@ -79,15 +79,12 @@ class _PanelListScreenState extends State<PanelListScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: panels.length,
-        itemBuilder: (context, index) {
-          final panel = panels[index];
-          return _PanelTile(
-            panel: panel,
-            voiceStyle: _voiceStyle,
-          );
-        },
+      body: Column(
+        children: panels
+            .map((panel) => Expanded(
+                  child: _PanelTile(panel: panel, voiceStyle: _voiceStyle),
+                ))
+            .toList(),
       ),
     );
   }
@@ -110,7 +107,6 @@ class _PanelTile extends StatelessWidget {
       child: Container(
         color: panel.color,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-        height: MediaQuery.of(context).size.height / panels.length,
         alignment: Alignment.centerLeft,
         child: Text(
           panel.title,
