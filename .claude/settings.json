@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/usr/bin/grep *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git rm *)",
+      "Bash(mkdir *)",
+      "Bash(xcrun simctl *)",
+      "Bash(xcodebuild *)",
+      "Bash(sips *)",
+      "Bash(curl *)",
+      "Bash(python3 *)"
+    ]
+  }
+}

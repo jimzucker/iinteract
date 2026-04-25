@@ -1,3 +1,12 @@
-iInteract.xcodeproj/xcuserdata/jaz.xcuserdatad/xcdebugger
+iInteract.xcodeproj/xcuserdata/
 iInteract.xcodeproj/project.xcworkspace/xcuserdata
 .DS_Store
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# JetBrains / Android Studio IDE config
+.idea/
+
+# macOS duplicate files (e.g. "foo 2.ext" created by Finder copy / iCloud sync)
+* 2
+* 2.*
