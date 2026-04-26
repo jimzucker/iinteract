@@ -70,6 +70,8 @@ class FeelingTableViewController: UITableViewController {
             loadPanels()
             tableView.reloadData()
         }
+        // Keep the watch's mirror of the visible built-in list current.
+        WatchSync.shared.pushVisiblePanels()
     }
 
     override func viewDidAppear(_ animated: Bool) {

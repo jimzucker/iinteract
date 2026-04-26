@@ -15,18 +15,47 @@ import Foundation
 
 
 class InterfaceController: WKInterfaceController {
-    
+
     @IBOutlet var tableView:WKInterfaceTable!
     var panels:[Panel] = [Panel]()
-    
+
     override func awake(withContext context: Any?) {
         super.awake(withContext: context)
-        panels = Panel.readFromPlist()
+        loadPanels()
     }
-    
+
     override func willActivate() {
         super.willActivate()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(panelOrderChanged),
+            name: ExtensionDelegate.didChangeNotification,
+            object: nil
+        )
         setupTable()
+    }
+
+    override func willDisappear() {
+        super.willDisappear()
+        NotificationCenter.default.removeObserver(self, name: ExtensionDelegate.didChangeNotification, object: nil)
+    }
+
+    @objc func panelOrderChanged() {
+        loadPanels()
+        setupTable()
+    }
+
+    /// Reads the bundled built-ins, then applies the iPhone's most recent
+    /// visibility/order push (if any). Falls back to bundle order on a fresh
+    /// watch install or when the iPhone hasn't sent anything yet.
+    private func loadPanels() {
+        let bundled = Panel.readFromPlist()
+        guard let titles = UserDefaults.standard.array(forKey: ExtensionDelegate.storageKey) as? [String] else {
+            panels = bundled
+            return
+        }
+        let byTitle = Dictionary(uniqueKeysWithValues: bundled.map { ($0.title, $0) })
+        panels = titles.compactMap { byTitle[$0] }
     }
     
     fileprivate func setupTable() {
