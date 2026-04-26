@@ -247,12 +247,30 @@ final class PanelEditorViewController: UITableViewController,
         case .color:
             presentColorPicker()
         case .interactions:
-            if indexPath.row >= workingPanel.interactions.count {
-                presentInteractionEditorPlaceholder()
+            if indexPath.row < workingPanel.interactions.count {
+                pushInteractionEditor(.edit(workingPanel.interactions[indexPath.row]),
+                                      replacingAt: indexPath.row)
+            } else {
+                pushInteractionEditor(.new, replacingAt: nil)
             }
         case .title:
             break
         }
+    }
+
+    private func pushInteractionEditor(_ intent: InteractionEditorViewController.Intent,
+                                       replacingAt index: Int?) {
+        let editor = InteractionEditorViewController(intent: intent, store: store)
+        editor.onSave = { [weak self] interaction in
+            guard let self = self else { return }
+            if let index = index, index < self.workingPanel.interactions.count {
+                self.workingPanel.interactions[index] = interaction
+            } else {
+                self.workingPanel.interactions.append(interaction)
+            }
+            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+        }
+        navigationController?.pushViewController(editor, animated: true)
     }
 
     private func presentColorPicker() {
@@ -261,16 +279,6 @@ final class PanelEditorViewController: UITableViewController,
         picker.supportsAlpha = false
         picker.delegate = self
         present(picker, animated: true)
-    }
-
-    private func presentInteractionEditorPlaceholder() {
-        let alert = UIAlertController(
-            title: "Add Interaction",
-            message: "The interaction editor (picture + audio) arrives in the next v2.0 step.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
     }
 
     // MARK: UIColorPickerViewControllerDelegate

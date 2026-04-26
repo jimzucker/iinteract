@@ -10,6 +10,7 @@
 		1442F91FC1BA9FFD144C6C92 /* InteractionPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */; };
 		43F76A893A22B38EDED6E419 /* PanelListEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */; };
 		552288CB68696415D0F02249 /* PanelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154AFF6CFD19463B4E90DA45 /* PanelStore.swift */; };
+		5C9EA15278EC9EA8115DE8B4 /* InteractionEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B70393D00E813E93AD6591C /* InteractionEditorViewController.swift */; };
 		6D0D7D731BFBE3C1002B9090 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */; };
 		6D0D7D781BFBE3C1002B9090 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6D0D7D761BFBE3C1002B9090 /* Main.storyboard */; };
 		6D0D7D7A1BFBE3C1002B9090 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D0D7D791BFBE3C1002B9090 /* Assets.xcassets */; };
@@ -135,6 +136,7 @@
 		6DDF8E021C1207B100A156E5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6DDF8E041C1207B100A156E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = "iInteractWatch Extension/Info.plist"; sourceTree = SOURCE_ROOT; };
 		71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelEditorViewController.swift; sourceTree = "<group>"; };
+		7B70393D00E813E93AD6591C /* InteractionEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InteractionEditorViewController.swift; sourceTree = "<group>"; };
 		8D688FAA1636C6707018308F /* PanelLoader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelLoader.swift; sourceTree = "<group>"; };
 		D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlaybackTests.swift; sourceTree = "<group>"; };
 		DFB7D8F1EB6BAA4A96A6C425 /* CustomPanelViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomPanelViewController.swift; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 				1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */,
 				DFB7D8F1EB6BAA4A96A6C425 /* CustomPanelViewController.swift */,
 				71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */,
+				7B70393D00E813E93AD6591C /* InteractionEditorViewController.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -457,6 +460,7 @@
 				1442F91FC1BA9FFD144C6C92 /* InteractionPlayer.swift in Sources */,
 				88EB04F5EED703017E400BF7 /* CustomPanelViewController.swift in Sources */,
 				E387399ECC7BBE8934F2C3BD /* PanelEditorViewController.swift in Sources */,
+				5C9EA15278EC9EA8115DE8B4 /* InteractionEditorViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
