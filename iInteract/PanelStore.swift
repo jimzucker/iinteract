@@ -11,6 +11,7 @@
 
 import Foundation
 import CryptoKit
+import UIKit
 
 // MARK: - KeyValueStorage
 
@@ -51,6 +52,26 @@ final class PanelStore {
         case iCloudUnavailable
         case noSecurityQuestionSet
         case incorrectAnswer
+        case assetWriteFailed
+    }
+
+    enum AssetKind {
+        case picture
+        case boyAudio
+        case girlAudio
+
+        var fileSuffix: String {
+            switch self {
+            case .picture:   return ".jpg"
+            case .boyAudio:  return ".boy.m4a"
+            case .girlAudio: return ".girl.m4a"
+            }
+        }
+    }
+
+    enum Voice {
+        case boy, girl
+        var assetKind: AssetKind { self == .boy ? .boyAudio : .girlAudio }
     }
 
     private let directory: URL
@@ -81,6 +102,52 @@ final class PanelStore {
         let url = directory.appendingPathComponent("UserAssets", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
+    }
+
+    /// File URL for a user interaction's asset, used both for reading on
+    /// hydrate and for AVAudioRecorder/JPEG writes during editing.
+    func assetURL(for interactionID: UUID, kind: AssetKind) -> URL {
+        assetsDirectory.appendingPathComponent("\(interactionID.uuidString)\(kind.fileSuffix)")
+    }
+
+    /// Reattaches picture and audio URLs to a freshly-decoded user interaction
+    /// based on what's on disk. No-op for built-ins (their bundle URLs are
+    /// already set by Interaction.init(interactionName:)).
+    func hydrate(_ interaction: Interaction) {
+        guard !interaction.isBuiltIn else { return }
+        let picURL = assetURL(for: interaction.id, kind: .picture)
+        if FileManager.default.fileExists(atPath: picURL.path) {
+            interaction.picture = UIImage(contentsOfFile: picURL.path)
+        }
+        let boyURL = assetURL(for: interaction.id, kind: .boyAudio)
+        if FileManager.default.fileExists(atPath: boyURL.path) {
+            interaction.boySound = boyURL
+        }
+        let girlURL = assetURL(for: interaction.id, kind: .girlAudio)
+        if FileManager.default.fileExists(atPath: girlURL.path) {
+            interaction.girlSound = girlURL
+        }
+    }
+
+    /// Convenience: hydrates all interactions on a user panel.
+    func hydrate(_ panel: Panel) {
+        guard !panel.isBuiltIn else { return }
+        panel.interactions.forEach { hydrate($0) }
+    }
+
+    /// Writes a chosen photo as JPEG to the asset path for the given id.
+    func saveInteractionPicture(_ image: UIImage, id: UUID) throws {
+        guard let data = image.jpegData(compressionQuality: 0.85) else {
+            throw StoreError.assetWriteFailed
+        }
+        try data.write(to: assetURL(for: id, kind: .picture), options: .atomic)
+    }
+
+    /// Removes all asset files for an interaction. Safe if files don't exist.
+    func deleteInteractionAssets(id: UUID) {
+        for kind in [AssetKind.picture, .boyAudio, .girlAudio] {
+            try? FileManager.default.removeItem(at: assetURL(for: id, kind: kind))
+        }
     }
 
     // MARK: - User panels

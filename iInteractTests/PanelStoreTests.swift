@@ -170,6 +170,53 @@ final class PanelStoreTests: XCTestCase {
         XCTAssertTrue(store.canAddInteraction(to: p.id))
     }
 
+    // MARK: Hydration
+
+    func testHydrateNoOpsForBuiltIn() {
+        let builtIn = Interaction(interactionName: "happy")
+        let originalPicture = builtIn.picture
+        let originalBoy = builtIn.boySound
+        store.hydrate(builtIn)
+        // Built-ins keep their bundle assets — hydrate should leave them alone.
+        XCTAssertNotNil(builtIn.picture)
+        XCTAssertEqual(builtIn.picture, originalPicture)
+        XCTAssertEqual(builtIn.boySound, originalBoy)
+    }
+
+    func testHydrateAttachesPictureAndAudioFromAssetsDirectory() throws {
+        let interaction = Interaction(id: UUID(), name: "playground")
+        // Picture starts unset.
+        XCTAssertNil(interaction.picture)
+        XCTAssertNil(interaction.boySound)
+        XCTAssertNil(interaction.girlSound)
+
+        // Write a real JPEG and two stub audio files at the expected paths.
+        let img = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 16)).image { ctx in
+            UIColor.systemPink.setFill()
+            ctx.fill(CGRect(origin: .zero, size: CGSize(width: 16, height: 16)))
+        }
+        try store.saveInteractionPicture(img, id: interaction.id)
+        try Data([0x00]).write(to: store.assetURL(for: interaction.id, kind: .boyAudio))
+        try Data([0x00]).write(to: store.assetURL(for: interaction.id, kind: .girlAudio))
+
+        store.hydrate(interaction)
+        XCTAssertNotNil(interaction.picture)
+        XCTAssertEqual(interaction.boySound, store.assetURL(for: interaction.id, kind: .boyAudio))
+        XCTAssertEqual(interaction.girlSound, store.assetURL(for: interaction.id, kind: .girlAudio))
+    }
+
+    func testDeleteInteractionAssetsRemovesFiles() throws {
+        let id = UUID()
+        try Data([0x00]).write(to: store.assetURL(for: id, kind: .picture))
+        try Data([0x00]).write(to: store.assetURL(for: id, kind: .boyAudio))
+        try Data([0x00]).write(to: store.assetURL(for: id, kind: .girlAudio))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.assetURL(for: id, kind: .picture).path))
+        store.deleteInteractionAssets(id: id)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.assetURL(for: id, kind: .picture).path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.assetURL(for: id, kind: .boyAudio).path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: store.assetURL(for: id, kind: .girlAudio).path))
+    }
+
     // MARK: PIN + reset paths
 
     func testSetAndVerifyPIN() {

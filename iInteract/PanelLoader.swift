@@ -24,8 +24,9 @@ extension Panel {
         case .default:
             return builtIns
         case .custom:
-            let combined = builtIns + store.userPanels()
-            return store.applyLayout(to: combined)
+            let userPanels = store.userPanels()
+            userPanels.forEach { store.hydrate($0) }
+            return store.applyLayout(to: builtIns + userPanels)
         }
     }
 }

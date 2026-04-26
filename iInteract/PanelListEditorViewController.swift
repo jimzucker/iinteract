@@ -48,8 +48,9 @@ final class PanelListEditorViewController: UITableViewController {
     }
 
     private func loadPanels() {
-        let all = Panel.readFromPlist() + store.userPanels()
-        panels = store.applyOrder(to: all)
+        let userPanels = store.userPanels()
+        userPanels.forEach { store.hydrate($0) }
+        panels = store.applyOrder(to: Panel.readFromPlist() + userPanels)
         tableView.reloadData()
     }
 

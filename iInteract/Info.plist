@@ -58,5 +58,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>iInteract needs access to your photos so you can choose pictures for the panels you create. Photos stay on your device.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>iInteract needs access to the microphone so you can record the boy and girl voices for the panels you create. Recordings stay on your device.</string>
 </dict>
 </plist>
