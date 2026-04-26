@@ -100,12 +100,13 @@ class iInteractTests: XCTestCase {
         defaults.register(defaults: [
             "voice_enabled": "YES",
             "voice_style": "girl",
-            "configuration_enabled": "NO",
+            ConfigurationMode.userDefaultsKey: ConfigurationMode.default.rawValue,
             "displaySplashScreen": "0.0"
         ])
         XCTAssertEqual(defaults.string(forKey: "voice_enabled"), "YES")
         XCTAssertEqual(defaults.string(forKey: "voice_style"), "girl")
-        XCTAssertEqual(defaults.string(forKey: "configuration_enabled"), "NO")
+        XCTAssertEqual(defaults.string(forKey: ConfigurationMode.userDefaultsKey), "default")
+        XCTAssertEqual(ConfigurationMode.current(defaults), .default)
         XCTAssertEqual(defaults.string(forKey: "displaySplashScreen"), "0.0")
         defaults.removePersistentDomain(forName: "iInteractTests")
     }

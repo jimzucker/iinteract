@@ -31,7 +31,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         UserDefaults.standard.register(defaults: [
             "voice_enabled": "YES",
             "voice_style": "girl",
-            "configuration_enabled": "NO",
+            ConfigurationMode.userDefaultsKey: ConfigurationMode.default.rawValue,
             "displaySplashScreen": "0.0"
         ])
     }

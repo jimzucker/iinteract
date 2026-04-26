@@ -42,6 +42,32 @@
 				<string>boy</string>
 			</array>
 		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Configuration</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Mode</string>
+			<key>Key</key>
+			<string>configuration_mode</string>
+			<key>Titles</key>
+			<array>
+				<string>Default</string>
+				<string>Custom</string>
+			</array>
+			<key>DefaultValue</key>
+			<string>default</string>
+			<key>Values</key>
+			<array>
+				<string>default</string>
+				<string>custom</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

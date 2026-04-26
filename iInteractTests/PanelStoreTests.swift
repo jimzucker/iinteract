@@ -226,6 +226,42 @@ final class PanelStoreTests: XCTestCase {
         }
     }
 
+    // MARK: Mode-aware loading
+
+    func testLoadDefaultModeReturnsBundledPanelsVerbatim() {
+        let direct = Panel.readFromPlist()
+        let viaLoad = Panel.load(mode: .default, store: store)
+        XCTAssertEqual(viaLoad.count, direct.count)
+        XCTAssertEqual(viaLoad.map { $0.title }, direct.map { $0.title })
+        XCTAssertTrue(viaLoad.allSatisfy { $0.isBuiltIn })
+    }
+
+    func testLoadCustomModeWithEmptyStoreReturnsAllBuiltIns() {
+        let viaLoad = Panel.load(mode: .custom, store: store)
+        let direct = Panel.readFromPlist()
+        XCTAssertEqual(viaLoad.map { $0.title }, direct.map { $0.title })
+    }
+
+    func testLoadCustomModeMergesUserPanelsAfterBuiltIns() throws {
+        let userPanel = Panel(title: "School", color: .systemTeal, interactions: [], isBuiltIn: false)
+        try store.addPanel(userPanel)
+        let result = Panel.load(mode: .custom, store: store)
+        XCTAssertEqual(result.last?.title, "School")
+        XCTAssertEqual(result.count, Panel.readFromPlist().count + 1)
+    }
+
+    func testLoadCustomModeAppliesHiddenAndOrder() throws {
+        let builtIns = Panel.readFromPlist()
+        guard let first = builtIns.first, let second = builtIns.dropFirst().first else {
+            XCTFail("Expected at least 2 built-in panels"); return
+        }
+        try store.setHidden(true, for: first.id)
+        try store.setOrder([second.id])
+        let result = Panel.load(mode: .custom, store: store)
+        XCTAssertFalse(result.contains { $0.id == first.id })
+        XCTAssertEqual(result.first?.id, second.id)
+    }
+
     // MARK: Stable IDs for built-ins
 
     func testStableIDIsDeterministic() {

@@ -19,38 +19,36 @@ class FeelingTableViewController: UITableViewController {
     
     var panels = [Panel]()
     var configurationButton : UIBarButtonItem?
-    
+
     // MARK: Settings Properties
-    var voiceEnabled        : Bool      = true
-    var voiceStyle          : String    = "girl"
-    var enableConfiguration : Bool      = false
-    
+    var voiceEnabled        : Bool                = true
+    var voiceStyle          : String              = "girl"
+    var configurationMode   : ConfigurationMode   = .default
+
     //dislay splash screen 1 time then disable it by setting a preference, we use an int so we can show newer splash screens, it will be set to the current version # once it shows
     var displaySplashScreen : String     = ""
-    
+
    fileprivate func loadPanels() {
-        panels = Panel.readFromPlist()
+        panels = Panel.load(mode: configurationMode)
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-            //enable/disable configuration
+            //stash the storyboard's + button so we can show/hide it based on mode
         configurationButton = navigationItem.rightBarButtonItem
-        if !enableConfiguration {
-            navigationItem.rightBarButtonItem = nil
-        }
-        
+        navigationItem.rightBarButtonItem = nil
+
         //register for settings
         NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.settingsChanged), name: UserDefaults.didChangeNotification, object: nil)
-  
-        //update settings
+
+        //update settings (also applies + button visibility for the current mode)
         updateSettings()
-        
+
         //show the preferences
 //        UIApplication.sharedApplication().openURL(NSURL(string: UIApplicationOpenSettingsURLString)!)
-        
-        //load sample data
+
+        //load panels for the current mode
         loadPanels()
         
         // Uncomment the following line to preserve selection between presentations
@@ -187,16 +185,27 @@ class FeelingTableViewController: UITableViewController {
         let userDefaults = UserDefaults.standard
         voiceEnabled = userDefaults.bool(forKey: "voice_enabled")
         voiceStyle = userDefaults.string(forKey: "voice_style")!
-        enableConfiguration = userDefaults.bool(forKey: "configuration_enabled")
         displaySplashScreen = userDefaults.string(forKey: "displaySplashScreen")!
-        
-            //show hide the configuration buttons
-        if !enableConfiguration {
+
+        let newMode = ConfigurationMode.current(userDefaults)
+        let modeChanged = newMode != configurationMode
+        configurationMode = newMode
+
+        //show / hide the + button based on mode (custom = visible)
+        switch configurationMode {
+        case .default:
             navigationItem.rightBarButtonItem = nil
-        } else if navigationItem.rightBarButtonItem == nil && configurationButton != nil {
-            navigationItem.rightBarButtonItem = configurationButton
+        case .custom:
+            if navigationItem.rightBarButtonItem == nil, let button = configurationButton {
+                navigationItem.rightBarButtonItem = button
+            }
         }
 
+        //if the user flipped modes in iOS Settings, refresh the panel list
+        if modeChanged && isViewLoaded {
+            loadPanels()
+            tableView.reloadData()
+        }
     }
   
     @objc func settingsChanged() {
