@@ -18,11 +18,15 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iinteract/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('App loads panel list', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const IInteractApp());
-    await tester.pump();
+    // panels load asynchronously now (loadPanels reads SharedPreferences),
+    // so pump-and-settle until the async setState completes.
+    await tester.pumpAndSettle();
     expect(find.text('iInteract'), findsOneWidget);
     expect(find.text('I feel'), findsOneWidget);
   });
