@@ -77,8 +77,28 @@ class FeelingTableViewController: UITableViewController {
     }
 
     @objc func showPanelEditor() {
+        if PanelStore.shared.hasPIN {
+            presentPINGate { [weak self] in self?.pushPanelListEditor() }
+        } else {
+            pushPanelListEditor()
+        }
+    }
+
+    private func pushPanelListEditor() {
         let editor = PanelListEditorViewController()
         navigationController?.pushViewController(editor, animated: true)
+    }
+
+    private func presentPINGate(onUnlock: @escaping () -> Void) {
+        let gate = PINGateViewController()
+        let nav = UINavigationController(rootViewController: gate)
+        nav.modalPresentationStyle = .fullScreen
+        gate.onUnlock = { [weak self, weak nav] in
+            nav?.dismiss(animated: true) { onUnlock() }
+            _ = self // keep capture so the closure is balanced
+        }
+        gate.onCancel = { [weak nav] in nav?.dismiss(animated: true) }
+        present(nav, animated: true)
     }
 
     // Built-ins use the storyboard's PanelViewController (ShowPanel segue);
