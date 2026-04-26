@@ -15,16 +15,23 @@ import XCTest
 // MARK: - In-memory KVS for tests
 
 final class MemoryKeyValueStore: KeyValueStorage {
-    private var storage: [String: String] = [:]
+    private var strings: [String: String] = [:]
+    private var blobs:   [String: Data]   = [:]
 
-    func string(forKey key: String) -> String? { storage[key] }
+    func string(forKey key: String) -> String? { strings[key] }
+    func data(forKey key: String) -> Data?     { blobs[key] }
 
     func set(_ value: String?, forKey key: String) {
-        if let value = value { storage[key] = value }
-        else { storage.removeValue(forKey: key) }
+        if let value = value { strings[key] = value } else { strings.removeValue(forKey: key) }
+    }
+    func set(_ value: Data?, forKey key: String) {
+        if let value = value { blobs[key] = value } else { blobs.removeValue(forKey: key) }
     }
 
-    func removeObject(forKey key: String) { storage.removeValue(forKey: key) }
+    func removeObject(forKey key: String) {
+        strings.removeValue(forKey: key)
+        blobs.removeValue(forKey: key)
+    }
 
     @discardableResult func synchronize() -> Bool { true }
 }
@@ -202,6 +209,63 @@ final class PanelStoreTests: XCTestCase {
         XCTAssertThrowsError(try store.savePanel(p)) { error in
             XCTAssertEqual(error as? PanelStore.StoreError, .nameNotUnique)
         }
+    }
+
+    // MARK: KVS sync
+
+    func testSavedPanelsAlsoLandInKVS() throws {
+        let p = Panel(title: "School", color: .systemTeal, interactions: [], isBuiltIn: false)
+        try store.savePanel(p)
+        XCTAssertNotNil(kvs.data(forKey: "panelstore.panels"))
+    }
+
+    func testSavedLayoutAlsoLandsInKVS() throws {
+        try store.setHidden(true, for: UUID())
+        XCTAssertNotNil(kvs.data(forKey: "panelstore.layout"))
+    }
+
+    func testFreshDeviceLoadsPanelsFromKVS() throws {
+        // Simulate "this iPhone has no local file but iCloud has data."
+        let p = Panel(title: "School", color: .systemTeal, interactions: [], isBuiltIn: false)
+        let data = try JSONEncoder().encode([p])
+        kvs.set(data, forKey: "panelstore.panels")
+
+        let freshDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Fresh-\(UUID().uuidString)", isDirectory: true)
+        let fresh = PanelStore(directory: freshDir, keyValueStore: kvs)
+        defer { try? FileManager.default.removeItem(at: freshDir) }
+
+        let loaded = fresh.userPanels()
+        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(loaded.first?.title, "School")
+    }
+
+    func testFreshDeviceLoadsLayoutFromKVS() throws {
+        let id = UUID()
+        let l = PanelStore.Layout(hiddenIDs: [id], orderedIDs: [id])
+        let data = try JSONEncoder().encode(l)
+        kvs.set(data, forKey: "panelstore.layout")
+
+        let freshDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Fresh-\(UUID().uuidString)", isDirectory: true)
+        let fresh = PanelStore(directory: freshDir, keyValueStore: kvs)
+        defer { try? FileManager.default.removeItem(at: freshDir) }
+
+        XCTAssertTrue(fresh.layout().hiddenIDs.contains(id))
+        XCTAssertEqual(fresh.layout().orderedIDs, [id])
+    }
+
+    func testLocalOnlyDataPromotesIntoKVSOnFirstRead() throws {
+        // Migration scenario: pre-step-8 user has local panels.json but KVS is empty.
+        let panelsFile = tempDir.appendingPathComponent("panels.json")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let p = Panel(title: "Legacy", color: .red, interactions: [], isBuiltIn: false)
+        let data = try JSONEncoder().encode([p])
+        try data.write(to: panelsFile)
+
+        XCTAssertNil(kvs.data(forKey: "panelstore.panels"))
+        _ = store.userPanels()  // first read promotes
+        XCTAssertNotNil(kvs.data(forKey: "panelstore.panels"))
     }
 
     // MARK: Hydration

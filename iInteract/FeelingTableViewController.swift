@@ -42,8 +42,9 @@ class FeelingTableViewController: UITableViewController {
         configurationButton?.action = #selector(showPanelEditor)
         navigationItem.rightBarButtonItem = nil
 
-        //register for settings
+        //register for settings + iCloud KVS panel sync
         NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.settingsChanged), name: UserDefaults.didChangeNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.panelStoreChanged), name: PanelStore.didChangeNotification, object: nil)
 
         //update settings (also applies + button visibility for the current mode)
         updateSettings()
@@ -267,6 +268,15 @@ class FeelingTableViewController: UITableViewController {
     @objc func settingsChanged() {
             //note currently if the panel is showing this does not take effect until the close and go back to the main menu this is becuase we currently set this in 'prepareForSegue'
         updateSettings()
+    }
+
+    @objc func panelStoreChanged() {
+        // Another device pushed a layout/panel change via iCloud KVS.
+        // Refresh our list if we're in custom mode.
+        if configurationMode == .custom {
+            loadPanels()
+            tableView.reloadData()
+        }
     }
     
     // Mark: Splash Screen

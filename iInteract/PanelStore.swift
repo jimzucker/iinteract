@@ -19,13 +19,22 @@ import UIKit
 /// an in-memory implementation; production uses iCloud KVS.
 protocol KeyValueStorage: AnyObject {
     func string(forKey key: String) -> String?
+    func data(forKey key: String) -> Data?
     func set(_ value: String?, forKey key: String)
+    func set(_ value: Data?, forKey key: String)
     func removeObject(forKey key: String)
     @discardableResult func synchronize() -> Bool
 }
 
 extension NSUbiquitousKeyValueStore: KeyValueStorage {
     func set(_ value: String?, forKey key: String) {
+        if let value = value {
+            self.set(value as Any, forKey: key)
+        } else {
+            removeObject(forKey: key)
+        }
+    }
+    func set(_ value: Data?, forKey key: String) {
         if let value = value {
             self.set(value as Any, forKey: key)
         } else {
@@ -40,10 +49,19 @@ final class PanelStore {
 
     static let maxInteractionsPerUserPanel = 6
 
+    /// Posted on the main queue when KVS delivers a change from another device,
+    /// after the local cache has been refreshed. UI reloads in response.
+    static let didChangeNotification = Notification.Name("PanelStore.didChange")
+
     /// Production singleton — Application Support + iCloud KVS.
-    static let shared = PanelStore(directory: PanelStore.defaultDirectory(),
-                                   keyValueStore: NSUbiquitousKeyValueStore.default,
-                                   iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil })
+    static let shared: PanelStore = {
+        let s = PanelStore(directory: PanelStore.defaultDirectory(),
+                           keyValueStore: NSUbiquitousKeyValueStore.default,
+                           iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil })
+        s.startObservingICloudChanges()
+        NSUbiquitousKeyValueStore.default.synchronize()
+        return s
+    }()
 
     enum StoreError: Error {
         case nameNotUnique
@@ -150,16 +168,44 @@ final class PanelStore {
         }
     }
 
+    // MARK: - KVS keys for synced metadata
+
+    private static let kvsPanelsKey = "panelstore.panels"
+    private static let kvsLayoutKey = "panelstore.layout"
+
     // MARK: - User panels
 
     func userPanels() -> [Panel] {
-        guard let data = try? Data(contentsOf: panelsURL) else { return [] }
-        return (try? JSONDecoder().decode([Panel].self, from: data)) ?? []
+        // Local file is the read cache; KVS is the sync mechanism. On first
+        // launch on a new device, the KVS observer copies KVS data here before
+        // the UI gets a chance to read it. Migrate the other direction the
+        // first time after upgrading to step 8 by promoting any local-only
+        // data into KVS so the user's other devices can pick it up.
+        if let data = try? Data(contentsOf: panelsURL),
+           let panels = try? JSONDecoder().decode([Panel].self, from: data) {
+            promoteLocalIfMissingFromKVS(data: data, key: Self.kvsPanelsKey)
+            return panels
+        }
+        // No local file but KVS might have data (fresh install, signed-in user).
+        if let data = kvs.data(forKey: Self.kvsPanelsKey),
+           let panels = try? JSONDecoder().decode([Panel].self, from: data) {
+            try? data.write(to: panelsURL, options: .atomic)
+            return panels
+        }
+        return []
     }
 
     private func saveUserPanels(_ panels: [Panel]) throws {
         let data = try JSONEncoder().encode(panels)
         try data.write(to: panelsURL, options: .atomic)
+        kvs.set(data, forKey: Self.kvsPanelsKey)
+        kvs.synchronize()
+    }
+
+    private func promoteLocalIfMissingFromKVS(data: Data, key: String) {
+        guard kvs.data(forKey: key) == nil else { return }
+        kvs.set(data, forKey: key)
+        kvs.synchronize()
     }
 
     func addPanel(_ panel: Panel) throws {
@@ -205,16 +251,24 @@ final class PanelStore {
     }
 
     func layout() -> Layout {
-        guard let data = try? Data(contentsOf: layoutURL),
-              let layout = try? JSONDecoder().decode(Layout.self, from: data) else {
-            return Layout()
+        if let data = try? Data(contentsOf: layoutURL),
+           let layout = try? JSONDecoder().decode(Layout.self, from: data) {
+            promoteLocalIfMissingFromKVS(data: data, key: Self.kvsLayoutKey)
+            return layout
         }
-        return layout
+        if let data = kvs.data(forKey: Self.kvsLayoutKey),
+           let layout = try? JSONDecoder().decode(Layout.self, from: data) {
+            try? data.write(to: layoutURL, options: .atomic)
+            return layout
+        }
+        return Layout()
     }
 
     private func saveLayout(_ layout: Layout) throws {
         let data = try JSONEncoder().encode(layout)
         try data.write(to: layoutURL, options: .atomic)
+        kvs.set(data, forKey: Self.kvsLayoutKey)
+        kvs.synchronize()
     }
 
     func setHidden(_ hidden: Bool, for panelID: UUID) throws {
@@ -335,5 +389,41 @@ final class PanelStore {
     private static func hash(_ string: String) -> String {
         let digest = SHA256.hash(data: Data(string.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    // MARK: - iCloud KVS change observation
+
+    /// Subscribes to `NSUbiquitousKeyValueStore.didChangeExternallyNotification`
+    /// and refreshes the local cache files when remote changes for our keys
+    /// arrive, then posts `didChangeNotification` so the UI can reload.
+    func startObservingICloudChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(iCloudKeysDidChange(_:)),
+            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: nil
+        )
+    }
+
+    @objc private func iCloudKeysDidChange(_ note: Notification) {
+        guard let changedKeys = note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] else {
+            return
+        }
+        var didChange = false
+        if changedKeys.contains(Self.kvsPanelsKey),
+           let data = kvs.data(forKey: Self.kvsPanelsKey) {
+            try? data.write(to: panelsURL, options: .atomic)
+            didChange = true
+        }
+        if changedKeys.contains(Self.kvsLayoutKey),
+           let data = kvs.data(forKey: Self.kvsLayoutKey) {
+            try? data.write(to: layoutURL, options: .atomic)
+            didChange = true
+        }
+        if didChange {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
+            }
+        }
     }
 }

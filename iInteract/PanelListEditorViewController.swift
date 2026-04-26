@@ -51,6 +51,16 @@ final class PanelListEditorViewController: UITableViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.securityCell)
         tableView.isEditing = true
         tableView.allowsSelectionDuringEditing = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(panelStoreChangedRemotely),
+            name: PanelStore.didChangeNotification,
+            object: nil
+        )
+        loadPanels()
+    }
+
+    @objc private func panelStoreChangedRemotely() {
         loadPanels()
     }
 
