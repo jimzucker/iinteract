@@ -163,6 +163,13 @@ final class PanelStore {
     }
 
     func addPanel(_ panel: Panel) throws {
+        try savePanel(panel)
+    }
+
+    /// Upserts a user panel. New panels (id not present) are appended; existing
+    /// panels are replaced in place so reorder/visibility maps still match.
+    /// Validates uniqueness (excluding self) and the 6-interaction cap.
+    func savePanel(_ panel: Panel) throws {
         guard !panel.isBuiltIn else { return }
         guard isNameAvailable(panel.title, excluding: panel.id) else {
             throw StoreError.nameNotUnique
@@ -171,7 +178,11 @@ final class PanelStore {
             throw StoreError.capacityExceeded
         }
         var panels = userPanels()
-        panels.append(panel)
+        if let i = panels.firstIndex(where: { $0.id == panel.id }) {
+            panels[i] = panel
+        } else {
+            panels.append(panel)
+        }
         try saveUserPanels(panels)
     }
 

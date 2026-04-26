@@ -44,6 +44,7 @@
 		892736F9D0E524A51B25F438 /* ConfigurationMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F253757A749E8FD593465BF6 /* ConfigurationMode.swift */; };
 		A31BA1116ED59568679E500D /* PanelStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0089B9790338601ADA2628 /* PanelStoreTests.swift */; };
 		AC476E8474E21D444F8D2219 /* PanelLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D688FAA1636C6707018308F /* PanelLoader.swift */; };
+		E387399ECC7BBE8934F2C3BD /* PanelEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */; };
 		E8238E4F6B2868DAE2439170 /* PlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -133,6 +134,7 @@
 		6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
 		6DDF8E021C1207B100A156E5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6DDF8E041C1207B100A156E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = "iInteractWatch Extension/Info.plist"; sourceTree = SOURCE_ROOT; };
+		71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelEditorViewController.swift; sourceTree = "<group>"; };
 		8D688FAA1636C6707018308F /* PanelLoader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelLoader.swift; sourceTree = "<group>"; };
 		D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlaybackTests.swift; sourceTree = "<group>"; };
 		DFB7D8F1EB6BAA4A96A6C425 /* CustomPanelViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomPanelViewController.swift; sourceTree = "<group>"; };
@@ -212,6 +214,7 @@
 				5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */,
 				1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */,
 				DFB7D8F1EB6BAA4A96A6C425 /* CustomPanelViewController.swift */,
+				71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -453,6 +456,7 @@
 				43F76A893A22B38EDED6E419 /* PanelListEditorViewController.swift in Sources */,
 				1442F91FC1BA9FFD144C6C92 /* InteractionPlayer.swift in Sources */,
 				88EB04F5EED703017E400BF7 /* CustomPanelViewController.swift in Sources */,
+				E387399ECC7BBE8934F2C3BD /* PanelEditorViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

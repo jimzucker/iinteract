@@ -55,14 +55,18 @@ final class PanelListEditorViewController: UITableViewController {
     }
 
     @objc private func addPanelTapped() {
-        // The new-panel editor lands in step 6. Stub for now.
-        let alert = UIAlertController(
-            title: "New Panel",
-            message: "The new-panel editor arrives in the next v2.0 step.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        let editor = PanelEditorViewController(panel: nil, store: store)
+        editor.onSave = { [weak self] _ in self?.loadPanels() }
+        navigationController?.pushViewController(editor, animated: true)
+    }
+
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let panel = panels[indexPath.row]
+        guard !panel.isBuiltIn else { return }
+        let editor = PanelEditorViewController(panel: panel, store: store)
+        editor.onSave = { [weak self] _ in self?.loadPanels() }
+        navigationController?.pushViewController(editor, animated: true)
     }
 
     // MARK: - Table view

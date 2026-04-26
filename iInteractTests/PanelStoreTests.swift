@@ -170,6 +170,40 @@ final class PanelStoreTests: XCTestCase {
         XCTAssertTrue(store.canAddInteraction(to: p.id))
     }
 
+    // MARK: savePanel (upsert)
+
+    func testSavePanelInsertsThenUpdates() throws {
+        let p = Panel(title: "School", color: .systemTeal, interactions: [], isBuiltIn: false)
+        try store.savePanel(p)
+        XCTAssertEqual(store.userPanels().count, 1)
+
+        // Mutate and save again with the same id — should replace, not append.
+        p.title = "School 2"
+        p.interactions = [Interaction(id: UUID(), name: "playground")]
+        try store.savePanel(p)
+        XCTAssertEqual(store.userPanels().count, 1)
+        XCTAssertEqual(store.userPanels().first?.title, "School 2")
+        XCTAssertEqual(store.userPanels().first?.interactions.count, 1)
+    }
+
+    func testSavePanelLetsRenameStayUniqueWhenUsingExcludeSelf() throws {
+        let p = Panel(title: "Original", color: .red, interactions: [], isBuiltIn: false)
+        try store.savePanel(p)
+        // Rename to a different unique value — should succeed, not collide with itself.
+        p.title = "Renamed"
+        XCTAssertNoThrow(try store.savePanel(p))
+        XCTAssertEqual(store.userPanels().first?.title, "Renamed")
+    }
+
+    func testSavePanelRejectsRenameToBuiltIn() throws {
+        let p = Panel(title: "MyPanel", color: .red, interactions: [], isBuiltIn: false)
+        try store.savePanel(p)
+        p.title = "I feel"  // collides with a built-in
+        XCTAssertThrowsError(try store.savePanel(p)) { error in
+            XCTAssertEqual(error as? PanelStore.StoreError, .nameNotUnique)
+        }
+    }
+
     // MARK: Hydration
 
     func testHydrateNoOpsForBuiltIn() {
