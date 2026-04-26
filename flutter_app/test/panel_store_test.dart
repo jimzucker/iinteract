@@ -10,6 +10,7 @@
 //
 
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iinteract/models/configuration_mode.dart';
@@ -181,6 +182,50 @@ void main() {
       final loaded = await loadPanels(mode: ConfigurationMode.custom, store: store);
       expect(loaded.any((p) => p.id == builtIns.first.id), isFalse);
       expect(loaded.first.id, builtIns[1].id);
+    });
+  });
+
+  group('Hydration', () {
+    test('no-op for built-in interactions', () async {
+      final i = Interaction.builtIn('happy');
+      final beforePic = i.picturePath;
+      final beforeBoy = i.boySoundPath;
+      await store.hydrate(Panel(
+        id: 'tmp', title: 'tmp', color: const Color(0xFF000000),
+        interactions: [i], isBuiltIn: false,
+      ));
+      // Hydrate skips built-ins entirely.
+      expect(i.picturePath, beforePic);
+      expect(i.boySoundPath, beforeBoy);
+    });
+
+    test('user interaction picks up files when present', () async {
+      final i = Interaction.user(id: 'iid', name: 'playground');
+      // Write a real JPEG-ish blob and stub audio files at the expected paths.
+      await store.saveInteractionPicture(Uint8List.fromList(List.filled(8, 0xFF)), i.id);
+      final boy = await store.audioPath(i.id, Voice.boy);
+      final girl = await store.audioPath(i.id, Voice.girl);
+      await File(boy).writeAsBytes([0]);
+      await File(girl).writeAsBytes([0]);
+
+      await store.hydrate(Panel(
+        id: 'p', title: 'p', color: const Color(0xFF000000),
+        interactions: [i], isBuiltIn: false,
+      ));
+      expect(i.picturePath, await store.picturePath(i.id));
+      expect(i.boySoundPath, boy);
+      expect(i.girlSoundPath, girl);
+    });
+
+    test('deleteInteractionAssets removes all three files', () async {
+      const id = 'cleanup-id';
+      await store.saveInteractionPicture(Uint8List.fromList([1]), id);
+      await File(await store.audioPath(id, Voice.boy)).writeAsBytes([0]);
+      await File(await store.audioPath(id, Voice.girl)).writeAsBytes([0]);
+      await store.deleteInteractionAssets(id);
+      expect(await File(await store.picturePath(id)).exists(), isFalse);
+      expect(await File(await store.audioPath(id, Voice.boy)).exists(), isFalse);
+      expect(await File(await store.audioPath(id, Voice.girl)).exists(), isFalse);
     });
   });
 
