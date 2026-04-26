@@ -11,20 +11,47 @@
 //
 
 import WatchKit
+import WatchConnectivity
 
-class ExtensionDelegate: NSObject, WKExtensionDelegate {
+class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate {
+
+    static let payloadKey = "builtInPanelOrder"
+    static let storageKey = "watchBuiltInPanelOrder"
+    static let didChangeNotification = Notification.Name("WatchPanelOrderDidChange")
 
     func applicationDidFinishLaunching() {
-        // Perform any final initialization of your application.
+        if WCSession.isSupported() {
+            let session = WCSession.default
+            session.delegate = self
+            session.activate()
+        }
     }
 
-    func applicationDidBecomeActive() {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+    // MARK: WCSessionDelegate
+
+    func session(_ session: WCSession,
+                 activationDidCompleteWith activationState: WCSessionActivationState,
+                 error: Error?) {
+        // If the iPhone has already pushed a context before our delegate was
+        // attached, applicationContext is non-empty — apply it now.
+        if !session.receivedApplicationContext.isEmpty {
+            apply(context: session.receivedApplicationContext)
+        }
     }
 
-    func applicationWillResignActive() {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, etc.
+    func session(_ session: WCSession,
+                 didReceiveApplicationContext applicationContext: [String : Any]) {
+        apply(context: applicationContext)
     }
 
+    private func apply(context: [String: Any]) {
+        guard let titles = context[Self.payloadKey] as? [String] else { return }
+        UserDefaults.standard.set(titles, forKey: Self.storageKey)
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+        }
+    }
+
+    func applicationDidBecomeActive() {}
+    func applicationWillResignActive() {}
 }

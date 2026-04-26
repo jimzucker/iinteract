@@ -1,0 +1,426 @@
+v3.0 PLAN — CONFIGURABLE PANELS
+================================
+
+Source: /ultraplan session, 2026-04-25. The plan was approved before
+implementation began; this file is the canonical reference for what was
+intended. An "AS-SHIPPED DELTA" section at the bottom records how the
+implementation diverged from the plan during on-device review.
+
+
+CONTEXT
+-------
+
+README.md already promises a v2.0 that lets users "create your own pages
+using your own pictures and sounds," but the description is one paragraph
+and doesn't define what the user actually controls or how their data is
+protected. The user wants the README rewritten to advertise two
+configuration modes, an optional password gate, and a no-data-leaves-the-
+device guarantee (local + iCloud only).
+
+Today the app is hard-wired to the bundled iInteract/panels.plist and
+bundled image/audio assets — Panel.readFromPlist() (iInteract/Panel.swift:49)
+and Interaction.init(interactionName:) (iInteract/Interaction.swift:25)
+both only read from Bundle.main, and the configuration entry point
+(AddPanel segue + add button at iInteract/Base.lproj/Main.storyboard:51) is
+already wired up in the storyboard but hidden behind the unused
+enableConfiguration setting at iInteract/FeelingTableViewController.swift:26.
+
+The work is to land the README story and the underlying data + UI changes
+that make those two modes real.
+
+
+THE TWO MODES (USER-VISIBLE)
+----------------------------
+
+Mode 1: Default (current)
+    What the user can do:
+        Voice (boy/girl), sound on/off. The 7 built-in panels behave
+        exactly like v1.x.
+    What's stored:
+        UserDefaults only — bundled panels & assets unchanged.
+
+Mode 2: Custom
+    What the user can do:
+        Add new panels with their own title, color, and up to 6
+        interactions (each with a chosen picture and recorded boy/girl
+        audio). Each page name must be unique across all visible pages
+        (built-in + user). Reorder all panels. Show/hide any panel —
+        including the built-in ones. Built-in panels remain read-only
+        content; only their visibility and position are user-controlled.
+    What's stored:
+        User-authored panels + a per-panel "hidden" / order map for
+        built-ins, kept locally and synced via the user's iCloud.
+
+Mode is a single configuration_mode UserDefaults value (default / custom)
+selected in iOS Settings. Optional configuration_password (4-digit PIN)
+gates entry to the in-app editor.
+
+
+SHAPE OF THE CHANGE
+-------------------
+
+Settings.bundle (mode + sound + voice)
+    -> UserDefaults (mode)
+        -> Panel.load(mode:)
+            -> FeelingTableViewController -> PanelViewController
+            -> + button (custom mode only) -> PINGateViewController
+                -> PanelListEditor + PanelEditor + InteractionEditor
+                    -> PanelStore (userPanels + visibility/order map + PIN hash)
+                        <-> iCloud KVS for metadata + CloudKit private DB for blobs
+
+Bundle (panels.plist + Assets.xcassets + sounds/) feeds Panel.load(mode:)
+for built-ins.
+
+In default mode Loader returns the bundled list verbatim. In custom mode
+it returns built-ins ∪ user panels, filtered by the visibility map and
+sorted by the order map.
+
+
+FILES TO CHANGE / ADD
+---------------------
+
+Data layer (do first — everything else depends on it):
+
+    iInteract/Panel.swift
+        Replace readFromPlist() (line 49) with
+        static func load(mode: ConfigurationMode) -> [Panel]. For
+        .default keep current behavior verbatim. For .custom load
+        bundled panels, merge PanelStore.shared.userPanels(), then apply
+        the store's visibility + order map. Add id: UUID, isBuiltIn: Bool,
+        isHidden: Bool, and Codable conformance so user panels round-trip
+        through JSON. Built-ins get a stable id derived from their plist
+        title.
+
+    iInteract/Interaction.swift
+        Keep the bundled-name initializer (line 25) for backward compat;
+        add init(id: UUID, name: String, pictureURL: URL?, boySoundURL:
+        URL?, girlSoundURL: URL?) that reads images/audio from the user's
+        Application Support/UserAssets/ directory. Make Codable.
+
+    NEW iInteract/PanelStore.swift
+        Single source of truth for user-authored data. Persists
+        panels.json (user panels) and layout.json (visibility + order map
+        keyed by panel id, covering both built-ins and user panels) in
+        Application Support. Mirrors small metadata + PIN hash into
+        NSUbiquitousKeyValueStore. Stores image/audio blobs in
+        UserAssets/ and (behind a feature flag) syncs blobs through a
+        CloudKit private database. Exposes userPanels(), layout(),
+        addPanel(_:), deletePanel(id:), setHidden(_:for:), setOrder(_:),
+        setPIN(_:), verifyPIN(_:), plus validators
+        isNameAvailable(_:excluding:) (checks uniqueness across built-in
+        titles + visible user panels) and canAddInteraction(to:) (returns
+        false when a user panel already has 6). Mutators throw on
+        uniqueness or capacity violation so the editor can surface inline
+        errors. No third-party endpoints — sync only via Apple iCloud
+        APIs. Constants: PanelStore.maxInteractionsPerUserPanel = 6.
+
+    NEW iInteract/ConfigurationMode.swift
+        enum ConfigurationMode: String { case default, custom } with
+        current() reading configuration_mode from UserDefaults.
+
+UI:
+
+    iInteract/FeelingTableViewController.swift
+        Replace loadPanels() (line 31) with
+        panels = Panel.load(mode: ConfigurationMode.current()). In
+        updateSettings() (line 186) read configuration_mode instead of
+        the boolean configuration_enabled; reload panels when mode
+        changes. The configuration + button (storyboard qU7-tv-4io) is
+        hidden in .default and visible in .custom. Tapping it pushes the
+        PIN gate when a PIN is set, otherwise the editor directly. Enable
+        the table-view edit overrides already stubbed at lines 117–149 to
+        support reorder/hide in .custom mode without leaving the main
+        screen.
+
+    NEW iInteract/Configuration/PINGateViewController.swift
+        4-digit numeric entry, compares against SHA-256 hash stored in
+        NSUbiquitousKeyValueStore (so the PIN syncs across devices). 5
+        wrong attempts → 60s lockout. PIN is set/cleared inside the
+        editor, not in iOS Settings (we don't want a plaintext PIN field
+        there).
+
+    NEW iInteract/Configuration/PanelListEditorViewController.swift
+        List of all panels (built-ins + user-added), each row with a
+        visibility toggle and a drag handle for reorder. + adds a new
+        user panel. Built-ins cannot be deleted or have their content
+        edited (chevron disabled); user panels can.
+
+    NEW iInteract/Configuration/PanelEditorViewController.swift
+        For user panels only: title field (validates uniqueness via
+        PanelStore.isNameAvailable; Save disabled and inline error shown
+        when the name collides with a built-in or another user panel),
+        color picker (UIColorPickerViewController), interactions list
+        with add/delete/reorder. Add button is disabled and a footer
+        message ("Up to 6 items per page") appears once the list reaches
+        PanelStore.maxInteractionsPerUserPanel (6).
+
+    NEW iInteract/Configuration/InteractionEditorViewController.swift
+        Picture picker (PHPickerViewController, modeled after the
+        profile-picture pattern called out in the README) and boy/girl
+        audio recorders (AVAudioRecorder, modeled after Messages voice
+        notes — already cited in the README). Saves blobs through
+        PanelStore.
+
+Storyboard:
+
+    iInteract/Base.lproj/Main.storyboard
+        Repoint the existing AddPanel segue (line 53) at auM-RD-qyN from
+        the placeholder PanelViewController to the new
+        PanelListEditorViewController (via PIN gate when set). Keep
+        ShowPanel (line 41) wired to the existing PanelViewController for
+        built-ins. Add a second segue ShowCustomPanel from the master
+        cell to a new CustomPanelViewController scene;
+        FeelingTableViewController.tableView(_:didSelectRowAt:) chooses
+        which segue to perform based on panel.isBuiltIn.
+
+
+RENDERING USER PANELS (UP TO 6 INTERACTIONS)
+--------------------------------------------
+
+The existing PanelViewController is hard-wired to 4 IBOutlets
+(Button1–Button4 at iInteract/PanelViewController.swift:28–31) so it
+can't render a 6-cell user panel without breaking the v1.x look of
+built-ins. Add a sibling CustomPanelViewController that uses a
+UICollectionView with a 2×3 / 3×2 adaptive grid (driven by orientation)
+capable of 1–6 cells; reuse the existing tap → animate → AVAudioPlayer
+flow from PanelViewController.selectInteraction (lines 108–167) by
+extracting it into a small InteractionPlayer helper that both
+controllers call. Built-ins continue to use the unchanged
+PanelViewController.
+
+
+SETTINGS + ENTITLEMENTS
+-----------------------
+
+Settings.bundle/Root.plist
+    Add a PSMultiValueSpecifier for configuration_mode with values
+    default / custom (default default). Drop the existing boolean
+    configuration_enabled — it's superseded
+    (FeelingTableViewController.swift:190 reads it; remove that line).
+
+iInteract/iInteract.entitlements
+    Add com.apple.developer.ubiquity-kvstore-identifier (small metadata
+    + PIN hash) and, if blob sync ships in v2.0,
+    com.apple.developer.icloud-container-identifiers +
+    com.apple.developer.icloud-services (CloudKit). No new outbound
+    network endpoints — sandbox stays true.
+
+
+WATCH TARGET
+------------
+
+iInteract Watch Extension uses its own events.plist and is read-only on
+the watch. v2.0 scope: when .custom is active, push the visible panel
+list to the watch via WCSession.transferUserInfo so the watch reflects
+the same boards. Editing on the watch is out of scope for v2.0.
+
+
+DOCS
+----
+
+README.md
+    Rewrite the "Upcoming 2.0 release" section to:
+    - Describe the two modes with one sentence each plus a small table.
+    - Call out optional PIN protection on the editor.
+    - State the data-handling promise: "All custom pictures, sounds,
+      titles, and your PIN stay on your device and (if you enable
+      iCloud) sync only through your personal iCloud account. Nothing is
+      ever sent to us or any third party." Link to PrivacyPolicy.md.
+    - Keep the existing UI-pattern references (Clock for arranging,
+      profile-picture flow for images, Messages for recording) — they
+      map directly to the editor screens above.
+
+PrivacyPolicy.md
+    Add a paragraph clarifying that user-authored panel data is stored
+    locally and, at the user's option, synced via the user's own iCloud
+    account (KVS + CloudKit private database); never transmitted to the
+    developer or any third party.
+
+
+IMPLEMENTATION ORDER
+--------------------
+
+1. ConfigurationMode.swift + Codable on Panel/Interaction +
+   PanelStore.swift. Verify with a unit test that round-trips a [Panel]
+   and a layout map through JSON.
+
+2. Wire Panel.load(mode:) into FeelingTableViewController. Verify
+   .default is byte-for-byte v1.x and .custom with an empty store shows
+   all built-ins.
+
+3. Settings.bundle mode picker + entitlements; verify the in-app
+   behavior changes when the iOS Settings toggle flips.
+
+4. PanelListEditorViewController + storyboard rewire; verify hide/
+   reorder of built-ins from the editor (and inline on the main list).
+
+5. Extract InteractionPlayer from PanelViewController.selectInteraction
+   and add CustomPanelViewController (UICollectionView, 1–6 cells);
+   verify built-ins still look identical.
+
+6. PanelEditorViewController + InteractionEditorViewController (PHPicker
+   + AVAudioRecorder), wired to PanelStore validators (unique name, ≤6
+   interactions); verify a new 6-interaction user panel plays back
+   through CustomPanelViewController and that adding a 7th is blocked
+   with an inline message.
+
+7. PINGateViewController + PIN set/clear UI inside the editor; verify
+   lockout and that a forgotten PIN can be cleared by deleting the app
+   (document this).
+
+8. iCloud KVS sync of metadata + visibility/order; CloudKit blob sync
+   behind a feature flag.
+
+9. README + PrivacyPolicy edits.
+
+10. Watch WCSession push (last — independent).
+
+
+VERIFICATION
+------------
+
+Unit
+    Add iInteractTests/PanelStoreTests.swift covering JSON round-trip,
+    layout merge (built-ins ∪ user, hidden filtered, ordered correctly),
+    and PIN hash compare.
+
+Mode 1 (default)
+    Fresh install with configuration_mode = default — no + button, all
+    7 bundled panels in original order play bundled audio. Matches v1.x
+    exactly.
+
+Mode 2 (custom), built-in management
+    Switch mode in Settings, open editor, hide "Snacks", drag "I need
+    help" to the top; main list reflects both changes immediately and
+    persists across relaunch.
+
+Mode 2 (custom), new panel
+    Add a new panel "School" with a custom color and 6 interactions
+    (max), each with a chosen photo and recorded boy + girl audio; on
+    the main list, tap into "School" and verify all 6 cells render in
+    the grid and each plays the correct voice for the current
+    voice-style setting. Attempt to add a 7th — blocked with footer
+    message.
+
+Mode 2 (custom), uniqueness
+    Attempt to create a panel named Snacks (collides with built-in) —
+    Save disabled, inline error shown; rename to After-school snacks —
+    Save enabled.
+
+PIN
+    Set a PIN in the editor, kill the app, reopen, tap + → PIN gate
+    appears; 5 wrong tries → 60s lockout; correct PIN opens editor;
+    clearing PIN removes the gate.
+
+iCloud
+    Sign into a second device with the same Apple ID, confirm user
+    panels + visibility/order + PIN hash appear within ~30s via KVS;
+    with CloudKit flag on, confirm blobs sync.
+
+Privacy
+    Charles/Proxyman trace during all editor flows shows zero traffic
+    to non-Apple hosts.
+
+Build
+    xcodebuild -scheme iInteract -destination 'platform=iOS Simulator,
+    name=iPhone 16' test and a Mac Catalyst build both pass.
+
+
+===============================================================================
+AS-SHIPPED DELTA (refinements driven by on-device review, 2026-04-25 → 04-26)
+===============================================================================
+
+The plan above is preserved unchanged. The actual implementation evolved
+through six rounds of UX feedback. Notable departures from the plan:
+
+* Marketing version: bumped 2.1.0 → 3.0.0 (the plan said v2.0; on
+  reflection a major bump fit the feature set better).
+
+* Mode + voice live in iOS Settings.bundle as planned. PIN management
+  also moved to iOS Settings (PSTextFieldSpecifier with secure numeric
+  entry) and then required an in-app re-entry confirmation alert on
+  resume to prevent typo lockouts. Clear All My Data became a
+  PSToggleSwitchSpecifier ("Clear All My Data on Resume") that opens
+  an in-app confirm on app resume; on confirm the app also resets
+  configuration_mode to .default so the wiped device looks like a
+  first-launch install.
+
+* The configuration + storyboard button was REPLACED with a gear icon
+  (UIBarButtonItem with "gearshape" SF Symbol) created programmatically
+  in viewDidLoad. The gear is always visible regardless of mode (so
+  parents can reach Trash even in default mode). The storyboard's
+  AddPanel segue is bypassed entirely; tapping the gear pushes the
+  editor programmatically.
+
+* PIN gate moved from "enter editor" to "perform any destructive
+  action." A reusable UIViewController.gatePINIfSet(_:) extension wraps
+  the present-PIN-then-run-action pattern. Gated actions: delete a user
+  panel, delete an interaction, Delete Forever in Trash, Empty Trash,
+  and Clear All My Data. Browsing the editor and the trash list is
+  free; toggling visibility, reordering, restoring from trash, and
+  setting/changing the PIN itself are not gated.
+
+* Custom panel rendering is the planned CustomPanelViewController with
+  a UICollectionView (1–6 cells, 2×3 portrait / 3×2 landscape), but
+  InteractionPlayer also configures AVAudioSession.playback so audio
+  bypasses the iPhone silent switch (required for a communication aid),
+  and falls back to whichever voice exists when the requested voice
+  wasn't recorded for that interaction.
+
+* Picture picker in InteractionEditorViewController offers a chooser
+  sheet: Take Photo (UIImagePickerController.camera) /
+  Choose from Library (PHPickerViewController) / Cancel — beyond the
+  plan's library-only design. NSCameraUsageDescription added to
+  Info.plist alongside NSPhotoLibraryUsageDescription and
+  NSMicrophoneUsageDescription.
+
+* Recycle bin — a 30-day soft-delete pattern modeled on Photos'
+  Recently Deleted. Not in the original plan; added in round 2 of UX
+  review. Deleted user panels and interactions move to a Trash folder
+  (with their assets); after 30 days they're auto-purged. The Trash
+  screen lives inside the editor and supports tap-to-restore (with an
+  action sheet), swipe actions, smart parent-aware restore for
+  interactions, redirect-to-different-panel when the original parent
+  is gone or full, and one-tap "Restore Panel & Interaction" when both
+  are in Trash.
+
+* Watch sync (step 10) ships only the visible BUILT-IN panel order via
+  WCSession.updateApplicationContext. Custom user panels stay
+  iPhone-only on watch (their pictures and audio aren't in the watch
+  bundle in v3.0 — deferred).
+
+* CloudKit blob sync is NOT enabled. iCloud KVS syncs panels.json,
+  layout.json, and the PIN hash + security question/answer hash;
+  custom photos and audio blobs stay local in v3.0. Listed as a v3.1+
+  follow-up.
+
+Final commit log on the version3 branch (oldest → newest, all on top
+of master):
+    v3.0 step 1   data layer
+    v3.0 step 2   mode-aware loading
+    v3.0 step 3   iCloud KVS entitlement
+                  Xcode-added share-access entitlement
+    v3.0 step 4   in-app panel list editor
+    v3.0 step 5   InteractionPlayer + CustomPanelViewController
+    v3.0 step 6a  hydration + permission strings
+    v3.0 step 6b  PanelEditor
+    v3.0 step 6c  InteractionEditor
+    v3.0 step 7   PIN gate + setup flow
+    v3.0 step 8   iCloud KVS sync of panels + layout
+    v3.0 step 9   README + PrivacyPolicy
+    v3.0 step 10  watch sync of visible built-in panels
+                  bump native iOS app to 3.0.0 (build 2)
+                  v3.0 device-test fixes
+    v3.0 UX round 2 (A) Settings is admin-only, PIN-gated at gear
+    v3.0 UX round 2 (B) camera option + audio cell layout fix
+    v3.0 UX round 2 (C) 30-day recycle bin
+    v3.0 UX round 3   gear → editor directly, drop separate Settings screen
+    v3.0 UX round 4 (A) user-interaction sound + visible Clear + sharper wording
+    v3.0 UX round 4 (B) PIN + Clear Data move into iOS Settings
+    v3.0 UX round 4 (C) smart restore in Trash with parent-aware flow
+    v3.0 UX round 5   gear always visible + PIN re-entry confirmation
+                      Trash: restore parent + interaction in one tap
+    v3.0 UX round 6   PIN-gate destructive actions, reset mode on clear
+
+Tag: working1 — first checkpoint where end-to-end flow is verified
+working on a real iPhone.

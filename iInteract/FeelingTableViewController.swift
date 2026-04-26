@@ -19,38 +19,50 @@ class FeelingTableViewController: UITableViewController {
     
     var panels = [Panel]()
     var configurationButton : UIBarButtonItem?
-    
+
     // MARK: Settings Properties
-    var voiceEnabled        : Bool      = true
-    var voiceStyle          : String    = "girl"
-    var enableConfiguration : Bool      = false
-    
+    var voiceEnabled        : Bool                = true
+    var voiceStyle          : String              = "girl"
+    var configurationMode   : ConfigurationMode   = .default
+
     //dislay splash screen 1 time then disable it by setting a preference, we use an int so we can show newer splash screens, it will be set to the current version # once it shows
     var displaySplashScreen : String     = ""
-    
+
    fileprivate func loadPanels() {
-        panels = Panel.readFromPlist()
+        panels = Panel.load(mode: configurationMode)
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-            //enable/disable configuration
-        configurationButton = navigationItem.rightBarButtonItem
-        if !enableConfiguration {
-            navigationItem.rightBarButtonItem = nil
-        }
-        
-        //register for settings
+            //gear icon is the entry to panel/interaction editing and the
+            //Trash. Always visible — even in default mode — so it can't be
+            //hidden by leftover state from the storyboard's + button.
+            //Voice / Mode / PIN / Clear Data live in iOS Settings.bundle.
+        configurationButton = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape"),
+            style: .plain,
+            target: self,
+            action: #selector(showEditor)
+        )
+        navigationItem.rightBarButtonItem = configurationButton
+
+        //register for settings + iCloud KVS panel sync + foreground resume
         NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.settingsChanged), name: UserDefaults.didChangeNotification, object: nil)
-  
-        //update settings
+        NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.panelStoreChanged), name: PanelStore.didChangeNotification, object: nil)
+        // didBecomeActive fires whenever the app comes back from
+        // background — including from iOS Settings — so we can pick up
+        // pin_enabled / pending_clear_all changes even when the user is
+        // currently on a pushed sub-screen (editor, panel editor, etc).
+        NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        //read mode/voice from defaults
         updateSettings()
-        
+
         //show the preferences
 //        UIApplication.sharedApplication().openURL(NSURL(string: UIApplicationOpenSettingsURLString)!)
-        
-        //load sample data
+
+        //load panels for the current mode
         loadPanels()
         
         // Uncomment the following line to preserve selection between presentations
@@ -60,9 +72,222 @@ class FeelingTableViewController: UITableViewController {
         // self.navigationItem.rightBarButtonItem = self.editButtonItem()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // UserDefaults.didChangeNotification only fires for changes made in
+        // this process, NOT for changes made in iOS Settings (which runs in
+        // its own process). Re-read settings every time we appear.
+        updateSettings()
+        // Apply any PIN/clear-data requests the user made in iOS Settings.
+        applyPendingSettingsActions()
+        // Pick up any visibility/order edits from the in-app editor.
+        loadPanels()
+        tableView.reloadData()
+        // Keep the watch's mirror of the visible built-in list current.
+        WatchSync.shared.pushVisiblePanels()
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         showSplashScreen()
+    }
+
+    /// Reads iOS-Settings keys (`pin_enabled`, `pending_clear_all`) and
+    /// reconciles them with the actual app state. The Enable PIN toggle is
+    /// the source of intent — when it diverges from `PanelStore.hasPIN`, we
+    /// prompt the user in-app to bring them in sync (set new PIN with
+    /// confirmation, or enter current PIN to disable). Cancel reverts the
+    /// toggle so iOS Settings always reflects reality.
+    private func applyPendingSettingsActions() {
+        let defaults = UserDefaults.standard
+        // iOS Settings.bundle commits its writes to our app's UserDefaults
+        // when the user navigates away. A fresh read after resume sometimes
+        // lags the commit by a tick; force a sync.
+        defaults.synchronize()
+
+        let wantEnabled = defaults.bool(forKey: "pin_enabled")
+        let hasPIN = PanelStore.shared.hasPIN
+
+        if wantEnabled && !hasPIN {
+            promptEnablePIN()
+        } else if !wantEnabled && hasPIN {
+            promptDisablePIN()
+        }
+
+        // Clear All Data — same flow as before.
+        if defaults.bool(forKey: "pending_clear_all") {
+            defaults.set(false, forKey: "pending_clear_all")
+            confirmAndClearAllData()
+        }
+    }
+
+    /// User toggled "Enable PIN" on in iOS Settings but no PIN is set yet.
+    /// Prompt for a new 4-digit PIN with a confirmation field.
+    private func promptEnablePIN() {
+        let host = topmostPresenter()
+        guard host.presentedViewController == nil else { return }  // wait for next cycle
+
+        let alert = UIAlertController(
+            title: "Set PIN",
+            message: "Enter a 4-digit PIN, then confirm it. The PIN will be required to delete panels, recordings, or clear data.",
+            preferredStyle: .alert
+        )
+        alert.addTextField { tf in
+            tf.placeholder = "PIN"
+            tf.keyboardType = .numberPad
+            tf.isSecureTextEntry = true
+        }
+        alert.addTextField { tf in
+            tf.placeholder = "Confirm PIN"
+            tf.keyboardType = .numberPad
+            tf.isSecureTextEntry = true
+        }
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            // Revert the toggle so iOS Settings reflects reality.
+            UserDefaults.standard.set(false, forKey: "pin_enabled")
+        })
+        alert.addAction(UIAlertAction(title: "Set PIN", style: .default) { [weak self, weak alert] _ in
+            let pin = alert?.textFields?[0].text ?? ""
+            let confirm = alert?.textFields?[1].text ?? ""
+            let valid = (pin.count == 4 && pin.allSatisfy { $0.isNumber } && pin == confirm)
+            if valid {
+                PanelStore.shared.setPIN(pin)
+                // Toggle stays on — we leave pin_enabled = true.
+            } else {
+                UserDefaults.standard.set(false, forKey: "pin_enabled")
+                let msg = (pin.count != 4 || !pin.allSatisfy({ $0.isNumber }))
+                    ? "PIN must be 4 digits."
+                    : "PINs didn't match."
+                self?.presentSimpleAlert(title: "PIN Not Set",
+                                         message: "\(msg) Toggle Enable PIN in iOS Settings to try again.")
+            }
+        })
+        host.present(alert, animated: true)
+    }
+
+    /// User toggled "Enable PIN" off in iOS Settings while a PIN is set.
+    /// Require the current PIN, then a separate disable confirmation.
+    private func promptDisablePIN() {
+        let host = topmostPresenter()
+        guard host.presentedViewController == nil else { return }
+
+        let alert = UIAlertController(
+            title: "Disable PIN",
+            message: "Enter your current PIN to disable PIN protection.",
+            preferredStyle: .alert
+        )
+        alert.addTextField { tf in
+            tf.placeholder = "Current PIN"
+            tf.keyboardType = .numberPad
+            tf.isSecureTextEntry = true
+        }
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            // Revert toggle back to on.
+            UserDefaults.standard.set(true, forKey: "pin_enabled")
+        })
+        alert.addAction(UIAlertAction(title: "Continue", style: .default) { [weak self, weak alert] _ in
+            let entered = alert?.textFields?.first?.text ?? ""
+            if PanelStore.shared.verifyPIN(entered) {
+                self?.confirmDisablePIN()
+            } else {
+                UserDefaults.standard.set(true, forKey: "pin_enabled")
+                self?.presentSimpleAlert(title: "Wrong PIN",
+                                         message: "The PIN you entered is incorrect. PIN remains active.")
+            }
+        })
+        host.present(alert, animated: true)
+    }
+
+    private func confirmDisablePIN() {
+        let host = topmostPresenter()
+        let alert = UIAlertController(
+            title: "Disable PIN?",
+            message: "Anyone using this device will be able to delete panels and clear data without entering a PIN.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            UserDefaults.standard.set(true, forKey: "pin_enabled")
+        })
+        alert.addAction(UIAlertAction(title: "Disable", style: .destructive) { _ in
+            PanelStore.shared.clearPIN()
+            // Toggle stays off — pin_enabled is already false.
+        })
+        host.present(alert, animated: true)
+    }
+
+    private func presentSimpleAlert(title: String, message: String) {
+        let host = topmostPresenter()
+        let a = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "OK", style: .default))
+        host.present(a, animated: true)
+    }
+
+    /// Walks the active scene's view-controller hierarchy to find the
+    /// frontmost presenter, so prompts triggered by a foreground resume
+    /// don't get buried under a pushed editor or modal.
+    private func topmostPresenter() -> UIViewController {
+        var top: UIViewController = self
+        if let scene = view.window?.windowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first,
+           let root = window.rootViewController {
+            top = root
+        }
+        while let presented = top.presentedViewController { top = presented }
+        if let nav = top as? UINavigationController, let visible = nav.visibleViewController { top = visible }
+        return top
+    }
+
+    private func confirmAndClearAllData() {
+        // Require PIN before even SHOWING the confirmation, so an
+        // accidental iOS-Settings toggle still can't wipe data without
+        // the parent re-authenticating.
+        gatePINIfSet { [weak self] in
+            let alert = UIAlertController(
+                title: "Clear All My Data?",
+                message: "This permanently removes every custom panel, picture, recording, trashed item, and your PIN. Bundled panels are unaffected. The app will return to Default mode. This cannot be undone.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            alert.addAction(UIAlertAction(title: "Clear All", style: .destructive) { [weak self] _ in
+                PanelStore.shared.clearAllUserData()
+                // Reset mode to default so a freshly-wiped device looks
+                // like a first-launch install.
+                UserDefaults.standard.set(ConfigurationMode.default.rawValue,
+                                          forKey: ConfigurationMode.userDefaultsKey)
+                UserDefaults.standard.synchronize()
+                self?.updateSettings()
+                self?.loadPanels()
+                self?.tableView.reloadData()
+            })
+            self?.present(alert, animated: true)
+        }
+    }
+
+    @objc func showEditor() {
+        // No gate to ENTER the editor — the editor itself is read-mostly
+        // (toggle visibility, reorder, view trash). Destructive actions
+        // inside the editor (delete panel, delete interaction, empty
+        // trash, etc.) each gate behind the PIN individually via
+        // gatePINIfSet (see PINGate.swift).
+        navigationController?.pushViewController(PanelListEditorViewController(), animated: true)
+    }
+
+    // Built-ins use the storyboard's PanelViewController (ShowPanel segue);
+    // user panels go to the programmatic CustomPanelViewController instead.
+    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
+        guard identifier == "ShowPanel",
+              let cell = sender as? UITableViewCell,
+              let indexPath = tableView.indexPath(for: cell) else {
+            return true
+        }
+        let panel = panels[indexPath.row]
+        if panel.isBuiltIn { return true }
+
+        let custom = CustomPanelViewController(panel: panel,
+                                               voiceEnabled: voiceEnabled,
+                                               voiceStyle: voiceStyle)
+        navigationController?.pushViewController(custom, animated: true)
+        return false
     }
 
     override func didReceiveMemoryWarning() {
@@ -187,21 +412,43 @@ class FeelingTableViewController: UITableViewController {
         let userDefaults = UserDefaults.standard
         voiceEnabled = userDefaults.bool(forKey: "voice_enabled")
         voiceStyle = userDefaults.string(forKey: "voice_style")!
-        enableConfiguration = userDefaults.bool(forKey: "configuration_enabled")
         displaySplashScreen = userDefaults.string(forKey: "displaySplashScreen")!
-        
-            //show hide the configuration buttons
-        if !enableConfiguration {
-            navigationItem.rightBarButtonItem = nil
-        } else if navigationItem.rightBarButtonItem == nil && configurationButton != nil {
-            navigationItem.rightBarButtonItem = configurationButton
+
+        let newMode = ConfigurationMode.current(userDefaults)
+        let modeChanged = newMode != configurationMode
+        configurationMode = newMode
+
+        // Gear is always visible — its visibility doesn't depend on mode.
+        // (Setting up the PIN is in iOS Settings; you may want to hit the
+        // gear in default mode just to reach Trash.)
+        if navigationItem.rightBarButtonItem == nil, let button = configurationButton {
+            navigationItem.rightBarButtonItem = button
         }
 
+        if modeChanged && isViewLoaded {
+            loadPanels()
+            tableView.reloadData()
+        }
     }
   
     @objc func settingsChanged() {
             //note currently if the panel is showing this does not take effect until the close and go back to the main menu this is becuase we currently set this in 'prepareForSegue'
         updateSettings()
+    }
+
+    @objc func appDidBecomeActive() {
+        // Foreground resume — re-read iOS Settings to catch toggle changes
+        // even when the user is currently on a pushed sub-screen.
+        applyPendingSettingsActions()
+    }
+
+    @objc func panelStoreChanged() {
+        // Another device pushed a layout/panel change via iCloud KVS.
+        // Refresh our list if we're in custom mode.
+        if configurationMode == .custom {
+            loadPanels()
+            tableView.reloadData()
+        }
     }
     
     // Mark: Splash Screen

@@ -42,6 +42,68 @@
 				<string>boy</string>
 			</array>
 		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Configuration</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Mode</string>
+			<key>Key</key>
+			<string>configuration_mode</string>
+			<key>Titles</key>
+			<array>
+				<string>Default</string>
+				<string>Custom</string>
+			</array>
+			<key>DefaultValue</key>
+			<string>default</string>
+			<key>Values</key>
+			<array>
+				<string>default</string>
+				<string>custom</string>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Security</string>
+			<key>FooterText</key>
+			<string>Toggling Enable PIN sends you back to iInteract to set a new 4-digit PIN (with confirmation), or to enter the current PIN to disable it. The PIN is hashed before storage and syncs across your iCloud devices.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Enable PIN</string>
+			<key>Key</key>
+			<string>pin_enabled</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Privacy</string>
+			<key>FooterText</key>
+			<string>When this is on and you return to iInteract, the app asks you to confirm and then permanently removes every custom panel, picture, recording, trashed item, and PIN. Bundled panels are not affected.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Clear All My Data on Resume</string>
+			<key>Key</key>
+			<string>pending_clear_all</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
 	</array>
 </dict>
 </plist>
