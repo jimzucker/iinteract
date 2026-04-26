@@ -37,6 +37,17 @@ final class InteractionPlayer {
             return minimum
         }
 
+        // .playback category routes through the speaker and plays even with the
+        // iPhone silent switch on — required for a communication aid. The
+        // session activation can fail (e.g. another app holds it) but that
+        // shouldn't prevent us from trying to play.
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("InteractionPlayer: AVAudioSession setup failed: \(error)")
+        }
+
         do {
             let player = try AVAudioPlayer(contentsOf: url)
             audioPlayer = player

@@ -307,6 +307,8 @@ final class PINSetupViewController: UITableViewController {
 
     private var saveButton: UIBarButtonItem!
     private var errorMessage: String?
+    private weak var pinFooterLabel: UILabel?
+    private weak var questionFooterLabel: UILabel?
 
     var onComplete: (() -> Void)?
 
@@ -358,8 +360,9 @@ final class PINSetupViewController: UITableViewController {
             errorMessage = nil
         }
         saveButton.isEnabled = pinValid && qValid
-        if isViewLoaded { tableView.reloadSections([Section.pin.rawValue, Section.question.rawValue],
-                                                   with: .none) }
+        // Update footer labels in place — reloading the section would dismiss
+        // the keyboard after every keystroke.
+        pinFooterLabel?.text = errorMessage
     }
 
     // MARK: - Table view
@@ -374,10 +377,41 @@ final class PINSetupViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        // Footers come from viewForFooterInSection so we can update them
+        // without reloading the section (which would dismiss the keyboard).
+        nil
+    }
+
+    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
         switch Section(rawValue: section)! {
-        case .pin:      return errorMessage
-        case .question: return "Lets you reset your PIN later if you forget it."
+        case .pin:
+            let (view, label) = makeFooterLabelView(text: errorMessage, color: .systemRed)
+            self.pinFooterLabel = label
+            return view
+        case .question:
+            let (view, label) = makeFooterLabelView(text: "Lets you reset your PIN later if you forget it.",
+                                                    color: .secondaryLabel)
+            self.questionFooterLabel = label
+            return view
         }
+    }
+
+    private func makeFooterLabelView(text: String?, color: UIColor) -> (UIView, UILabel) {
+        let view = UIView()
+        let label = UILabel()
+        label.font = .preferredFont(forTextStyle: .footnote)
+        label.textColor = color
+        label.numberOfLines = 0
+        label.text = text
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+            label.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
+            label.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6),
+        ])
+        return (view, label)
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

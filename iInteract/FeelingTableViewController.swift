@@ -64,12 +64,14 @@ class FeelingTableViewController: UITableViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Refresh in case the user changed visibility/order in the editor.
-        // In .default mode the bundled list never changes so this is a no-op.
-        if configurationMode == .custom {
-            loadPanels()
-            tableView.reloadData()
-        }
+        // UserDefaults.didChangeNotification only fires for changes made in
+        // this process, NOT for changes made in iOS Settings (which runs in
+        // its own process). Re-read settings every time we appear so the +
+        // button shows up immediately after enabling Custom mode in Settings.
+        updateSettings()
+        // Pick up any visibility/order edits from the in-app editor.
+        loadPanels()
+        tableView.reloadData()
         // Keep the watch's mirror of the visible built-in list current.
         WatchSync.shared.pushVisiblePanels()
     }

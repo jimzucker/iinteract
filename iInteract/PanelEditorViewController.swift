@@ -37,6 +37,8 @@ final class PanelEditorViewController: UITableViewController,
 
     private var saveButton: UIBarButtonItem!
     private weak var titleField: UITextField?
+    private weak var titleFooterLabel: UILabel?
+    private weak var interactionsFooterLabel: UILabel?
     private var titleErrorMessage: String?
 
     /// Called after a successful save so the presenting screen can refresh.
@@ -106,7 +108,7 @@ final class PanelEditorViewController: UITableViewController,
             navigationController?.popViewController(animated: true)
         } catch PanelStore.StoreError.nameNotUnique {
             titleErrorMessage = "That name is already in use."
-            tableView.reloadSections([Section.title.rawValue], with: .none)
+            titleFooterLabel?.text = titleErrorMessage
         } catch {
             presentError("Could not save: \(error)")
         }
@@ -132,10 +134,16 @@ final class PanelEditorViewController: UITableViewController,
             titleErrorMessage = "That name is already in use."
         }
         saveButton.isEnabled = nameOK
-        // Refresh the title section's footer label visibility.
-        if isViewLoaded {
-            tableView.reloadSections([Section.title.rawValue], with: .none)
-        }
+        // Update the footer label directly — reloading the section would
+        // destroy the active text field and dismiss the keyboard.
+        titleFooterLabel?.text = titleErrorMessage
+        interactionsFooterLabel?.text = interactionsFooterText()
+    }
+
+    private func interactionsFooterText() -> String {
+        workingPanel.interactions.count >= PanelStore.maxInteractionsPerUserPanel
+            ? "You've reached the 6-item maximum."
+            : "Up to 6 items per page."
     }
 
     // MARK: - Table view data source
@@ -153,17 +161,42 @@ final class PanelEditorViewController: UITableViewController,
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        // Footers come from viewForFooterInSection so we can update them
+        // without reloading the section (which would dismiss the keyboard).
+        nil
+    }
+
+    override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
         switch Section(rawValue: section)! {
         case .title:
-            return titleErrorMessage
+            let (view, label) = makeFooterLabelView(text: titleErrorMessage, color: .systemRed)
+            self.titleFooterLabel = label
+            return view
         case .color:
             return nil
         case .interactions:
-            if workingPanel.interactions.count >= PanelStore.maxInteractionsPerUserPanel {
-                return "You've reached the 6-item maximum."
-            }
-            return "Up to 6 items per page."
+            let (view, label) = makeFooterLabelView(text: interactionsFooterText(), color: .secondaryLabel)
+            self.interactionsFooterLabel = label
+            return view
         }
+    }
+
+    private func makeFooterLabelView(text: String?, color: UIColor) -> (UIView, UILabel) {
+        let view = UIView()
+        let label = UILabel()
+        label.font = .preferredFont(forTextStyle: .footnote)
+        label.textColor = color
+        label.numberOfLines = 0
+        label.text = text
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+            label.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
+            label.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6),
+        ])
+        return (view, label)
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

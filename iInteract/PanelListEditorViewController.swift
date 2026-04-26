@@ -129,11 +129,15 @@ final class PanelListEditorViewController: UITableViewController {
         cell.contentConfiguration = content
         cell.backgroundColor = panel.color.withAlphaComponent(0.18)
 
+        // Table is always in editing mode here so reorder handles show, which
+        // means accessoryView is replaced by editingAccessoryView. Set the
+        // editing variant or the switch never appears (and never receives taps).
         let toggle = UISwitch()
         toggle.isOn = !store.layout().hiddenIDs.contains(panel.id)
         toggle.tag = indexPath.row
         toggle.addTarget(self, action: #selector(visibilityToggled(_:)), for: .valueChanged)
-        cell.accessoryView = toggle
+        cell.editingAccessoryView = toggle
+        cell.accessoryView = nil
         return cell
     }
 
