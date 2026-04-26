@@ -35,18 +35,24 @@ class FeelingTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-            //stash the storyboard's + button and override its action so it
-            //pushes the editor instead of the placeholder AddPanel segue.
-        configurationButton = navigationItem.rightBarButtonItem
-        configurationButton?.target = self
-        configurationButton?.action = #selector(showPanelEditor)
-        navigationItem.rightBarButtonItem = nil
+            //replace the storyboard's + with a gear icon that pushes the
+            //in-app Settings screen (mode, voice, PIN, clear data, edit
+            //panels). The gear is always visible regardless of mode — the
+            //editor entry lives inside Settings now and is itself disabled
+            //in default mode.
+        configurationButton = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape"),
+            style: .plain,
+            target: self,
+            action: #selector(showSettings)
+        )
+        navigationItem.rightBarButtonItem = configurationButton
 
         //register for settings + iCloud KVS panel sync
         NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.settingsChanged), name: UserDefaults.didChangeNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(FeelingTableViewController.panelStoreChanged), name: PanelStore.didChangeNotification, object: nil)
 
-        //update settings (also applies + button visibility for the current mode)
+        //read mode/voice from defaults
         updateSettings()
 
         //show the preferences
@@ -81,29 +87,11 @@ class FeelingTableViewController: UITableViewController {
         showSplashScreen()
     }
 
-    @objc func showPanelEditor() {
-        if PanelStore.shared.hasPIN {
-            presentPINGate { [weak self] in self?.pushPanelListEditor() }
-        } else {
-            pushPanelListEditor()
-        }
-    }
-
-    private func pushPanelListEditor() {
-        let editor = PanelListEditorViewController()
-        navigationController?.pushViewController(editor, animated: true)
-    }
-
-    private func presentPINGate(onUnlock: @escaping () -> Void) {
-        let gate = PINGateViewController()
-        let nav = UINavigationController(rootViewController: gate)
-        nav.modalPresentationStyle = .fullScreen
-        gate.onUnlock = { [weak self, weak nav] in
-            nav?.dismiss(animated: true) { onUnlock() }
-            _ = self // keep capture so the closure is balanced
-        }
-        gate.onCancel = { [weak nav] in nav?.dismiss(animated: true) }
-        present(nav, animated: true)
+    @objc func showSettings() {
+        // Settings is the entry point for everything that used to be reached
+        // from + (editor, PIN management, clear data). The gate runs *inside*
+        // Settings on each destructive row.
+        navigationController?.pushViewController(SettingsViewController(), animated: true)
     }
 
     // Built-ins use the storyboard's PanelViewController (ShowPanel segue);
@@ -252,17 +240,9 @@ class FeelingTableViewController: UITableViewController {
         let modeChanged = newMode != configurationMode
         configurationMode = newMode
 
-        //show / hide the + button based on mode (custom = visible)
-        switch configurationMode {
-        case .default:
-            navigationItem.rightBarButtonItem = nil
-        case .custom:
-            if navigationItem.rightBarButtonItem == nil, let button = configurationButton {
-                navigationItem.rightBarButtonItem = button
-            }
-        }
-
-        //if the user flipped modes in iOS Settings, refresh the panel list
+        // The gear icon is always visible; mode changes only affect what's
+        // available *inside* Settings (Edit Panels is disabled in default).
+        // If the mode flipped in iOS Settings, refresh the main list.
         if modeChanged && isViewLoaded {
             loadPanels()
             tableView.reloadData()

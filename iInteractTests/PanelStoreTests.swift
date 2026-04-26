@@ -303,6 +303,34 @@ final class PanelStoreTests: XCTestCase {
         XCTAssertEqual(interaction.girlSound, store.assetURL(for: interaction.id, kind: .girlAudio))
     }
 
+    func testClearAllUserDataWipesEverything() throws {
+        let panel = Panel(title: "School",
+                          color: .systemTeal,
+                          interactions: [Interaction(id: UUID(), name: "playground")],
+                          isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.setOrder([panel.id])
+        try store.setHidden(true, for: panel.id)
+        try Data([0x00]).write(to: store.assetURL(for: panel.interactions[0].id, kind: .picture))
+        try Data([0x00]).write(to: store.assetURL(for: panel.interactions[0].id, kind: .boyAudio))
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
+
+        XCTAssertFalse(store.userPanels().isEmpty)
+        XCTAssertTrue(store.hasPIN)
+
+        store.clearAllUserData()
+
+        XCTAssertTrue(store.userPanels().isEmpty)
+        XCTAssertEqual(store.layout().hiddenIDs.count, 0)
+        XCTAssertEqual(store.layout().orderedIDs, [])
+        XCTAssertFalse(store.hasPIN)
+        XCTAssertFalse(store.hasSecurityQuestion)
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: store.assetURL(for: panel.interactions[0].id, kind: .picture).path))
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: store.assetURL(for: panel.interactions[0].id, kind: .boyAudio).path))
+    }
+
     func testDeleteInteractionAssetsRemovesFiles() throws {
         let id = UUID()
         try Data([0x00]).write(to: store.assetURL(for: id, kind: .picture))

@@ -47,6 +47,7 @@
 		892736F9D0E524A51B25F438 /* ConfigurationMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F253757A749E8FD593465BF6 /* ConfigurationMode.swift */; };
 		A31BA1116ED59568679E500D /* PanelStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0089B9790338601ADA2628 /* PanelStoreTests.swift */; };
 		AC476E8474E21D444F8D2219 /* PanelLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D688FAA1636C6707018308F /* PanelLoader.swift */; };
+		C7E4484520261D5E40B66EFE /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E0E9DEC4A0E8106884CEB6 /* SettingsViewController.swift */; };
 		E387399ECC7BBE8934F2C3BD /* PanelEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */; };
 		E73FBA0D861A3B54CA9F4BD4 /* WatchSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E66F726B2D4B5EB44AA716 /* WatchSync.swift */; };
 		E8238E4F6B2868DAE2439170 /* PlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */; };
@@ -106,6 +107,7 @@
 		1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InteractionPlayer.swift; sourceTree = "<group>"; };
 		154AFF6CFD19463B4E90DA45 /* PanelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStore.swift; sourceTree = "<group>"; };
 		5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelListEditorViewController.swift; sourceTree = "<group>"; };
+		60E0E9DEC4A0E8106884CEB6 /* SettingsViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		6D0D7D6F1BFBE3C1002B9090 /* iInteract.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iInteract.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6D0D7D771BFBE3C1002B9090 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -226,6 +228,7 @@
 				7B70393D00E813E93AD6591C /* InteractionEditorViewController.swift */,
 				9C2EE76EC3CF464605173BCE /* PINGateViewController.swift */,
 				E8E66F726B2D4B5EB44AA716 /* WatchSync.swift */,
+				60E0E9DEC4A0E8106884CEB6 /* SettingsViewController.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -472,6 +475,7 @@
 				5C9EA15278EC9EA8115DE8B4 /* InteractionEditorViewController.swift in Sources */,
 				6CA3EF377D5137A01401F5E4 /* PINGateViewController.swift in Sources */,
 				E73FBA0D861A3B54CA9F4BD4 /* WatchSync.swift in Sources */,
+				C7E4484520261D5E40B66EFE /* SettingsViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

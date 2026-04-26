@@ -366,9 +366,25 @@ final class PanelEditorViewController: UITableViewController,
         guard editingStyle == .delete,
               Section(rawValue: indexPath.section) == .interactions,
               indexPath.row < workingPanel.interactions.count else { return }
-        let removed = workingPanel.interactions.remove(at: indexPath.row)
-        // Best-effort cleanup of the user's recorded blobs.
-        store.deleteInteractionAssets(id: removed.id)
-        tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+        let target = workingPanel.interactions[indexPath.row]
+        let label = (target.name?.isEmpty == false) ? "\"\(target.name!)\"" : "this interaction"
+
+        let alert = UIAlertController(
+            title: "Delete \(label)?",
+            message: "Its picture and recordings will be removed from this panel.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            // Reset the swipe-exposed row.
+            self?.tableView.reloadRows(at: [indexPath], with: .automatic)
+        })
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            guard let self = self,
+                  indexPath.row < self.workingPanel.interactions.count else { return }
+            let removed = self.workingPanel.interactions.remove(at: indexPath.row)
+            self.store.deleteInteractionAssets(id: removed.id)
+            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+        })
+        present(alert, animated: true)
     }
 }

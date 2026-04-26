@@ -54,6 +54,13 @@ final class InteractionEditorViewController: UITableViewController,
     private let existingBoyAudioURL: URL?
     private let existingGirlAudioURL: URL?
 
+    /// Swipe-to-clear flags. When true, the corresponding existing asset
+    /// (if any) is deleted from PanelStore on Save. UI hides the asset
+    /// immediately so the user sees it as "removed."
+    private var clearedPicture = false
+    private var clearedBoyAudio = false
+    private var clearedGirlAudio = false
+
     private var saveButton: UIBarButtonItem!
 
     // Recording / playback
@@ -145,26 +152,25 @@ final class InteractionEditorViewController: UITableViewController,
         view.endEditing(true)
         stopAnyPlayback()
         do {
-            // Picture
+            // Picture: clear-then-pick wins; otherwise copy temp; otherwise
+            // keep existing. New interactions must have a picture (validation
+            // should have prevented Save being enabled otherwise).
+            if clearedPicture && tempPictureURL == nil {
+                try? FileManager.default.removeItem(at: store.assetURL(for: workingID, kind: .picture))
+            }
             if let picURL = tempPictureURL,
                let image = UIImage(contentsOfFile: picURL.path) {
                 try store.saveInteractionPicture(image, id: workingID)
             } else if !isEditingExisting {
-                // Brand-new interaction must have picked a picture (validation should
-                // have prevented us getting here otherwise).
                 throw PanelStore.StoreError.assetWriteFailed
             }
-            // Audio (only overwrite if the user re-recorded; otherwise keep existing).
-            if let boyTmp = tempBoyAudioURL {
-                let dest = store.assetURL(for: workingID, kind: .boyAudio)
-                try? FileManager.default.removeItem(at: dest)
-                try FileManager.default.copyItem(at: boyTmp, to: dest)
-            }
-            if let girlTmp = tempGirlAudioURL {
-                let dest = store.assetURL(for: workingID, kind: .girlAudio)
-                try? FileManager.default.removeItem(at: dest)
-                try FileManager.default.copyItem(at: girlTmp, to: dest)
-            }
+            // Audio: same pattern per voice.
+            try writeOrClearAudio(.boy,
+                                  temp: tempBoyAudioURL,
+                                  cleared: clearedBoyAudio)
+            try writeOrClearAudio(.girl,
+                                  temp: tempGirlAudioURL,
+                                  cleared: clearedGirlAudio)
 
             let interaction = Interaction(id: workingID,
                                           name: workingName.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -175,6 +181,19 @@ final class InteractionEditorViewController: UITableViewController,
         } catch {
             present(alert: "Save Failed", message: "\(error)")
         }
+    }
+
+    private func writeOrClearAudio(_ voice: PanelStore.Voice, temp: URL?, cleared: Bool) throws {
+        let dest = store.assetURL(for: workingID, kind: voice.assetKind)
+        if cleared && temp == nil {
+            try? FileManager.default.removeItem(at: dest)
+            return
+        }
+        if let temp = temp {
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.copyItem(at: temp, to: dest)
+        }
+        // else: untouched — keep existing
     }
 
     private func present(alert title: String, message: String) {
@@ -306,9 +325,73 @@ final class InteractionEditorViewController: UITableViewController,
 
     private func audioURL(for voice: PanelStore.Voice) -> URL? {
         switch voice {
-        case .boy:  return tempBoyAudioURL ?? existingBoyAudioURL
-        case .girl: return tempGirlAudioURL ?? existingGirlAudioURL
+        case .boy:
+            if clearedBoyAudio { return nil }
+            return tempBoyAudioURL ?? existingBoyAudioURL
+        case .girl:
+            if clearedGirlAudio { return nil }
+            return tempGirlAudioURL ?? existingGirlAudioURL
         }
+    }
+
+    // MARK: - Swipe-to-clear
+
+    override func tableView(_ tableView: UITableView,
+                            trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath)
+                            -> UISwipeActionsConfiguration? {
+        switch Section(rawValue: indexPath.section)! {
+        case .name:
+            return nil
+        case .picture:
+            guard workingPicture != nil else { return nil }
+            return Self.clearActionConfig { [weak self] done in
+                self?.confirmClear(title: "Remove picture?",
+                                   message: "You'll need to choose a new one before saving.",
+                                   apply: { [weak self] in
+                    self?.workingPicture = nil
+                    self?.tempPictureURL = nil
+                    self?.clearedPicture = true
+                    self?.tableView.reloadSections([Section.picture.rawValue], with: .automatic)
+                    self?.revalidate()
+                }, done: done)
+            }
+        case .audio:
+            let voice: PanelStore.Voice = (indexPath.row == 0) ? .boy : .girl
+            guard audioURL(for: voice) != nil, currentlyRecordingVoice != voice else { return nil }
+            let voiceName = voice == .boy ? "boy" : "girl"
+            return Self.clearActionConfig { [weak self] done in
+                self?.confirmClear(title: "Remove \(voiceName) recording?",
+                                   message: nil,
+                                   apply: { [weak self] in
+                    switch voice {
+                    case .boy:  self?.tempBoyAudioURL  = nil; self?.clearedBoyAudio  = true
+                    case .girl: self?.tempGirlAudioURL = nil; self?.clearedGirlAudio = true
+                    }
+                    self?.tableView.reloadSections([Section.audio.rawValue], with: .automatic)
+                }, done: done)
+            }
+        }
+    }
+
+    private static func clearActionConfig(_ run: @escaping (@escaping (Bool) -> Void) -> Void)
+        -> UISwipeActionsConfiguration {
+        let action = UIContextualAction(style: .destructive, title: "Clear") { _, _, completion in
+            run(completion)
+        }
+        action.image = UIImage(systemName: "trash")
+        return UISwipeActionsConfiguration(actions: [action])
+    }
+
+    private func confirmClear(title: String,
+                              message: String?,
+                              apply: @escaping () -> Void,
+                              done: @escaping (Bool) -> Void) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in done(false) })
+        alert.addAction(UIAlertAction(title: "Remove", style: .destructive) { _ in
+            apply(); done(true)
+        })
+        present(alert, animated: true)
     }
 
     @objc private func nameChanged(_ field: UITextField) {

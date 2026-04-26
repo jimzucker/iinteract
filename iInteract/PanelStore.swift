@@ -384,6 +384,28 @@ final class PanelStore {
         clearPIN()
     }
 
+    // MARK: - Privacy: wipe everything
+
+    /// Removes every piece of user-authored data: panels.json, layout.json,
+    /// every picture/audio blob under UserAssets/, the PIN hash, and the
+    /// security question/answer hash (locally and from iCloud KVS). Bundled
+    /// built-ins are not touched. Used by the Settings "Clear All My Data"
+    /// action.
+    func clearAllUserData() {
+        try? FileManager.default.removeItem(at: panelsURL)
+        try? FileManager.default.removeItem(at: layoutURL)
+        if let entries = try? FileManager.default.contentsOfDirectory(at: assetsDirectory,
+                                                                       includingPropertiesForKeys: nil) {
+            for url in entries {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+        clearPIN()
+        kvs.removeObject(forKey: Self.kvsPanelsKey)
+        kvs.removeObject(forKey: Self.kvsLayoutKey)
+        kvs.synchronize()
+    }
+
     // MARK: - Helpers
 
     private static func hash(_ string: String) -> String {
