@@ -35,7 +35,7 @@ class PanelViewController: UIViewController {
         //panel to display
     var panel: Panel?
     var buttons : [UIImageView] = []
-    var audioPlayer : AVAudioPlayer?
+    let player = InteractionPlayer()
 
         //runtime attributes from main screen
     var font : UIFont! = nil
@@ -105,65 +105,27 @@ class PanelViewController: UIViewController {
     }
     
     
-    @IBAction func selectInteraction(_ recongnizer: UITapGestureRecognizer) {
-        var duration = 1.0      //min duration for a transiation
+    @IBAction func selectInteraction(_ recognizer: UITapGestureRecognizer) {
+        guard let button = recognizer.view as? UIImageView,
+              let panel = panel,
+              let index = buttons.firstIndex(of: button) else { return }
 
-        if let button: UIImageView = recongnizer.view as! UIImageView? {
-            
-            //disable user interaction so it is not dismissed before the voice finishes.
-            button.isUserInteractionEnabled = false
-            
-            //set the image to display
-            interactionButton.alpha = hidden
-            interactionButton.image = button.image
+        //disable user interaction so it is not dismissed before the voice finishes.
+        button.isUserInteractionEnabled = false
 
-                //if the voice is enabled load it
-            if self.voiceEnabled {
-                let index = buttons.firstIndex(of: button)
-                do {
-                        //ensure we cleaned up the last time we ran
-                    if audioPlayer != nil {
-                        audioPlayer?.stop()
-                        audioPlayer = nil
-                    }
-                    
-                        //create the new voice
-                    var voiceSelected : URL?
-                    if self.voiceStyle == "girl" {
-                        voiceSelected =  panel!.interactions[index!].girlSound as URL?
-                    } else {
-                        voiceSelected =  panel!.interactions[index!].boySound as URL?
-                    }
-                    
-                    if voiceSelected != nil {
-                        
-                        try audioPlayer = AVAudioPlayer(contentsOf: voiceSelected!)
+        //set the image to display
+        interactionButton.alpha = hidden
+        interactionButton.image = button.image
 
-                            //get it ready to play and figure out the duration (if we dont do the prepare duration returns 0)
-                        audioPlayer?.prepareToPlay()
-                        if let recordingDuration = audioPlayer?.duration , recordingDuration > duration {
-                            duration = recordingDuration
-                        }
-                        
-                        //ok now play it
-                        audioPlayer!.play()
-                    }
-                    else {
-                        print("Error sound not found: " + self.voiceStyle)
-                    }
-                    
-                } catch {
-                    print("Error creating AVAudioPlayer for: "  + self.voiceStyle)
-                }
-            }
+        let duration = player.play(panel.interactions[index],
+                                   voiceStyle: voiceStyle,
+                                   enabled: voiceEnabled)
 
-                //do the animation, syncronized with the audio
-            UIView.animate(withDuration: duration, delay: 0.0, options: UIView.AnimationOptions.curveEaseOut, animations: {
-                self.interactionButton.alpha = self.visible
-                button.isUserInteractionEnabled = true
-                }, completion: nil)
-        }
-        
+        //do the animation, synchronized with the audio
+        UIView.animate(withDuration: duration, delay: 0.0, options: .curveEaseOut, animations: {
+            self.interactionButton.alpha = self.visible
+            button.isUserInteractionEnabled = true
+        }, completion: nil)
     }
     
     @IBAction func  hideInteraction(_ recongnizer: UITapGestureRecognizer) {

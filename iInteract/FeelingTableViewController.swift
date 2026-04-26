@@ -81,6 +81,24 @@ class FeelingTableViewController: UITableViewController {
         navigationController?.pushViewController(editor, animated: true)
     }
 
+    // Built-ins use the storyboard's PanelViewController (ShowPanel segue);
+    // user panels go to the programmatic CustomPanelViewController instead.
+    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
+        guard identifier == "ShowPanel",
+              let cell = sender as? UITableViewCell,
+              let indexPath = tableView.indexPath(for: cell) else {
+            return true
+        }
+        let panel = panels[indexPath.row]
+        if panel.isBuiltIn { return true }
+
+        let custom = CustomPanelViewController(panel: panel,
+                                               voiceEnabled: voiceEnabled,
+                                               voiceStyle: voiceStyle)
+        navigationController?.pushViewController(custom, animated: true)
+        return false
+    }
+
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
