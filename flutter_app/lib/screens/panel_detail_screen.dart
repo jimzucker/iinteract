@@ -9,9 +9,23 @@
 //  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/panel.dart';
+
+/// Renders an interaction's picture from either the asset bundle (built-ins)
+/// or a file under Application Documents (user interactions).
+Widget interactionImage(Interaction interaction, {BoxFit fit = BoxFit.cover}) {
+  final p = interaction.picturePath;
+  if (p == null || p.isEmpty) {
+    return Container(color: const Color(0x33000000));
+  }
+  if (p.startsWith('assets/')) {
+    return Image.asset(p, fit: fit);
+  }
+  return Image.file(File(p), fit: fit);
+}
 
 class PanelDetailScreen extends StatefulWidget {
   final Panel panel;
@@ -69,13 +83,17 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _overlayVisible = true);
     });
-    final sound = widget.voiceStyle == 'boy' ? interaction.boySound : interaction.girlSound;
-    final assetPath = sound.replaceFirst('assets/', '');
+    final sound = widget.voiceStyle == 'boy' ? interaction.boySoundPath : interaction.girlSoundPath;
+    if (sound == null) return;
     try {
       await _player.stop();
-      await _player.play(AssetSource(assetPath));
+      if (sound.startsWith('assets/')) {
+        await _player.play(AssetSource(sound.replaceFirst('assets/', '')));
+      } else {
+        await _player.play(DeviceFileSource(sound));
+      }
     } catch (e, st) {
-      debugPrint('iInteract audio error for $assetPath: $e\n$st');
+      debugPrint('iInteract audio error for $sound: $e\n$st');
     }
   }
 
@@ -125,7 +143,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                       color: widget.panel.color,
                       padding: const EdgeInsets.all(16),
                       child: SizedBox.expand(
-                        child: Image.asset(_overlay!.imagePath, fit: BoxFit.contain),
+                        child: interactionImage(_overlay!, fit: BoxFit.contain),
                       ),
                     ),
                   ),
@@ -167,10 +185,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                   onTap: () => _onTap(interactions[r * cols + c]),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: Image.asset(
-                                      interactions[r * cols + c].imagePath,
-                                      fit: BoxFit.cover,
-                                    ),
+                                    child: interactionImage(interactions[r * cols + c]),
                                   ),
                                 )
                               : null,
