@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		552288CB68696415D0F02249 /* PanelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154AFF6CFD19463B4E90DA45 /* PanelStore.swift */; };
 		6D0D7D731BFBE3C1002B9090 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */; };
 		6D0D7D781BFBE3C1002B9090 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6D0D7D761BFBE3C1002B9090 /* Main.storyboard */; };
 		6D0D7D7A1BFBE3C1002B9090 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D0D7D791BFBE3C1002B9090 /* Assets.xcassets */; };
@@ -14,9 +15,7 @@
 		6D0D7D881BFBE3C1002B9090 /* iInteractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D871BFBE3C1002B9090 /* iInteractTests.swift */; };
 		6D0D7D951BFBEE8B002B9090 /* FeelingTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D941BFBEE8B002B9090 /* FeelingTableViewController.swift */; };
 		6D0D7D971BFBEF46002B9090 /* Panel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D961BFBEF46002B9090 /* Panel.swift */; };
-		6D0D7D981BFBEF46002B9090 /* Panel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D961BFBEF46002B9090 /* Panel.swift */; };
 		6D0D7D9A1BFBEF53002B9090 /* Interaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D991BFBEF53002B9090 /* Interaction.swift */; };
-		6D0D7D9B1BFBEF53002B9090 /* Interaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D991BFBEF53002B9090 /* Interaction.swift */; };
 		6D3A77F81C174E5E0007ED22 /* InteractionInterfaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3A77F71C174E5E0007ED22 /* InteractionInterfaceController.swift */; };
 		6D428DC51C093A3700ECC7D9 /* sounds in Resources */ = {isa = PBXBuildFile; fileRef = 6D428DC41C093A3700ECC7D9 /* sounds */; };
 		6D428DC91C093B6400ECC7D9 /* PanelViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D428DC81C093B6400ECC7D9 /* PanelViewController.swift */; };
@@ -39,6 +38,9 @@
 		6DDF8DFB1C1207B100A156E5 /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */; };
 		6DDF8E031C1207B100A156E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6DDF8E021C1207B100A156E5 /* Assets.xcassets */; };
 		6DDF8E071C1207B100A156E5 /* iInteractWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6DDF8DE51C1207B100A156E5 /* iInteractWatch.app */; platformFilter = ios; };
+		892736F9D0E524A51B25F438 /* ConfigurationMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F253757A749E8FD593465BF6 /* ConfigurationMode.swift */; };
+		A31BA1116ED59568679E500D /* PanelStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0089B9790338601ADA2628 /* PanelStoreTests.swift */; };
+		AC476E8474E21D444F8D2219 /* PanelLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D688FAA1636C6707018308F /* PanelLoader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +93,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		154AFF6CFD19463B4E90DA45 /* PanelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStore.swift; sourceTree = "<group>"; };
 		6D0D7D6F1BFBE3C1002B9090 /* iInteract.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iInteract.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6D0D7D771BFBE3C1002B9090 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -124,6 +127,9 @@
 		6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
 		6DDF8E021C1207B100A156E5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6DDF8E041C1207B100A156E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = "iInteractWatch Extension/Info.plist"; sourceTree = SOURCE_ROOT; };
+		8D688FAA1636C6707018308F /* PanelLoader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelLoader.swift; sourceTree = "<group>"; };
+		F253757A749E8FD593465BF6 /* ConfigurationMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConfigurationMode.swift; sourceTree = "<group>"; };
+		FD0089B9790338601ADA2628 /* PanelStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -192,6 +198,9 @@
 				6D0D7D7B1BFBE3C1002B9090 /* LaunchScreen.storyboard */,
 				6D0D7D7E1BFBE3C1002B9090 /* Info.plist */,
 				6D50AD7F1C08DD6C001174CA /* Settings.bundle */,
+				F253757A749E8FD593465BF6 /* ConfigurationMode.swift */,
+				154AFF6CFD19463B4E90DA45 /* PanelStore.swift */,
+				8D688FAA1636C6707018308F /* PanelLoader.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -201,6 +210,7 @@
 			children = (
 				6D0D7D871BFBE3C1002B9090 /* iInteractTests.swift */,
 				6D0D7D891BFBE3C1002B9090 /* Info.plist */,
+				FD0089B9790338601ADA2628 /* PanelStoreTests.swift */,
 			);
 			path = iInteractTests;
 			sourceTree = "<group>";
@@ -425,6 +435,9 @@
 				6D0D7D731BFBE3C1002B9090 /* AppDelegate.swift in Sources */,
 				6DDAB9201C093C690089FBF9 /* FeelingTableViewCell.swift in Sources */,
 				6D428DC91C093B6400ECC7D9 /* PanelViewController.swift in Sources */,
+				892736F9D0E524A51B25F438 /* ConfigurationMode.swift in Sources */,
+				552288CB68696415D0F02249 /* PanelStore.swift in Sources */,
+				AC476E8474E21D444F8D2219 /* PanelLoader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,9 +445,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6D0D7D9B1BFBEF53002B9090 /* Interaction.swift in Sources */,
-				6D0D7D981BFBEF46002B9090 /* Panel.swift in Sources */,
 				6D0D7D881BFBE3C1002B9090 /* iInteractTests.swift in Sources */,
+				A31BA1116ED59568679E500D /* PanelStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
