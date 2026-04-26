@@ -226,6 +226,26 @@ final class PanelStoreTests: XCTestCase {
         }
     }
 
+    // MARK: applyOrder / applyHiddenFilter
+
+    func testApplyOrderAloneDoesNotFilterHidden() throws {
+        let p1 = Panel(title: "A", color: .red, interactions: [], isBuiltIn: false)
+        let p2 = Panel(title: "B", color: .green, interactions: [], isBuiltIn: false)
+        try store.setHidden(true, for: p1.id)
+        try store.setOrder([p2.id, p1.id])
+        // applyOrder keeps p1 even though it's hidden — the editor needs this.
+        XCTAssertEqual(store.applyOrder(to: [p1, p2]).map { $0.title }, ["B", "A"])
+    }
+
+    func testApplyHiddenFilterAloneDoesNotReorder() throws {
+        let p1 = Panel(title: "A", color: .red, interactions: [], isBuiltIn: false)
+        let p2 = Panel(title: "B", color: .green, interactions: [], isBuiltIn: false)
+        try store.setHidden(true, for: p2.id)
+        try store.setOrder([p2.id, p1.id])
+        // applyHiddenFilter drops p2 but doesn't reorder the rest.
+        XCTAssertEqual(store.applyHiddenFilter(to: [p1, p2]).map { $0.title }, ["A"])
+    }
+
     // MARK: Mode-aware loading
 
     func testLoadDefaultModeReturnsBundledPanelsVerbatim() {

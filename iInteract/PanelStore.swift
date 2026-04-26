@@ -151,17 +151,29 @@ final class PanelStore {
         try saveLayout(l)
     }
 
-    /// Filters hidden panels and orders the rest by `layout().orderedIDs`.
-    /// Panels with no entry in orderedIDs (e.g. a freshly added user panel)
-    /// keep their original relative position at the end.
-    func applyLayout(to panels: [Panel]) -> [Panel] {
+    /// Returns `panels` with the user's saved order applied. Panels not in
+    /// `layout().orderedIDs` (e.g. a freshly added user panel) keep their
+    /// original relative position at the end.
+    func applyOrder(to panels: [Panel]) -> [Panel] {
         let l = layout()
-        let visible = panels.filter { !l.hiddenIDs.contains($0.id) }
-        guard !l.orderedIDs.isEmpty else { return visible }
-        let byID = Dictionary(uniqueKeysWithValues: visible.map { ($0.id, $0) })
+        guard !l.orderedIDs.isEmpty else { return panels }
+        let byID = Dictionary(uniqueKeysWithValues: panels.map { ($0.id, $0) })
         let ordered = l.orderedIDs.compactMap { byID[$0] }
-        let unordered = visible.filter { !l.orderedIDs.contains($0.id) }
+        let unordered = panels.filter { !l.orderedIDs.contains($0.id) }
         return ordered + unordered
+    }
+
+    /// Returns `panels` with hidden ones filtered out.
+    func applyHiddenFilter(to panels: [Panel]) -> [Panel] {
+        let hidden = layout().hiddenIDs
+        return panels.filter { !hidden.contains($0.id) }
+    }
+
+    /// Filters hidden panels and orders the rest by `layout().orderedIDs`.
+    /// Used by the main list. The editor uses `applyOrder(to:)` directly so it
+    /// can show hidden panels alongside visible ones.
+    func applyLayout(to panels: [Panel]) -> [Panel] {
+        applyOrder(to: applyHiddenFilter(to: panels))
     }
 
     // MARK: - Validators

@@ -35,8 +35,11 @@ class FeelingTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-            //stash the storyboard's + button so we can show/hide it based on mode
+            //stash the storyboard's + button and override its action so it
+            //pushes the editor instead of the placeholder AddPanel segue.
         configurationButton = navigationItem.rightBarButtonItem
+        configurationButton?.target = self
+        configurationButton?.action = #selector(showPanelEditor)
         navigationItem.rightBarButtonItem = nil
 
         //register for settings
@@ -58,9 +61,24 @@ class FeelingTableViewController: UITableViewController {
         // self.navigationItem.rightBarButtonItem = self.editButtonItem()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Refresh in case the user changed visibility/order in the editor.
+        // In .default mode the bundled list never changes so this is a no-op.
+        if configurationMode == .custom {
+            loadPanels()
+            tableView.reloadData()
+        }
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         showSplashScreen()
+    }
+
+    @objc func showPanelEditor() {
+        let editor = PanelListEditorViewController()
+        navigationController?.pushViewController(editor, animated: true)
     }
 
     override func didReceiveMemoryWarning() {

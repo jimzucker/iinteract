@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		43F76A893A22B38EDED6E419 /* PanelListEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */; };
 		552288CB68696415D0F02249 /* PanelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154AFF6CFD19463B4E90DA45 /* PanelStore.swift */; };
 		6D0D7D731BFBE3C1002B9090 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */; };
 		6D0D7D781BFBE3C1002B9090 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6D0D7D761BFBE3C1002B9090 /* Main.storyboard */; };
@@ -94,6 +95,7 @@
 
 /* Begin PBXFileReference section */
 		154AFF6CFD19463B4E90DA45 /* PanelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStore.swift; sourceTree = "<group>"; };
+		5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelListEditorViewController.swift; sourceTree = "<group>"; };
 		6D0D7D6F1BFBE3C1002B9090 /* iInteract.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iInteract.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6D0D7D771BFBE3C1002B9090 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -201,6 +203,7 @@
 				F253757A749E8FD593465BF6 /* ConfigurationMode.swift */,
 				154AFF6CFD19463B4E90DA45 /* PanelStore.swift */,
 				8D688FAA1636C6707018308F /* PanelLoader.swift */,
+				5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -438,6 +441,7 @@
 				892736F9D0E524A51B25F438 /* ConfigurationMode.swift in Sources */,
 				552288CB68696415D0F02249 /* PanelStore.swift in Sources */,
 				AC476E8474E21D444F8D2219 /* PanelLoader.swift in Sources */,
+				43F76A893A22B38EDED6E419 /* PanelListEditorViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
