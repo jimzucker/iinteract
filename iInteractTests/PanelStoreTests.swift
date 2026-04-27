@@ -726,3 +726,153 @@ final class ConfigurationModeTests: XCTestCase {
         XCTAssertEqual(ConfigurationMode.current(suite), .default)
     }
 }
+
+// MARK: - PINPolicy
+
+final class PINPolicyTests: XCTestCase {
+
+    // MARK: isValid — length
+
+    func testIsValid_TooShort_Rejects() {
+        XCTAssertFalse(PINPolicy.isValid(""))
+        XCTAssertFalse(PINPolicy.isValid("a"))
+        XCTAssertFalse(PINPolicy.isValid("abc"))
+        XCTAssertFalse(PINPolicy.isValid("123"))
+    }
+
+    func testIsValid_MinLength_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("abcd"))
+        XCTAssertTrue(PINPolicy.isValid("1234"))
+    }
+
+    func testIsValid_MidRange_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("abcdef"))   // 6
+        XCTAssertTrue(PINPolicy.isValid("123456"))   // 6
+        XCTAssertTrue(PINPolicy.isValid("Pin999"))   // 6 (legacy max under old policy)
+    }
+
+    func testIsValid_MaxLength_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("abcdefgh"))   // 8
+        XCTAssertTrue(PINPolicy.isValid("12345678"))   // 8
+    }
+
+    func testIsValid_TooLong_Rejects() {
+        XCTAssertFalse(PINPolicy.isValid("abcdefghi"))  // 9
+        XCTAssertFalse(PINPolicy.isValid("123456789"))  // 9
+    }
+
+    // MARK: isValid — charset
+
+    func testIsValid_AlphanumericMixed_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("a1b2"))
+        XCTAssertTrue(PINPolicy.isValid("Pin99"))
+        XCTAssertTrue(PINPolicy.isValid("MIXED1"))
+    }
+
+    func testIsValid_NonAlphanumeric_Rejects() {
+        XCTAssertFalse(PINPolicy.isValid("ab cd"))     // space
+        XCTAssertFalse(PINPolicy.isValid("ab-cd"))     // dash
+        XCTAssertFalse(PINPolicy.isValid("12.34"))     // dot
+        XCTAssertFalse(PINPolicy.isValid("ab\ncd"))    // newline
+        XCTAssertFalse(PINPolicy.isValid("ab😀cd"))    // emoji
+    }
+
+    // MARK: sanitize — strips non-alphanumeric, does NOT truncate
+
+    func testSanitize_StripsInvalidChars_PreservesAlphanumeric() {
+        XCTAssertEqual(PINPolicy.sanitize("ab-cd"), "abcd")
+        XCTAssertEqual(PINPolicy.sanitize("12 34"), "1234")
+        XCTAssertEqual(PINPolicy.sanitize("a@b#c$d"), "abcd")
+    }
+
+    func testSanitize_DoesNotTruncate() {
+        // Regression: pre-bug-fix sanitize() silently truncated to 6.
+        // It must now PRESERVE length so callers can validate explicitly
+        // and surface "PIN too long" rather than dropping characters.
+        XCTAssertEqual(PINPolicy.sanitize("abcdefghij"), "abcdefghij")
+        XCTAssertEqual(PINPolicy.sanitize("a-b-c-d-e-f-g-h-i"), "abcdefghi")
+    }
+
+    func testSanitize_EmptyAndAllInvalid_ReturnsEmpty() {
+        XCTAssertEqual(PINPolicy.sanitize(""), "")
+        XCTAssertEqual(PINPolicy.sanitize("---"), "")
+        XCTAssertEqual(PINPolicy.sanitize("😀😀😀"), "")
+    }
+
+    // MARK: humanDescription / invalidMessage / bounds
+
+    func testHumanDescription_MatchesPolicyBounds() {
+        XCTAssertEqual(PINPolicy.minLength, 4)
+        XCTAssertEqual(PINPolicy.maxLength, 8)
+        XCTAssertTrue(PINPolicy.humanDescription.contains("4"))
+        XCTAssertTrue(PINPolicy.humanDescription.contains("8"))
+    }
+
+    func testInvalidMessage_MentionsBounds() {
+        XCTAssertTrue(PINPolicy.invalidMessage.contains("4"))
+        XCTAssertTrue(PINPolicy.invalidMessage.contains("8"))
+    }
+
+    // MARK: PanelStore round-trip
+
+    private func makeStore() -> (PanelStore, URL) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PINPolicyRoundTrip-\(UUID().uuidString)")
+        let store = PanelStore(directory: dir, keyValueStore: MemoryKeyValueStore())
+        return (store, dir)
+    }
+
+    func testStore_VerifyPIN_AcceptsLegacy4DigitNumeric() {
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("1234")
+        XCTAssertTrue(store.verifyPIN("1234"))
+        XCTAssertFalse(store.verifyPIN("12345"))
+        XCTAssertFalse(store.verifyPIN("0000"))
+    }
+
+    func testStore_VerifyPIN_AcceptsNew8CharAlphanumeric() {
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("Pin12345")  // 8 chars
+        XCTAssertTrue(store.verifyPIN("Pin12345"))
+        XCTAssertFalse(store.verifyPIN("pin12345"))   // case sensitive
+        XCTAssertFalse(store.verifyPIN("Pin1234"))    // shorter
+        XCTAssertFalse(store.verifyPIN("Pin123456"))  // longer
+    }
+
+    func testStore_VerifyPIN_AcceptsLegacy6CharAlphanumeric() {
+        // PINs set under the previous 4–6 policy must still verify under
+        // the new 4–8 policy — the store hashes whatever was submitted.
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("Pin999")  // 6 chars
+        XCTAssertTrue(store.verifyPIN("Pin999"))
+    }
+}
+
+// MARK: - clearAllUserData hole #1: pin_enabled is wiped
+
+/// The previous behavior left the iOS Settings `pin_enabled` toggle on
+/// after `clearAllUserData` even though the PIN itself was wiped, which
+/// led to the next reconcile prompting the user to set a NEW PIN as if
+/// fresh — surprising behavior right after a deliberate wipe. The fix
+/// flips `pin_enabled = false` in the `confirmAndClearAllData` flow.
+/// We can't drive that VC-level flow from a unit test directly, but we
+/// can verify the store side wipes the PIN hash so the assertion holds:
+/// after clear, hasPIN is false.
+final class ClearAllUserDataPINHoleTests: XCTestCase {
+
+    func testClearAllUserData_LeavesHasPINFalse() {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClearHole-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = PanelStore(directory: dir, keyValueStore: MemoryKeyValueStore())
+        store.setPIN("1234")
+        XCTAssertTrue(store.hasPIN)
+
+        store.clearAllUserData()
+        XCTAssertFalse(store.hasPIN,
+                       "hasPIN must be false after clearAllUserData so the iOS pin_enabled toggle reconcile sees no PIN to disable")
+    }
+}

@@ -98,7 +98,11 @@ class FeelingTableViewController: UITableViewController {
     /// prompt the user in-app to bring them in sync (set new PIN with
     /// confirmation, or enter current PIN to disable). Cancel reverts the
     /// toggle so iOS Settings always reflects reality.
-    private func applyPendingSettingsActions() {
+    ///
+    /// If another modal is already up when we'd present, retry on a short
+    /// delay so a Settings change made while the user was mid-dialog still
+    /// reaches the user once the existing dialog dismisses.
+    private func applyPendingSettingsActions(retriesRemaining: Int = 5) {
         let defaults = UserDefaults.standard
         // iOS Settings.bundle commits its writes to our app's UserDefaults
         // when the user navigates away. A fresh read after resume sometimes
@@ -107,6 +111,19 @@ class FeelingTableViewController: UITableViewController {
 
         let wantEnabled = defaults.bool(forKey: "pin_enabled")
         let hasPIN = PanelStore.shared.hasPIN
+        let wantClear = defaults.bool(forKey: "pending_clear_all")
+        let needsAttention = (wantEnabled != hasPIN) || wantClear
+
+        // If a modal is currently up, retry shortly. Without this the
+        // pending action gets dropped and the user's iOS Settings change
+        // never reaches the in-app confirmation flow.
+        if needsAttention, topmostPresenter().presentedViewController != nil {
+            guard retriesRemaining > 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.applyPendingSettingsActions(retriesRemaining: retriesRemaining - 1)
+            }
+            return
+        }
 
         if wantEnabled && !hasPIN {
             promptEnablePIN()
@@ -114,23 +131,33 @@ class FeelingTableViewController: UITableViewController {
             promptDisablePIN()
         }
 
-        // Clear All Data — same flow as before.
-        if defaults.bool(forKey: "pending_clear_all") {
+        if wantClear {
             defaults.set(false, forKey: "pending_clear_all")
             confirmAndClearAllData()
         }
     }
 
     /// User toggled "Enable PIN" on in iOS Settings but no PIN is set yet.
-    /// Prompt for a new PIN (\(PINPolicy.humanDescription)) with a
-    /// confirmation field. Both fields have a show/hide eye toggle.
-    private func promptEnablePIN() {
-        let host = topmostPresenter()
-        guard host.presentedViewController == nil else { return }  // wait for next cycle
-
+    /// Prompts for a new PIN with confirmation. On invalid input or
+    /// mismatch, re-presents the alert with the entered values prefilled
+    /// and an explicit error message — the user can correct rather than
+    /// being silently kicked back to iOS Settings. Cancel is the only way
+    /// to bail; on Cancel we revert the iOS Settings toggle so Settings
+    /// reflects reality.
+    private func promptEnablePIN(prefilledPIN: String = "",
+                                 prefilledConfirm: String = "",
+                                 errorMessage: String? = nil) {
+        var lines: [String] = [
+            "Enter a PIN (\(PINPolicy.humanDescription)), then confirm it.",
+            "The PIN will be required to open the configuration editor and to delete panels, recordings, or clear data."
+        ]
+        if let err = errorMessage {
+            lines.insert(err, at: 0)
+            lines.insert("", at: 1)
+        }
         let alert = UIAlertController(
             title: "Set PIN",
-            message: "Enter a PIN (\(PINPolicy.humanDescription)), then confirm it. The PIN will be required to open the configuration editor and to delete panels, recordings, or clear data.",
+            message: lines.joined(separator: "\n"),
             preferredStyle: .alert
         )
         alert.addTextField { tf in
@@ -139,6 +166,7 @@ class FeelingTableViewController: UITableViewController {
             tf.autocapitalizationType = .none
             tf.autocorrectionType = .no
             tf.isSecureTextEntry = true
+            tf.text = prefilledPIN
             tf.attachShowPINToggle()
         }
         alert.addTextField { tf in
@@ -147,28 +175,31 @@ class FeelingTableViewController: UITableViewController {
             tf.autocapitalizationType = .none
             tf.autocorrectionType = .no
             tf.isSecureTextEntry = true
+            tf.text = prefilledConfirm
             tf.attachShowPINToggle()
         }
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-            // Revert the toggle so iOS Settings reflects reality.
+            // User explicitly bailed — revert the iOS Settings toggle.
             UserDefaults.standard.set(false, forKey: "pin_enabled")
+            UserDefaults.standard.synchronize()
         })
         alert.addAction(UIAlertAction(title: "Set PIN", style: .default) { [weak self, weak alert] _ in
-            let pin = PINPolicy.sanitize(alert?.textFields?[0].text ?? "")
-            let confirm = PINPolicy.sanitize(alert?.textFields?[1].text ?? "")
-            if PINPolicy.isValid(pin) && pin == confirm {
-                PanelStore.shared.setPIN(pin)
-                // Toggle stays on — we leave pin_enabled = true.
+            let pin = alert?.textFields?[0].text ?? ""
+            let confirm = alert?.textFields?[1].text ?? ""
+            if !PINPolicy.isValid(pin) {
+                self?.promptEnablePIN(prefilledPIN: pin,
+                                      prefilledConfirm: confirm,
+                                      errorMessage: PINPolicy.invalidMessage)
+            } else if pin != confirm {
+                self?.promptEnablePIN(prefilledPIN: pin,
+                                      prefilledConfirm: confirm,
+                                      errorMessage: "PINs didn't match. Try again.")
             } else {
-                UserDefaults.standard.set(false, forKey: "pin_enabled")
-                let msg = !PINPolicy.isValid(pin)
-                    ? "PIN must be \(PINPolicy.humanDescription)."
-                    : "PINs didn't match."
-                self?.presentSimpleAlert(title: "PIN Not Set",
-                                         message: "\(msg) Toggle Enable PIN in iOS Settings to try again.")
+                PanelStore.shared.setPIN(pin)
+                // pin_enabled stays true — leave the iOS Settings toggle on.
             }
         })
-        host.present(alert, animated: true)
+        topmostPresenter().present(alert, animated: true)
     }
 
     /// User toggled "Enable PIN" off in iOS Settings while a PIN is set.
@@ -176,8 +207,6 @@ class FeelingTableViewController: UITableViewController {
     /// step. Cancel reverts the toggle so iOS Settings reflects reality.
     private func promptDisablePIN() {
         let host = topmostPresenter()
-        guard host.presentedViewController == nil else { return }
-
         host.confirmDestructiveWithPIN(
             title: "Disable PIN?",
             message: "Anyone using this device will be able to delete panels and clear data without entering a PIN.",
@@ -185,6 +214,7 @@ class FeelingTableViewController: UITableViewController {
             onCancel: {
                 // Revert the toggle back to on so Settings reflects reality.
                 UserDefaults.standard.set(true, forKey: "pin_enabled")
+                UserDefaults.standard.synchronize()
             }
         ) {
             PanelStore.shared.clearPIN()
@@ -226,6 +256,13 @@ class FeelingTableViewController: UITableViewController {
             // dropped the KVS mode key; write default through both to
             // keep UserDefaults in sync and notify any other devices.
             PanelStore.shared.setConfigurationMode(.default)
+            // Hole #1 fix: clearAllUserData wipes the PIN hash, so the
+            // pin_enabled toggle in iOS Settings must follow — otherwise
+            // the next reconcile sees "wants PIN, has none" and prompts
+            // the user to set one as if fresh, which is confusing right
+            // after a deliberate wipe.
+            UserDefaults.standard.set(false, forKey: "pin_enabled")
+            UserDefaults.standard.synchronize()
             self?.updateSettings()
             self?.loadPanels()
             self?.tableView.reloadData()
@@ -269,7 +306,23 @@ class FeelingTableViewController: UITableViewController {
             actionTitle: "Configure",
             actionStyle: .default,
             onForgotPIN: { [weak self] in
-                self?.presentForgotPINResetSheet { openEditor() }
+                self?.presentForgotPINResetSheet { [weak self] in
+                    // PIN was reset (cleared from KVS). Bring the iOS
+                    // Settings toggle in line so Settings doesn't lie
+                    // about PIN being on, and tell the user what happened
+                    // before we open the editor.
+                    UserDefaults.standard.set(false, forKey: "pin_enabled")
+                    UserDefaults.standard.synchronize()
+                    let info = UIAlertController(
+                        title: "PIN Cleared",
+                        message: "Your PIN was reset and is now off. Re-enable it any time in Settings → iInteract → Enable PIN.",
+                        preferredStyle: .alert
+                    )
+                    info.addAction(UIAlertAction(title: "Open Editor", style: .default) { _ in
+                        openEditor()
+                    })
+                    self?.topmostPresenter().present(info, animated: true)
+                }
             }
         ) {
             openEditor()
@@ -425,12 +478,11 @@ class FeelingTableViewController: UITableViewController {
         let modeChanged = newMode != configurationMode
         configurationMode = newMode
 
-        // Gear is always visible — its visibility doesn't depend on mode.
-        // (Setting up the PIN is in iOS Settings; you may want to hit the
-        // gear in default mode just to reach Trash.)
-        if navigationItem.rightBarButtonItem == nil, let button = configurationButton {
-            navigationItem.rightBarButtonItem = button
-        }
+        // Hide the gear when iOS Settings → Hide Configuration is on, so
+        // children don't see configuration exists. Parents toggle it off
+        // in iOS Settings to bring it back.
+        let hideConfig = userDefaults.bool(forKey: "hide_config")
+        navigationItem.rightBarButtonItem = hideConfig ? nil : configurationButton
 
         if modeChanged && isViewLoaded {
             loadPanels()

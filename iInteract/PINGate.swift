@@ -11,13 +11,15 @@
 
 import UIKit
 
-/// Length / charset rules for a user-chosen PIN. Existing PINs hashed under
-/// the old 4-digit-numeric rules still verify (the store hashes whatever
-/// string is submitted), so this only constrains *new* PIN entry.
+/// Length / charset rules for a user-chosen PIN. Existing PINs hashed
+/// under earlier rules (4-digit numeric, 4–6 alphanumeric) still verify
+/// because the store hashes whatever string is submitted; this only
+/// constrains *new* PIN entry.
 enum PINPolicy {
     static let minLength = 4
-    static let maxLength = 6
-    static let humanDescription = "4–6 letters or numbers"
+    static let maxLength = 8
+    static let humanDescription = "4–8 letters or numbers"
+    static let invalidMessage = "PIN must be \(humanDescription)."
 
     static func isValid(_ pin: String) -> Bool {
         let count = pin.count
@@ -25,10 +27,12 @@ enum PINPolicy {
         return pin.allSatisfy { $0.isLetter || $0.isNumber }
     }
 
-    /// Trims to maxLength and drops any non-alphanumeric character. Used as
-    /// a paste/auto-correct guard on PIN text fields.
+    /// Strips non-alphanumeric characters (handles whitespace from paste,
+    /// keyboard punctuation, emoji). Does NOT truncate — callers must
+    /// validate length explicitly via `isValid` and surface an error
+    /// rather than silently dropping characters.
     static func sanitize(_ raw: String) -> String {
-        String(raw.filter { $0.isLetter || $0.isNumber }.prefix(maxLength))
+        String(raw.filter { $0.isLetter || $0.isNumber })
     }
 }
 
