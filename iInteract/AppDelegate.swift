@@ -1,5 +1,5 @@
 //
-//  AppDelegate.swift
+//  AppDelegate.swift`x
 //  iInteract
 //
 //  Created by Jim Zucker on 11/17/15.
@@ -17,6 +17,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         defaultSettings()
+        // First-launch only: a brand-new device with iCloud signed in adopts
+        // the mode another device set. After that, UserDefaults is the source
+        // of intent — runtime reconcile (in FeelingTableViewController) pushes
+        // local changes from iOS Settings up to KVS.
+        PanelStore.shared.adoptCloudConfigurationModeIfFirstLaunch()
         WatchSync.shared.start()
         return true
     }

@@ -166,6 +166,14 @@ final class TrashViewController: UITableViewController {
 
     private func attemptRestore(_ item: PanelStore.TrashedItem,
                                 done: ((Bool) -> Void)? = nil) {
+        // Reversible — no PIN gate. The user explicitly tapped Restore (or
+        // chose it from the action sheet), so go straight into the restore
+        // logic; performRestore handles parent-in-trash / parent-gone fallbacks.
+        performRestore(item, done: done)
+    }
+
+    private func performRestore(_ item: PanelStore.TrashedItem,
+                                done: ((Bool) -> Void)?) {
         switch item.kind {
         case .panel:
             do {
@@ -348,37 +356,29 @@ final class TrashViewController: UITableViewController {
 
     private func confirmPurge(_ item: PanelStore.TrashedItem,
                               done: ((Bool) -> Void)? = nil) {
-        gatePINIfSet(store: store) { [weak self] in
-            guard let self = self else { done?(false); return }
-            let alert = UIAlertController(
-                title: "Delete Forever?",
-                message: "This permanently removes \"\(self.displayName(for: item))\" and its files. It cannot be undone.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in done?(false) })
-            alert.addAction(UIAlertAction(title: "Delete Forever", style: .destructive) { [weak self] _ in
-                self?.store.purgeTrash(trashID: item.trashID)
-                self?.reload(); done?(true)
-            })
-            self.present(alert, animated: true)
+        confirmDestructiveWithPIN(
+            title: "Delete Forever?",
+            message: "This permanently removes \"\(displayName(for: item))\" and its files. It cannot be undone.",
+            destructiveTitle: "Delete Forever",
+            store: store,
+            onCancel: { done?(false) }
+        ) { [weak self] in
+            self?.store.purgeTrash(trashID: item.trashID)
+            self?.reload(); done?(true)
         }
     }
 
     @objc private func confirmEmpty() {
         guard !items.isEmpty else { return }
-        gatePINIfSet(store: store) { [weak self] in
-            guard let self = self else { return }
-            let alert = UIAlertController(
-                title: "Empty Trash?",
-                message: "This permanently removes \(self.items.count) item\(self.items.count == 1 ? "" : "s") and their files.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Empty Trash", style: .destructive) { [weak self] _ in
-                self?.store.emptyTrash()
-                self?.reload()
-            })
-            self.present(alert, animated: true)
+        let count = items.count
+        confirmDestructiveWithPIN(
+            title: "Empty Trash?",
+            message: "This permanently removes \(count) item\(count == 1 ? "" : "s") and their files.",
+            destructiveTitle: "Empty Trash",
+            store: store
+        ) { [weak self] in
+            self?.store.emptyTrash()
+            self?.reload()
         }
     }
 

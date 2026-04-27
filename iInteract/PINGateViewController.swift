@@ -337,7 +337,7 @@ final class PINSetupViewController: UITableViewController {
 
     @objc private func saveTapped() {
         view.endEditing(true)
-        guard newPIN.count == 4, newPIN == confirmPIN else { return }
+        guard PINPolicy.isValid(newPIN), newPIN == confirmPIN else { return }
         store.setPIN(newPIN,
                      securityQuestion: question.isEmpty ? nil : question,
                      securityAnswer: answer.isEmpty ? nil : answer)
@@ -346,13 +346,13 @@ final class PINSetupViewController: UITableViewController {
     }
 
     private func revalidate() {
-        let pinValid = newPIN.count == 4 && newPIN == confirmPIN
+        let pinValid = PINPolicy.isValid(newPIN) && newPIN == confirmPIN
         // Question + answer are both-or-neither.
         let qValid = (question.isEmpty && answer.isEmpty) ||
                      (!question.isEmpty && !answer.isEmpty)
-        if !newPIN.isEmpty && newPIN.count != 4 {
-            errorMessage = "PIN must be 4 digits."
-        } else if newPIN.count == 4 && newPIN != confirmPIN && !confirmPIN.isEmpty {
+        if !newPIN.isEmpty && !PINPolicy.isValid(newPIN) {
+            errorMessage = "PIN must be \(PINPolicy.humanDescription)."
+        } else if PINPolicy.isValid(newPIN) && newPIN != confirmPIN && !confirmPIN.isEmpty {
             errorMessage = "PINs don't match."
         } else if !qValid {
             errorMessage = "Set both a question and an answer, or neither."
@@ -435,15 +435,21 @@ final class PINSetupViewController: UITableViewController {
         ])
         switch (Section(rawValue: indexPath.section)!, indexPath.row) {
         case (.pin, 0):
-            field.placeholder = "New PIN (4 digits)"
-            field.keyboardType = .numberPad
+            field.placeholder = "New PIN (\(PINPolicy.humanDescription))"
+            field.keyboardType = .asciiCapable
+            field.autocapitalizationType = .none
+            field.autocorrectionType = .no
             field.isSecureTextEntry = true
+            field.attachShowPINToggle()
             field.text = newPIN
             field.addTarget(self, action: #selector(newPINChanged(_:)), for: .editingChanged)
         case (.pin, 1):
             field.placeholder = "Confirm PIN"
-            field.keyboardType = .numberPad
+            field.keyboardType = .asciiCapable
+            field.autocapitalizationType = .none
+            field.autocorrectionType = .no
             field.isSecureTextEntry = true
+            field.attachShowPINToggle()
             field.text = confirmPIN
             field.addTarget(self, action: #selector(confirmPINChanged(_:)), for: .editingChanged)
         case (.question, 0):
@@ -460,12 +466,12 @@ final class PINSetupViewController: UITableViewController {
     }
 
     @objc private func newPINChanged(_ f: UITextField) {
-        newPIN = String((f.text ?? "").filter { $0.isNumber }.prefix(4))
+        newPIN = PINPolicy.sanitize(f.text ?? "")
         if newPIN != f.text { f.text = newPIN }
         revalidate()
     }
     @objc private func confirmPINChanged(_ f: UITextField) {
-        confirmPIN = String((f.text ?? "").filter { $0.isNumber }.prefix(4))
+        confirmPIN = PINPolicy.sanitize(f.text ?? "")
         if confirmPIN != f.text { f.text = confirmPIN }
         revalidate()
     }

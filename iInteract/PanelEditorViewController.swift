@@ -370,27 +370,24 @@ final class PanelEditorViewController: UITableViewController,
         let label = (target.name?.isEmpty == false) ? "\"\(target.name!)\"" : "this interaction"
 
         // Reset the swipe-exposed row immediately so it doesn't stay
-        // half-swiped while the PIN gate is up.
+        // half-swiped while the confirm alert is up.
         tableView.reloadRows(at: [indexPath], with: .automatic)
 
-        // PIN gate first (when set) — destructive action.
-        gatePINIfSet(store: store) { [weak self] in
-            guard let self = self else { return }
-            let alert = UIAlertController(
-                title: "Delete \(label)?",
-                message: "Its picture and both voice recordings (sound) will move to Trash and be permanently removed after 30 days.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
-                guard let self = self,
-                      let row = self.workingPanel.interactions.firstIndex(where: { $0.id == target.id })
-                else { return }
-                let removed = self.workingPanel.interactions.remove(at: row)
-                try? self.store.trashInteraction(removed, fromPanelID: self.workingPanel.id)
-                self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
-            })
-            self.present(alert, animated: true)
-        }
+        // Reversible (move to Trash for 30 days), so no PIN gate.
+        let alert = UIAlertController(
+            title: "Delete \(label)?",
+            message: "Its picture and both voice recordings (sound) will move to Trash and be permanently removed after 30 days.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            guard let self = self,
+                  let row = self.workingPanel.interactions.firstIndex(where: { $0.id == target.id })
+            else { return }
+            let removed = self.workingPanel.interactions.remove(at: row)
+            try? self.store.trashInteraction(removed, fromPanelID: self.workingPanel.id)
+            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+        })
+        present(alert, animated: true)
     }
 }

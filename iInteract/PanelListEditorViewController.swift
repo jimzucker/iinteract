@@ -17,23 +17,37 @@ import UIKit
 /// voice and mode also live there.
 final class PanelListEditorViewController: UITableViewController {
 
-    private enum Section: Int, CaseIterable {
+    private enum Section: Int {
         case panels, trash
     }
 
     private let store: PanelStore
+    private let mode: ConfigurationMode
+    /// Read-only accessor so the root list controller can detect whether a
+    /// mode change in iOS Settings invalidates this pushed editor.
+    var editorMode: ConfigurationMode { mode }
     private var panels: [Panel] = []
     private var trashCount: Int = 0
 
     private static let panelCell = "PanelListEditorPanelCell"
     private static let trashCell = "PanelListEditorTrashCell"
 
-    init(store: PanelStore = .shared) {
+    /// Sections actually displayed for the current mode. Configurable hides
+    /// Trash because user panels (and therefore trash entries) can't exist
+    /// without Customize.
+    private var visibleSections: [Section] {
+        mode == .custom ? [.panels, .trash] : [.panels]
+    }
+
+    init(mode: ConfigurationMode = ConfigurationMode.current(),
+         store: PanelStore = .shared) {
+        self.mode = mode
         self.store = store
         super.init(style: .insetGrouped)
     }
 
     required init?(coder: NSCoder) {
+        self.mode = ConfigurationMode.current()
         self.store = .shared
         super.init(coder: coder)
     }
@@ -41,11 +55,15 @@ final class PanelListEditorViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Edit Panels"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .add,
-            target: self,
-            action: #selector(addPanelTapped)
-        )
+        // Add (+) is only meaningful in Customize. Configurable can hide
+        // and reorder built-ins but cannot author new panels.
+        if mode == .custom {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(
+                barButtonSystemItem: .add,
+                target: self,
+                action: #selector(addPanelTapped)
+            )
+        }
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.panelCell)
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.trashCell)
         tableView.isEditing = true
@@ -61,10 +79,11 @@ final class PanelListEditorViewController: UITableViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Trash count may have changed if the user just visited the Trash
-        // screen and restored / purged something.
-        trashCount = store.trashedItems().count
-        tableView.reloadSections([Section.trash.rawValue], with: .none)
+        // The user may have just restored or purged in Trash, which can
+        // change both the trash count and the active panel list (a restored
+        // panel reappears here). Reload everything so the editor reflects
+        // whatever happened on the pushed Trash screen.
+        loadPanels()
     }
 
     @objc private func panelStoreChangedRemotely() {
@@ -72,9 +91,16 @@ final class PanelListEditorViewController: UITableViewController {
     }
 
     private func loadPanels() {
-        let userPanels = store.userPanels()
-        userPanels.forEach { store.hydrate($0) }
-        panels = store.applyOrder(to: Panel.readFromPlist() + userPanels)
+        let builtIns = Panel.readFromPlist()
+        if mode == .custom {
+            let userPanels = store.userPanels()
+            userPanels.forEach { store.hydrate($0) }
+            panels = store.applyOrder(to: builtIns + userPanels)
+        } else {
+            // Configurable: built-ins only, layout-ordered so the editor
+            // matches what the main list shows.
+            panels = store.applyOrder(to: builtIns)
+        }
         trashCount = store.trashedItems().count
         tableView.reloadData()
     }
@@ -87,33 +113,42 @@ final class PanelListEditorViewController: UITableViewController {
 
     // MARK: - Sections
 
-    override func numberOfSections(in tableView: UITableView) -> Int { Section.allCases.count }
+    private func section(at index: Int) -> Section { visibleSections[index] }
+
+    override func numberOfSections(in tableView: UITableView) -> Int { visibleSections.count }
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        switch Section(rawValue: section)! {
+        switch self.section(at: section) {
         case .panels: return "Panels"
         case .trash:  return nil
         }
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        switch Section(rawValue: section)! {
+        switch self.section(at: section) {
         case .panels:
-            return "Toggle to hide a panel from the main list. Drag to reorder. Swipe to delete custom panels. PIN and Clear All My Data live in iOS Settings → iInteract."
+            switch mode {
+            case .custom:
+                return "Toggle to hide a panel from the main list. Drag to reorder. Swipe to delete custom panels. PIN and Clear All My Data live in iOS Settings → iInteract."
+            case .configurable:
+                return "Toggle to hide a panel from the main list. Drag to reorder. To add or modify panels with your own pictures and recordings, switch to Customize in Settings → iInteract."
+            case .default:
+                return nil
+            }
         case .trash:
             return "Deleted panels and interactions stay here for 30 days before they're permanently removed."
         }
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        switch Section(rawValue: section)! {
+        switch self.section(at: section) {
         case .panels: return panels.count
         case .trash:  return 1
         }
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        switch Section(rawValue: indexPath.section)! {
+        switch self.section(at: indexPath.section) {
         case .panels: return panelCell(at: indexPath)
         case .trash:  return trashRowCell(at: indexPath)
         }
@@ -170,8 +205,10 @@ final class PanelListEditorViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        switch Section(rawValue: indexPath.section)! {
+        switch section(at: indexPath.section) {
         case .panels:
+            // Configurable: built-in rows are not selectable (no editing).
+            guard mode == .custom else { return }
             let panel = panels[indexPath.row]
             guard !panel.isBuiltIn else { return }
             let editor = PanelEditorViewController(panel: panel, store: store)
@@ -184,15 +221,18 @@ final class PanelListEditorViewController: UITableViewController {
 
     // MARK: - Reorder (panels section only)
 
+    private var panelsSectionIndex: Int? { visibleSections.firstIndex(of: .panels) }
+
     override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        Section(rawValue: indexPath.section) == .panels
+        section(at: indexPath.section) == .panels
     }
 
     override func tableView(_ tableView: UITableView,
                             targetIndexPathForMoveFromRowAt source: IndexPath,
                             toProposedIndexPath proposed: IndexPath) -> IndexPath {
         // Don't allow drags out of the panels section.
-        guard proposed.section == Section.panels.rawValue else { return source }
+        guard let panelsIndex = panelsSectionIndex,
+              proposed.section == panelsIndex else { return source }
         return proposed
     }
 
@@ -200,8 +240,9 @@ final class PanelListEditorViewController: UITableViewController {
         let panel = panels.remove(at: source.row)
         panels.insert(panel, at: destination.row)
         try? store.setOrder(panels.map { $0.id })
+        guard let panelsIndex = panelsSectionIndex else { return }
         for visible in tableView.indexPathsForVisibleRows ?? [] {
-            guard visible.section == Section.panels.rawValue else { continue }
+            guard visible.section == panelsIndex else { continue }
             if let cell = tableView.cellForRow(at: visible),
                let toggle = cell.editingAccessoryView as? UISwitch {
                 toggle.tag = visible.row
@@ -213,56 +254,61 @@ final class PanelListEditorViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView,
                             editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
-        guard Section(rawValue: indexPath.section) == .panels else { return .none }
+        // Only available in Customize: Configurable can't delete built-ins
+        // and has no user panels to delete.
+        guard mode == .custom,
+              section(at: indexPath.section) == .panels else { return .none }
         return panels[indexPath.row].isBuiltIn ? .none : .delete
     }
 
     override func tableView(_ tableView: UITableView,
                             shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool {
-        guard Section(rawValue: indexPath.section) == .panels else { return false }
+        guard mode == .custom,
+              section(at: indexPath.section) == .panels else { return false }
         return !panels[indexPath.row].isBuiltIn
     }
 
     override func tableView(_ tableView: UITableView,
                             commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
-        guard editingStyle == .delete,
-              Section(rawValue: indexPath.section) == .panels else { return }
+        guard mode == .custom,
+              editingStyle == .delete,
+              section(at: indexPath.section) == .panels,
+              let panelsIndex = panelsSectionIndex else { return }
         let panel = panels[indexPath.row]
         guard !panel.isBuiltIn else { return }
 
-        // Reset the swipe-exposed row immediately. The PIN gate may take
-        // multiple taps to clear, and we don't want to leave the row stuck
-        // half-swiped during that time.
+        // Reset the swipe-exposed row immediately so it doesn't stay
+        // half-swiped while the confirm alert is up.
         tableView.reloadRows(at: [indexPath], with: .automatic)
 
-        // PIN gate first (when set) — destructive action.
-        gatePINIfSet(store: store) { [weak self] in
-            guard let self = self else { return }
-            let alert = UIAlertController(
-                title: "Delete \"\(panel.title)\"?",
-                message: "The panel, every interaction on it, and all of its pictures and voice recordings (sound) will move to Trash and be permanently removed after 30 days.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
-                guard let self = self,
-                      let row = self.panels.firstIndex(where: { $0.id == panel.id }) else { return }
-                do {
-                    try self.store.trashPanel(panel)
-                    self.panels.remove(at: row)
-                    self.tableView.deleteRows(at: [IndexPath(row: row, section: Section.panels.rawValue)],
-                                              with: .automatic)
-                    self.trashCount = self.store.trashedItems().count
-                    self.tableView.reloadSections([Section.trash.rawValue], with: .none)
-                } catch {
-                    let a = UIAlertController(title: "Couldn't Delete", message: "\(error)",
-                                              preferredStyle: .alert)
-                    a.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(a, animated: true)
+        // Reversible (move to Trash for 30 days), so no PIN gate — only the
+        // permanent-purge actions in TrashViewController require the PIN.
+        let alert = UIAlertController(
+            title: "Delete \"\(panel.title)\"?",
+            message: "The panel, every interaction on it, and all of its pictures and voice recordings (sound) will move to Trash and be permanently removed after 30 days.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            guard let self = self,
+                  let row = self.panels.firstIndex(where: { $0.id == panel.id }) else { return }
+            do {
+                try self.store.trashPanel(panel)
+                self.panels.remove(at: row)
+                self.tableView.deleteRows(at: [IndexPath(row: row, section: panelsIndex)],
+                                          with: .automatic)
+                self.trashCount = self.store.trashedItems().count
+                if let trashIndex = self.visibleSections.firstIndex(of: .trash) {
+                    self.tableView.reloadSections([trashIndex], with: .none)
                 }
-            })
-            self.present(alert, animated: true)
-        }
+            } catch {
+                let a = UIAlertController(title: "Couldn't Delete", message: "\(error)",
+                                          preferredStyle: .alert)
+                a.addAction(UIAlertAction(title: "OK", style: .default))
+                self.present(a, animated: true)
+            }
+        })
+        present(alert, animated: true)
     }
 }

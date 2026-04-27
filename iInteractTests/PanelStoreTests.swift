@@ -670,6 +670,28 @@ final class PanelStoreTests: XCTestCase {
         XCTAssertEqual(result.first?.id, second.id)
     }
 
+    func testLoadConfigurableModeReturnsBuiltInsWithLayoutAndNoUserPanels() throws {
+        // Seed a user panel + a hidden built-in + a reorder. Configurable
+        // must show the built-ins respecting layout and exclude user data.
+        let userPanel = Panel(title: "School", color: .systemTeal,
+                              interactions: [], isBuiltIn: false)
+        try store.addPanel(userPanel)
+        let builtIns = Panel.readFromPlist()
+        guard let first = builtIns.first, let second = builtIns.dropFirst().first else {
+            XCTFail("Expected at least 2 built-in panels"); return
+        }
+        try store.setHidden(true, for: first.id)
+        try store.setOrder([second.id, first.id])
+
+        let result = Panel.load(mode: .configurable, store: store)
+
+        XCTAssertTrue(result.allSatisfy { $0.isBuiltIn },
+                      "Configurable mode must not include user panels")
+        XCTAssertFalse(result.contains { $0.title == "School" })
+        XCTAssertFalse(result.contains { $0.id == first.id }, "hidden built-in stays hidden")
+        XCTAssertEqual(result.first?.id, second.id, "reorder is honored")
+    }
+
     // MARK: Stable IDs for built-ins
 
     func testStableIDIsDeterministic() {
@@ -690,6 +712,12 @@ final class ConfigurationModeTests: XCTestCase {
         let suite = UserDefaults(suiteName: "ConfigurationModeTests-\(UUID().uuidString)")!
         suite.set("custom", forKey: ConfigurationMode.userDefaultsKey)
         XCTAssertEqual(ConfigurationMode.current(suite), .custom)
+    }
+
+    func testReadsConfigurableFromUserDefaults() {
+        let suite = UserDefaults(suiteName: "ConfigurationModeTests-\(UUID().uuidString)")!
+        suite.set("configurable", forKey: ConfigurationMode.userDefaultsKey)
+        XCTAssertEqual(ConfigurationMode.current(suite), .configurable)
     }
 
     func testFallsBackToDefaultOnGarbage() {

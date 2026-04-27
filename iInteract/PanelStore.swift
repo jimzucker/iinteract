@@ -172,6 +172,73 @@ final class PanelStore {
 
     private static let kvsPanelsKey = "panelstore.panels"
     private static let kvsLayoutKey = "panelstore.layout"
+    private static let kvsModeKey = "panelstore.configuration_mode"
+    /// Local-only flag tracking whether we've already done the one-time
+    /// "adopt iCloud value at first launch" step. After that, UserDefaults
+    /// is the source of intent on this device.
+    private static let modeAdoptedKey = "panelstore.configuration_mode_adopted"
+
+    // MARK: - Configuration mode (UserDefaults is canonical, KVS is the mirror)
+    //
+    // Settings.bundle binds the picker to UserDefaults["configuration_mode"],
+    // and that's what represents the user's intent on this device. We mirror
+    // out to iCloud KVS so the choice survives reinstalls and follows the
+    // user across iCloud-signed devices.
+    //
+    // Direction of writes:
+    // * App launch → adoptCloudConfigurationModeIfFirstLaunch():
+    //   if we've never run on this install before AND iCloud has a value,
+    //   copy cloud → local. Otherwise leave local alone.
+    // * User changes Mode in iOS Settings → app resume → reconcile() pushes
+    //   local → cloud whenever they differ. (Local wins at runtime.)
+    // * Another device changes mode → iCloudKeysDidChange observer mirrors
+    //   the new value down to UserDefaults and posts didChangeNotification.
+
+    /// Reads the live mode from UserDefaults (which iCloud may have already
+    /// written into via the KVS observer or the first-launch adoption).
+    func configurationMode(_ defaults: UserDefaults = .standard) -> ConfigurationMode {
+        return ConfigurationMode.current(defaults)
+    }
+
+    /// Writes the new mode to both UserDefaults and KVS. Returns true when
+    /// the effective mode actually changed, so callers can refresh UI.
+    @discardableResult
+    func setConfigurationMode(_ mode: ConfigurationMode,
+                              defaults: UserDefaults = .standard) -> Bool {
+        let previous = configurationMode(defaults)
+        defaults.set(mode.rawValue, forKey: ConfigurationMode.userDefaultsKey)
+        kvs.set(mode.rawValue, forKey: Self.kvsModeKey)
+        kvs.synchronize()
+        return previous != mode
+    }
+
+    /// Call once at app launch (before the UI reads the mode). On a fresh
+    /// install where iCloud already has a mode set by another device, copies
+    /// it down so this device starts in the same mode. After the first
+    /// launch, this is a no-op — UserDefaults is the source of intent.
+    func adoptCloudConfigurationModeIfFirstLaunch(defaults: UserDefaults = .standard) {
+        if defaults.bool(forKey: Self.modeAdoptedKey) { return }
+        defaults.set(true, forKey: Self.modeAdoptedKey)
+        if let raw = kvs.string(forKey: Self.kvsModeKey),
+           ConfigurationMode(rawValue: raw) != nil {
+            defaults.set(raw, forKey: ConfigurationMode.userDefaultsKey)
+        }
+    }
+
+    /// Pushes the user's local Mode choice up to iCloud whenever the two
+    /// disagree. Call on every resume/foreground so changes made in iOS
+    /// Settings propagate. Returns the live mode for convenience.
+    @discardableResult
+    func reconcileConfigurationMode(defaults: UserDefaults = .standard) -> ConfigurationMode {
+        let local = ConfigurationMode.current(defaults)
+        let cloud = kvs.string(forKey: Self.kvsModeKey)
+            .flatMap(ConfigurationMode.init(rawValue:))
+        if cloud != local {
+            kvs.set(local.rawValue, forKey: Self.kvsModeKey)
+            kvs.synchronize()
+        }
+        return local
+    }
 
     // MARK: - User panels
 
@@ -647,6 +714,7 @@ final class PanelStore {
         clearPIN()
         kvs.removeObject(forKey: Self.kvsPanelsKey)
         kvs.removeObject(forKey: Self.kvsLayoutKey)
+        kvs.removeObject(forKey: Self.kvsModeKey)
         kvs.synchronize()
     }
 
@@ -684,6 +752,13 @@ final class PanelStore {
         if changedKeys.contains(Self.kvsLayoutKey),
            let data = kvs.data(forKey: Self.kvsLayoutKey) {
             try? data.write(to: layoutURL, options: .atomic)
+            didChange = true
+        }
+        if changedKeys.contains(Self.kvsModeKey),
+           let raw = kvs.string(forKey: Self.kvsModeKey) {
+            // Mirror the remote choice down to UserDefaults so Settings.bundle
+            // reflects it and ConfigurationMode.current() returns the right value.
+            UserDefaults.standard.set(raw, forKey: ConfigurationMode.userDefaultsKey)
             didChange = true
         }
         if didChange {

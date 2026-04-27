@@ -15,14 +15,17 @@ import Foundation
 
 extension Panel {
     /// Returns the panels to display for the current configuration mode.
-    /// - `.default`: bundled panels in plist order, exactly like v1.x.
-    /// - `.custom`:  bundled panels merged with the user's panels, then
-    ///               filtered + reordered per `PanelStore.layout()`.
+    /// - `.default`:      bundled panels in plist order, exactly like v1.x.
+    /// - `.configurable`: bundled panels with hide + reorder applied, no user panels.
+    /// - `.custom`:       bundled panels merged with the user's panels, then
+    ///                    filtered + reordered per `PanelStore.layout()`.
     class func load(mode: ConfigurationMode, store: PanelStore = .shared) -> [Panel] {
         let builtIns = readFromPlist()
         switch mode {
         case .default:
             return builtIns
+        case .configurable:
+            return store.applyLayout(to: builtIns)
         case .custom:
             let userPanels = store.userPanels()
             userPanels.forEach { store.hydrate($0) }

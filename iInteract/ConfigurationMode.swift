@@ -13,6 +13,9 @@ import Foundation
 
 enum ConfigurationMode: String {
     case `default`
+    case configurable
+    // Raw value stays "custom" so existing installs on the previous two-mode
+    // layout don't need a migration. User-facing label is "Customize".
     case custom
 
     static let userDefaultsKey = "configuration_mode"

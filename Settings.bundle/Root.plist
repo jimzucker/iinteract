@@ -46,7 +46,17 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
-			<string>Configuration</string>
+			<string>Mode</string>
+			<key>FooterText</key>
+			<string>Pick how iInteract behaves:
+
+• Default — Bundled panels only, no editing. Best for handing the device to a child.
+
+• Configurable — Hide and reorder the bundled panels.
+
+• Customize — Add your own panels with custom pictures and voice recordings.
+
+Your choice syncs across your iCloud devices.</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -57,14 +67,22 @@
 			<string>configuration_mode</string>
 			<key>Titles</key>
 			<array>
+				<string>Default — child-safe</string>
+				<string>Configurable — hide / reorder</string>
+				<string>Customize — your own panels</string>
+			</array>
+			<key>ShortTitles</key>
+			<array>
 				<string>Default</string>
-				<string>Custom</string>
+				<string>Configurable</string>
+				<string>Customize</string>
 			</array>
 			<key>DefaultValue</key>
 			<string>default</string>
 			<key>Values</key>
 			<array>
 				<string>default</string>
+				<string>configurable</string>
 				<string>custom</string>
 			</array>
 		</dict>
@@ -74,7 +92,7 @@
 			<key>Title</key>
 			<string>Security</string>
 			<key>FooterText</key>
-			<string>Toggling Enable PIN sends you back to iInteract to set a new 4-digit PIN (with confirmation), or to enter the current PIN to disable it. The PIN is hashed before storage and syncs across your iCloud devices.</string>
+			<string>Toggling Enable PIN sends you back to iInteract to set a new PIN (4–6 letters or numbers, with confirmation), or to enter the current PIN to disable it. The PIN is hashed before storage and syncs across your iCloud devices.</string>
 		</dict>
 		<dict>
 			<key>Type</key>
