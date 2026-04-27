@@ -876,3 +876,227 @@ final class ClearAllUserDataPINHoleTests: XCTestCase {
                        "hasPIN must be false after clearAllUserData so the iOS pin_enabled toggle reconcile sees no PIN to disable")
     }
 }
+
+// MARK: - PINPromptCoordinator (B1)
+
+/// Recorder that scripts user interactions through PINPresenter. The
+/// coordinator drives `presentations` by appending one entry per
+/// `presentPINAlert` call; tests then call `tap(buttonIndex:values:)`
+/// to simulate the user tapping a button with the given field values.
+final class TestPINPresenter: PINPresenter {
+    struct Recorded {
+        let config: PINAlertConfig
+        let handler: (Int, [String]) -> Void
+    }
+    private(set) var presentations: [Recorded] = []
+
+    func presentPINAlert(_ config: PINAlertConfig,
+                         handler: @escaping (Int, [String]) -> Void) {
+        presentations.append(Recorded(config: config, handler: handler))
+    }
+
+    /// Simulates the user tapping the button at `buttonIndex` of the
+    /// most recent presentation, with the given field values.
+    func tap(_ buttonIndex: Int, values: [String]) {
+        guard let last = presentations.last else {
+            XCTFail("No presentation to tap"); return
+        }
+        last.handler(buttonIndex, values)
+    }
+}
+
+final class PINPromptCoordinatorEnableTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: PanelStore!
+    var defaults: UserDefaults!
+    var presenter: TestPINPresenter!
+    var coordinator: PINPromptCoordinator!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PINCoordinator-\(UUID().uuidString)")
+        store = PanelStore(directory: tempDir, keyValueStore: MemoryKeyValueStore())
+        let suite = "PINCoordinatorTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        presenter = TestPINPresenter()
+        coordinator = PINPromptCoordinator(store: store,
+                                           defaults: defaults,
+                                           presenter: presenter)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: happy path
+
+    func testRunEnablePINFlow_ValidPIN_SetsPIN_CompletesTrue() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        XCTAssertEqual(presenter.presentations.count, 1)
+        let initial = presenter.presentations[0].config
+        XCTAssertEqual(initial.title, "Set PIN")
+        XCTAssertEqual(initial.fields.count, 2)
+        XCTAssertEqual(initial.buttons.map(\.title), ["Cancel", "Set PIN"])
+
+        // User types valid matching PIN, taps Set PIN.
+        presenter.tap(1, values: ["abcd", "abcd"])
+
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.hasPIN)
+        XCTAssertTrue(store.verifyPIN("abcd"))
+    }
+
+    // MARK: cancel
+
+    func testRunEnablePINFlow_Cancel_RevertsToggle_CompletesFalse() {
+        defaults.set(true, forKey: "pin_enabled")
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        // User taps Cancel.
+        presenter.tap(0, values: ["abc", ""])
+
+        XCTAssertEqual(completion, false)
+        XCTAssertFalse(store.hasPIN)
+        XCTAssertFalse(defaults.bool(forKey: "pin_enabled"),
+                       "Cancel must revert the iOS Settings toggle to false")
+        // No re-presentation on Cancel.
+        XCTAssertEqual(presenter.presentations.count, 1)
+    }
+
+    // MARK: cycle on too-short
+
+    func testRunEnablePINFlow_TooShort_CyclesWithBoundsError() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        // Type 3 chars (under min) → tap Set PIN.
+        presenter.tap(1, values: ["abc", "abc"])
+
+        XCTAssertNil(completion, "should not complete on validation failure")
+        XCTAssertEqual(presenter.presentations.count, 2,
+                       "alert must re-present on too-short input")
+
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.contains(PINPolicy.humanDescription),
+                      "retry message must explicitly state the 4–8 bounds")
+        XCTAssertTrue(retry.message.contains("4"))
+        XCTAssertTrue(retry.message.contains("8"))
+        XCTAssertEqual(retry.fields[0].prefilledText, "abc",
+                       "user-entered PIN must be prefilled on retry")
+        XCTAssertEqual(retry.fields[1].prefilledText, "abc")
+    }
+
+    // MARK: cycle on too-long
+
+    func testRunEnablePINFlow_TooLong_CyclesWithBoundsError() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        // Type 9 chars (over max) → tap Set PIN.
+        presenter.tap(1, values: ["abcdefghi", "abcdefghi"])
+
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.contains("4"))
+        XCTAssertTrue(retry.message.contains("8"))
+        XCTAssertEqual(retry.fields[0].prefilledText, "abcdefghi")
+    }
+
+    // MARK: cycle on non-alphanumeric
+
+    func testRunEnablePINFlow_NonAlphanumeric_CyclesWithBoundsError() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        // Space embedded → fails alphanumeric check.
+        presenter.tap(1, values: ["ab cd", "ab cd"])
+
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.contains(PINPolicy.humanDescription))
+        XCTAssertEqual(retry.fields[0].prefilledText, "ab cd",
+                       "raw input is preserved so user can correct it")
+    }
+
+    // MARK: cycle on mismatch
+
+    func testRunEnablePINFlow_Mismatch_CyclesWithMatchError() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        // Both fields are valid length/charset but don't match.
+        presenter.tap(1, values: ["abcd", "abce"])
+
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.lowercased().contains("match")
+                      || retry.message.lowercased().contains("didn't match"),
+                      "retry should explicitly say PINs didn't match")
+        // Bounds line is always present in the prompt (plan guarantee
+        // (d): bounds stated up front, not just on failure) — the
+        // mismatch error is layered on top.
+        XCTAssertTrue(retry.message.contains(PINPolicy.humanDescription))
+        XCTAssertEqual(retry.fields[0].prefilledText, "abcd")
+        XCTAssertEqual(retry.fields[1].prefilledText, "abce")
+    }
+
+    // MARK: full cycle: bad → bad → good
+
+    func testRunEnablePINFlow_MultipleFailures_FinallySucceeds() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+
+        // Round 1: too short.
+        presenter.tap(1, values: ["a", "a"])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+
+        // Round 2: mismatch.
+        presenter.tap(1, values: ["abcd", "abce"])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 3)
+
+        // Round 3: success.
+        presenter.tap(1, values: ["abcdef", "abcdef"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.verifyPIN("abcdef"))
+        XCTAssertEqual(presenter.presentations.count, 3, "no re-presentation after success")
+    }
+
+    // MARK: max-length boundary
+
+    func testRunEnablePINFlow_8CharPIN_Accepted() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+        presenter.tap(1, values: ["12345678", "12345678"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.verifyPIN("12345678"))
+    }
+
+    func testRunEnablePINFlow_4CharPIN_Accepted() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+        presenter.tap(1, values: ["1234", "1234"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.verifyPIN("1234"))
+    }
+
+    // MARK: bounds wording in initial presentation
+
+    func testRunEnablePINFlow_InitialMessage_StatesBoundsUpFront() {
+        coordinator.runEnablePINFlow { _ in }
+        let initial = presenter.presentations[0].config
+        XCTAssertTrue(initial.message.contains(PINPolicy.humanDescription),
+                      "initial Set-PIN prompt must state the 4–8 bounds up front")
+    }
+}

@@ -137,70 +137,28 @@ class FeelingTableViewController: UITableViewController {
         }
     }
 
-    /// User toggled "Enable PIN" on in iOS Settings but no PIN is set yet.
-    /// Prompts for a new PIN with confirmation. On invalid input or
-    /// mismatch, re-presents the alert with the entered values prefilled
-    /// and an explicit error message — the user can correct rather than
-    /// being silently kicked back to iOS Settings. Cancel is the only way
-    /// to bail; on Cancel we revert the iOS Settings toggle so Settings
-    /// reflects reality.
-    private func promptEnablePIN(prefilledPIN: String = "",
-                                 prefilledConfirm: String = "",
-                                 errorMessage: String? = nil) {
-        var lines: [String] = [
-            "Enter a PIN (\(PINPolicy.humanDescription)), then confirm it.",
-            "The PIN will be required to open the configuration editor and to delete panels, recordings, or clear data."
-        ]
-        if let err = errorMessage {
-            lines.insert(err, at: 0)
-            lines.insert("", at: 1)
+    /// User toggled "Enable PIN" on in iOS Settings but no PIN is set
+    /// yet. Delegates the cycle-on-failure / prefill / cancel logic to
+    /// `PINPromptCoordinator` so the flow is unit-testable end-to-end
+    /// without needing a real UIAlertController.
+    private func promptEnablePIN() {
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        // Hold the coordinator alive until the flow completes — the
+        // presenter is held weakly inside the coordinator and the
+        // coordinator itself has no other owner during the async
+        // alert chain.
+        objc_setAssociatedObject(self, &Self.enableCoordinatorKey, coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runEnablePINFlow { [weak self] _ in
+            // Either succeeded (toggle stays on) or cancelled
+            // (coordinator already flipped pin_enabled to false). Drop
+            // the coordinator reference; nothing more to do.
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.enableCoordinatorKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
-        let alert = UIAlertController(
-            title: "Set PIN",
-            message: lines.joined(separator: "\n"),
-            preferredStyle: .alert
-        )
-        alert.addTextField { tf in
-            tf.placeholder = "PIN"
-            tf.keyboardType = .asciiCapable
-            tf.autocapitalizationType = .none
-            tf.autocorrectionType = .no
-            tf.isSecureTextEntry = true
-            tf.text = prefilledPIN
-            tf.attachShowPINToggle()
-        }
-        alert.addTextField { tf in
-            tf.placeholder = "Confirm PIN"
-            tf.keyboardType = .asciiCapable
-            tf.autocapitalizationType = .none
-            tf.autocorrectionType = .no
-            tf.isSecureTextEntry = true
-            tf.text = prefilledConfirm
-            tf.attachShowPINToggle()
-        }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-            // User explicitly bailed — revert the iOS Settings toggle.
-            UserDefaults.standard.set(false, forKey: "pin_enabled")
-            UserDefaults.standard.synchronize()
-        })
-        alert.addAction(UIAlertAction(title: "Set PIN", style: .default) { [weak self, weak alert] _ in
-            let pin = alert?.textFields?[0].text ?? ""
-            let confirm = alert?.textFields?[1].text ?? ""
-            if !PINPolicy.isValid(pin) {
-                self?.promptEnablePIN(prefilledPIN: pin,
-                                      prefilledConfirm: confirm,
-                                      errorMessage: PINPolicy.invalidMessage)
-            } else if pin != confirm {
-                self?.promptEnablePIN(prefilledPIN: pin,
-                                      prefilledConfirm: confirm,
-                                      errorMessage: "PINs didn't match. Try again.")
-            } else {
-                PanelStore.shared.setPIN(pin)
-                // pin_enabled stays true — leave the iOS Settings toggle on.
-            }
-        })
-        topmostPresenter().present(alert, animated: true)
     }
+
+    private static var enableCoordinatorKey: UInt8 = 0
 
     /// User toggled "Enable PIN" off in iOS Settings while a PIN is set.
     /// One combined alert: enter current PIN + confirm disable in a single

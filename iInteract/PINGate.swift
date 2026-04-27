@@ -292,3 +292,183 @@ extension UIViewController {
         present(a, animated: true)
     }
 }
+
+// MARK: - PINPromptCoordinator (UIKit-free, unit-testable)
+
+/// Configuration for a PIN-related alert. Models the alert as data so the
+/// coordinator can drive the flow without importing UIKit; a `PINPresenter`
+/// (production: UIAlertController, tests: in-memory recorder) translates
+/// the config into a real surface.
+struct PINAlertConfig {
+    let title: String
+    let message: String
+    let fields: [Field]
+    let buttons: [Button]
+
+    struct Field {
+        let placeholder: String
+        let prefilledText: String
+        let isSecureEntry: Bool
+        let attachShowToggle: Bool
+    }
+
+    struct Button {
+        let title: String
+        let style: Style
+        enum Style { case cancel, `default`, destructive }
+    }
+}
+
+/// Renders a `PINAlertConfig` and reports user interaction back. Production
+/// is a UIViewController extension that maps to UIAlertController; tests
+/// use a recorder that lets them script the user's taps deterministically.
+protocol PINPresenter: AnyObject {
+    /// Present `config`. When the user taps a button, call `handler` with
+    /// the tapped button index and the current text-field values.
+    func presentPINAlert(_ config: PINAlertConfig,
+                         handler: @escaping (_ buttonIndex: Int, _ fieldValues: [String]) -> Void)
+}
+
+/// Drives PIN-prompt cycling logic without depending on UIKit. Extracted
+/// so the validate/cycle/cancel paths are unit-testable.
+final class PINPromptCoordinator {
+
+    private let store: PanelStore
+    private let defaults: UserDefaults
+    private weak var presenter: PINPresenter?
+
+    init(store: PanelStore = .shared,
+         defaults: UserDefaults = .standard,
+         presenter: PINPresenter) {
+        self.store = store
+        self.defaults = defaults
+        self.presenter = presenter
+    }
+
+    /// Cycling set-PIN flow with confirmation. On every invalid-input
+    /// path the alert is re-presented with the user's typed values
+    /// prefilled and an explicit error message — Cancel is the only
+    /// way out, on which `pin_enabled` is reverted to false.
+    /// `onComplete(true)` after a successful set; `onComplete(false)`
+    /// after Cancel.
+    func runEnablePINFlow(onComplete: @escaping (Bool) -> Void) {
+        runEnablePIN(prefillPIN: "", prefillConfirm: "",
+                     errorMessage: nil, onComplete: onComplete)
+    }
+
+    private func runEnablePIN(prefillPIN: String,
+                              prefillConfirm: String,
+                              errorMessage: String?,
+                              onComplete: @escaping (Bool) -> Void) {
+        let config = PINAlertConfig(
+            title: "Set PIN",
+            message: composeSetPINMessage(error: errorMessage),
+            fields: [
+                .init(placeholder: "PIN",
+                      prefilledText: prefillPIN,
+                      isSecureEntry: true,
+                      attachShowToggle: true),
+                .init(placeholder: "Confirm PIN",
+                      prefilledText: prefillConfirm,
+                      isSecureEntry: true,
+                      attachShowToggle: true),
+            ],
+            buttons: [
+                .init(title: "Cancel", style: .cancel),
+                .init(title: "Set PIN", style: .default),
+            ]
+        )
+        presenter?.presentPINAlert(config) { [weak self] buttonIndex, values in
+            guard let self = self else { return }
+            if buttonIndex == 0 {  // Cancel
+                self.defaults.set(false, forKey: "pin_enabled")
+                self.defaults.synchronize()
+                onComplete(false)
+                return
+            }
+            let pin = values.indices.contains(0) ? values[0] : ""
+            let confirm = values.indices.contains(1) ? values[1] : ""
+            if !PINPolicy.isValid(pin) {
+                self.runEnablePIN(prefillPIN: pin,
+                                  prefillConfirm: confirm,
+                                  errorMessage: PINPolicy.invalidMessage,
+                                  onComplete: onComplete)
+            } else if pin != confirm {
+                self.runEnablePIN(prefillPIN: pin,
+                                  prefillConfirm: confirm,
+                                  errorMessage: "PINs didn't match. Try again.",
+                                  onComplete: onComplete)
+            } else {
+                self.store.setPIN(pin)
+                onComplete(true)
+            }
+        }
+    }
+
+    private func composeSetPINMessage(error: String?) -> String {
+        var lines = [
+            "Enter a PIN (\(PINPolicy.humanDescription)), then confirm it.",
+            "The PIN will be required to open the configuration editor and to delete panels, recordings, or clear data."
+        ]
+        if let err = error {
+            lines.insert(err, at: 0)
+            lines.insert("", at: 1)
+        }
+        return lines.joined(separator: "\n")
+    }
+}
+
+// MARK: - UIKit-backed PINPresenter
+
+extension UIViewController: PINPresenter {
+    func presentPINAlert(_ config: PINAlertConfig,
+                         handler: @escaping (Int, [String]) -> Void) {
+        let alert = UIAlertController(title: config.title,
+                                      message: config.message,
+                                      preferredStyle: .alert)
+        for field in config.fields {
+            alert.addTextField { tf in
+                tf.placeholder = field.placeholder
+                tf.text = field.prefilledText
+                tf.isSecureTextEntry = field.isSecureEntry
+                tf.keyboardType = .asciiCapable
+                tf.autocapitalizationType = .none
+                tf.autocorrectionType = .no
+                if field.attachShowToggle { tf.attachShowPINToggle() }
+            }
+        }
+        for (index, button) in config.buttons.enumerated() {
+            let style: UIAlertAction.Style
+            switch button.style {
+            case .cancel:      style = .cancel
+            case .default:     style = .default
+            case .destructive: style = .destructive
+            }
+            alert.addAction(UIAlertAction(title: button.title, style: style) { [weak alert] _ in
+                let values = (alert?.textFields ?? []).map { $0.text ?? "" }
+                handler(index, values)
+            })
+        }
+        // Mark the last non-cancel button as preferred so iOS bolds it
+        // (matches the existing combined-confirm UX).
+        if let primaryIdx = config.buttons.lastIndex(where: { $0.style != .cancel }) {
+            alert.preferredAction = alert.actions[primaryIdx]
+        }
+        topmostPresenterForPINAlert().present(alert, animated: true)
+    }
+
+    /// Walks the active scene's view-controller hierarchy to find the
+    /// frontmost presenter, so an alert kicked off by the coordinator
+    /// from a sub-screen still lands in front of the user.
+    private func topmostPresenterForPINAlert() -> UIViewController {
+        var top: UIViewController = self
+        if let scene = view.window?.windowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first,
+           let root = window.rootViewController {
+            top = root
+        }
+        while let presented = top.presentedViewController { top = presented }
+        if let nav = top as? UINavigationController, let visible = nav.visibleViewController { top = visible }
+        return top
+    }
+}
