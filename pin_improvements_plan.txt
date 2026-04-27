@@ -324,33 +324,80 @@ for accessibility):
       letters or numbers") clearly.
 
 
-PART D — SEQUENCING
-====================
+PART D — SEQUENCING (revised 2026-04-27)
+=========================================
 
-  Phase 1 (½ day): A2 (re-present after Forgot PIN failure) +
-    related tests. Quick win, closes a real flow break.
+REVISION RATIONALE
+  Every PIN bug we've chased was caught only by hands-on testing
+  because the logic lives inside view-controller methods that
+  consume real UIAlertController instances. Phase 2 (B1) extracted
+  the SET-PIN cycle and yielded 10 fast, deterministic unit tests.
+  We now extend that pattern to the verify path and the settings-
+  reconciliation hub BEFORE adding more features. The original A1
+  (Change PIN) is pushed to Phase 4 — it's cheaper to build on top
+  of the new abstractions and trivially testable once they exist.
 
-  Phase 2 (1 day): B1 (PINPromptCoordinator extraction) — refactor
-    only, no behavior change. All existing tests + new B1.t1–t10
-    pass. Foundation for everything below.
+  Phase 1 (½ day) ✅ DONE: A2 (re-present after Forgot PIN failure).
 
-  Phase 3 (1 day): A1 (Change PIN flow) on top of B1. The
-    coordinator makes this a small addition.
+  Phase 2 (1 day) ✅ DONE: B1 (PINPromptCoordinator extraction).
+    Test count: 92 → 102.
 
-  Phase 4 (1 day): A4 (lockout persistence) + A5 (KVS observer
-    reconciles pin_enabled) + A6 (coalesce retries) + B2
-    (property-based PINPolicy tests).
+  Phase 3 (1.5 days) — NEW SCOPE: extract the verify coordinator
+    and the settings reconciler, the two surfaces where the bugs
+    have been hiding.
 
-  Phase 5 (1 day): A3 (security question optional) — UX iteration
+    3a. PINVerifyCoordinator — wraps the cycle that
+        confirmActionWithPIN runs today: 5-attempt counter, lockout
+        window, wrong-PIN retry, Forgot PIN signal. Migrate every
+        confirmActionWithPIN site to the coordinator. Targeted unit
+        tests cover:
+          - happy path: correct PIN → onConfirm
+          - wrong PIN once → cycle with "X attempts remaining"
+          - 5 wrong attempts → lockout alert with seconds-remaining
+          - lockout expires after 60s → re-tries succeed
+          - Cancel → onCancel
+          - Forgot PIN tapped → onForgotPIN
+          - Forgot PIN onAbort path → re-presents the verify alert
+
+    3b. SettingsReconciler — UIKit-free pure-logic class that
+        examines (`pin_enabled`, `hasPIN`, `change_pin`,
+        `pending_clear_all`, `hide_config`) and returns an
+        `Effect` enum (.enablePIN, .disablePIN, .changePIN,
+        .clearAllData, .none). Unit-test all combinations:
+          - pin_enabled=true,  hasPIN=false           → .enablePIN
+          - pin_enabled=false, hasPIN=true            → .disablePIN
+          - change_pin=true,   hasPIN=true            → .changePIN
+          - change_pin=true,   hasPIN=false           → toggle clears, .none
+          - pending_clear_all=true                     → .clearAllData
+          - all flags consistent                       → .none
+        applyPendingSettingsActions becomes a thin VC method that
+        consumes the Effect enum and dispatches to coordinators.
+        The retry-when-modal-up logic also moves into the reconciler
+        so we can unit-test it (B4/A6 from the original plan).
+
+    Outcome: 80% of the surface where bugs hide is now covered by
+    deterministic unit tests instead of "we'll catch it during
+    hands-on testing." Test count target: 102 → ~135.
+
+  Phase 4 (1 day): A1 (Change PIN flow) on top of 3a + 3b.
+    Reconciler returns .changePIN; coordinator runs verify-then-set.
+    Trivially testable now that both halves exist.
+
+  Phase 5 (1 day): A4 (lockout persistence) + A5 (KVS observer
+    reconciles pin_enabled) + B2 (property-based PINPolicy tests).
+    A6 (coalesce retries) folds into 3b.
+
+  Phase 6 (1 day): A3 (security question optional) — UX iteration
     likely needed.
 
-  Phase 6 (1–2 days): B4 (XCUITest target) — covers everything
+  Phase 7 (1–2 days): B4 (XCUITest target) — covers everything
     end-to-end. Owner runs through Part C checklist on device.
 
-  Phase 7 (½ day, optional): B5 (snapshot tests).
+  Phase 8 (½ day, optional): B5 (snapshot tests).
 
-Total: ~6 days of focused work for a PIN flow that's robust,
-testable, and gives the user clear feedback at every length boundary.
+Total: ~7 days of focused work — one extra day vs. the original
+plan, but with two more high-coverage abstractions that should make
+every future PIN feature small, predictable, and unit-testable.
 
 
 OPEN QUESTIONS FOR JIM
