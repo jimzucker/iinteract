@@ -218,8 +218,13 @@ extension UIViewController {
     /// (signed-in check) and "Answer Security Question" (when one is set).
     /// On successful reset the PIN is cleared from PanelStore and `onReset`
     /// is called so the caller can proceed (e.g. open the editor).
+    /// `onAbort` fires whenever the user dismisses the flow without
+    /// resetting (Cancel, iCloud not signed in, wrong answer) — callers
+    /// use it to re-present the original PIN-confirm alert so the user
+    /// isn't dead-ended.
     func presentForgotPINResetSheet(store: PanelStore = .shared,
                                     sourceView: UIView? = nil,
+                                    onAbort: (() -> Void)? = nil,
                                     onReset: @escaping () -> Void) {
         let sheet = UIAlertController(title: "Reset PIN",
                                       message: "Choose how to reset your PIN.",
@@ -229,16 +234,23 @@ extension UIViewController {
                 try store.resetPINViaICloudAccount()
                 onReset()
             } catch {
-                self?.presentSimpleInfoAlert(title: "Couldn't Reset",
-                                             message: "Sign into iCloud in Settings, then try again.")
+                self?.presentSimpleInfoAlert(
+                    title: "Couldn't Reset",
+                    message: "Sign into iCloud in Settings, then try again.",
+                    onDismiss: onAbort
+                )
             }
         })
         if store.hasSecurityQuestion {
             sheet.addAction(UIAlertAction(title: "Answer Security Question", style: .default) { [weak self] _ in
-                self?.presentSecurityAnswerPrompt(store: store, onReset: onReset)
+                self?.presentSecurityAnswerPrompt(store: store,
+                                                  onAbort: onAbort,
+                                                  onReset: onReset)
             })
         }
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            onAbort?()
+        })
         if let popover = sheet.popoverPresentationController, let src = sourceView {
             popover.sourceView = src
             popover.sourceRect = src.bounds
@@ -246,28 +258,37 @@ extension UIViewController {
         present(sheet, animated: true)
     }
 
-    private func presentSecurityAnswerPrompt(store: PanelStore, onReset: @escaping () -> Void) {
+    private func presentSecurityAnswerPrompt(store: PanelStore,
+                                             onAbort: (() -> Void)?,
+                                             onReset: @escaping () -> Void) {
         let alert = UIAlertController(title: "Security Question",
                                       message: store.securityQuestion,
                                       preferredStyle: .alert)
         alert.addTextField { $0.placeholder = "Your answer" }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            onAbort?()
+        })
         alert.addAction(UIAlertAction(title: "Reset PIN", style: .destructive) { [weak self, weak alert] _ in
             let answer = alert?.textFields?.first?.text ?? ""
             do {
                 try store.resetPIN(securityAnswer: answer)
                 onReset()
             } catch {
-                self?.presentSimpleInfoAlert(title: "Wrong Answer",
-                                             message: "That's not the answer we have on file.")
+                self?.presentSimpleInfoAlert(
+                    title: "Wrong Answer",
+                    message: "That's not the answer we have on file.",
+                    onDismiss: onAbort
+                )
             }
         })
         present(alert, animated: true)
     }
 
-    private func presentSimpleInfoAlert(title: String, message: String) {
+    private func presentSimpleInfoAlert(title: String,
+                                        message: String,
+                                        onDismiss: (() -> Void)? = nil) {
         let a = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        a.addAction(UIAlertAction(title: "OK", style: .default))
+        a.addAction(UIAlertAction(title: "OK", style: .default) { _ in onDismiss?() })
         present(a, animated: true)
     }
 }

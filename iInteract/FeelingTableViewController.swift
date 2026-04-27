@@ -307,29 +307,45 @@ class FeelingTableViewController: UITableViewController {
             openEditor()
             return
         }
+        // Wrapped so we can re-present the PIN-confirm alert when the
+        // Forgot PIN flow aborts (iCloud signed out, wrong answer,
+        // user cancels) — without this the user is dead-ended at the
+        // info alert and has to tap the gear again.
+        showPINGateForEditor(openEditor: openEditor)
+    }
+
+    private func showPINGateForEditor(openEditor: @escaping () -> Void) {
         confirmActionWithPIN(
             title: "Open Configuration",
             message: "Configuration is PIN-protected. Enter your PIN to open the editor.",
             actionTitle: "Configure",
             actionStyle: .default,
             onForgotPIN: { [weak self] in
-                self?.presentForgotPINResetSheet { [weak self] in
-                    // PIN was reset (cleared from KVS). Bring the iOS
-                    // Settings toggle in line so Settings doesn't lie
-                    // about PIN being on, and tell the user what happened
-                    // before we open the editor.
-                    UserDefaults.standard.set(false, forKey: "pin_enabled")
-                    UserDefaults.standard.synchronize()
-                    let info = UIAlertController(
-                        title: "PIN Cleared",
-                        message: "Your PIN was reset and is now off. Re-enable it any time in Settings → iInteract → Enable PIN.",
-                        preferredStyle: .alert
-                    )
-                    info.addAction(UIAlertAction(title: "Open Editor", style: .default) { _ in
-                        openEditor()
-                    })
-                    self?.topmostPresenter().present(info, animated: true)
-                }
+                self?.presentForgotPINResetSheet(
+                    onAbort: { [weak self] in
+                        // Re-present the PIN-confirm alert so the user
+                        // isn't dropped back to the main list with no
+                        // way to retry.
+                        self?.showPINGateForEditor(openEditor: openEditor)
+                    },
+                    onReset: { [weak self] in
+                        // PIN was reset (cleared from KVS). Bring the iOS
+                        // Settings toggle in line so Settings doesn't lie
+                        // about PIN being on, and tell the user what
+                        // happened before we open the editor.
+                        UserDefaults.standard.set(false, forKey: "pin_enabled")
+                        UserDefaults.standard.synchronize()
+                        let info = UIAlertController(
+                            title: "PIN Cleared",
+                            message: "Your PIN was reset and is now off. Re-enable it any time in Settings → iInteract → Enable PIN.",
+                            preferredStyle: .alert
+                        )
+                        info.addAction(UIAlertAction(title: "Open Editor", style: .default) { _ in
+                            openEditor()
+                        })
+                        self?.topmostPresenter().present(info, animated: true)
+                    }
+                )
             }
         ) {
             openEditor()
