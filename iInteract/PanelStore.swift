@@ -761,6 +761,14 @@ final class PanelStore {
             UserDefaults.standard.set(raw, forKey: ConfigurationMode.userDefaultsKey)
             didChange = true
         }
+        if changedKeys.contains(Self.pinHashKey) {
+            // A5: another device set or cleared the PIN. Mirror the
+            // resulting hasPIN state to the local pin_enabled toggle so
+            // iOS Settings reflects reality on this device too.
+            let remoteHasPIN = kvs.string(forKey: Self.pinHashKey) != nil
+            UserDefaults.standard.set(remoteHasPIN, forKey: "pin_enabled")
+            didChange = true
+        }
         if didChange {
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Self.didChangeNotification, object: self)

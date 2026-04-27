@@ -849,6 +849,92 @@ final class PINPolicyTests: XCTestCase {
         store.setPIN("Pin999")  // 6 chars
         XCTAssertTrue(store.verifyPIN("Pin999"))
     }
+
+    // MARK: - B2 — property-based generators
+
+    /// Generates a random alphanumeric PIN of `length` characters
+    /// using the same character set isValid accepts.
+    private func randomAlphanumeric(_ length: Int) -> String {
+        let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<length).map { _ in chars.randomElement()! })
+    }
+
+    /// Random sample of "definitely invalid" characters for charset tests.
+    private static let invalidChars: [Character] = [
+        " ", "-", ".", ",", "!", "@", "#", "$", "%", "^", "&", "*",
+        "(", ")", "[", "]", "{", "}", "<", ">", "?", "/", "\\", ":",
+        ";", "\"", "'", "+", "=", "_", "\n", "\t"
+    ]
+
+    /// Property: every alphanumeric string with length in [minLength,
+    /// maxLength] passes isValid.
+    func testProperty_AnyValidLengthAlphanumeric_PassesIsValid() {
+        for _ in 0..<200 {
+            let length = Int.random(in: PINPolicy.minLength...PINPolicy.maxLength)
+            let pin = randomAlphanumeric(length)
+            XCTAssertTrue(PINPolicy.isValid(pin),
+                          "isValid rejected supposedly-valid PIN \"\(pin)\" (length \(length))")
+        }
+    }
+
+    /// Property: any alphanumeric string with length below min OR above
+    /// max must fail isValid.
+    func testProperty_OutOfBoundsLength_FailsIsValid() {
+        for _ in 0..<100 {
+            let tooShort = Int.random(in: 0..<PINPolicy.minLength)
+            XCTAssertFalse(PINPolicy.isValid(randomAlphanumeric(tooShort)),
+                           "isValid accepted too-short PIN at length \(tooShort)")
+        }
+        for _ in 0..<100 {
+            let tooLong = Int.random(in: (PINPolicy.maxLength + 1)...20)
+            XCTAssertFalse(PINPolicy.isValid(randomAlphanumeric(tooLong)),
+                           "isValid accepted too-long PIN at length \(tooLong)")
+        }
+    }
+
+    /// Property: any string containing at least one non-alphanumeric
+    /// char fails isValid (regardless of length).
+    func testProperty_NonAlphanumericChar_FailsIsValid() {
+        for _ in 0..<200 {
+            let length = Int.random(in: PINPolicy.minLength...PINPolicy.maxLength)
+            var chars = Array(randomAlphanumeric(length))
+            // Replace one position with a guaranteed-invalid char.
+            let injectAt = Int.random(in: 0..<chars.count)
+            chars[injectAt] = Self.invalidChars.randomElement()!
+            let pin = String(chars)
+            XCTAssertFalse(PINPolicy.isValid(pin),
+                           "isValid accepted PIN with non-alphanumeric char: \"\(pin)\"")
+        }
+    }
+
+    /// Property: sanitize is idempotent.
+    func testProperty_SanitizeIsIdempotent() {
+        for _ in 0..<200 {
+            let raw = String((0..<Int.random(in: 0...20)).map { _ in
+                Bool.random()
+                    ? Character(UnicodeScalar(Int.random(in: 32...126))!)
+                    : Self.invalidChars.randomElement()!
+            })
+            let once = PINPolicy.sanitize(raw)
+            let twice = PINPolicy.sanitize(once)
+            XCTAssertEqual(once, twice, "sanitize must be idempotent for input \"\(raw)\"")
+        }
+    }
+
+    /// Property: sanitize output is always alphanumeric (no non-alphanumeric
+    /// chars survive).
+    func testProperty_SanitizeOutputIsAlphanumeric() {
+        for _ in 0..<200 {
+            let raw = String((0..<Int.random(in: 0...30)).map { _ in
+                Bool.random()
+                    ? Self.invalidChars.randomElement()!
+                    : "abcXYZ0189".randomElement()!
+            })
+            let cleaned = PINPolicy.sanitize(raw)
+            XCTAssertTrue(cleaned.allSatisfy { $0.isLetter || $0.isNumber },
+                          "sanitize output \"\(cleaned)\" still contains non-alphanumeric")
+        }
+    }
 }
 
 // MARK: - clearAllUserData hole #1: pin_enabled is wiped
@@ -1193,6 +1279,7 @@ final class PINVerifyCoordinatorTests: XCTestCase {
     var store: PanelStore!
     var presenter: TestPINPresenter!
     var clock: Date = Date(timeIntervalSinceReferenceDate: 0)
+    var defaults: UserDefaults!
     var coordinator: PINVerifyCoordinator!
 
     override func setUp() {
@@ -1203,9 +1290,15 @@ final class PINVerifyCoordinatorTests: XCTestCase {
         store.setPIN("abcd")  // PIN must be set for the verify flow
         presenter = TestPINPresenter()
         clock = Date(timeIntervalSinceReferenceDate: 0)
+        // Isolated UserDefaults so lockout persistence (A4) doesn't
+        // leak across tests in this suite.
+        let suite = "PINVerifyCoordinatorTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
         coordinator = PINVerifyCoordinator(store: store,
                                            presenter: presenter,
-                                           now: { [unowned self] in self.clock })
+                                           now: { [unowned self] in self.clock },
+                                           defaults: defaults)
     }
 
     override func tearDown() {
@@ -1312,9 +1405,13 @@ final class PINVerifyCoordinatorTests: XCTestCase {
         // 61s later the user starts a fresh verify flow.
         clock = clock.addingTimeInterval(61)
         var confirmed = false
+        // Use the SAME defaults instance — lockout persistence (A4)
+        // means the new coordinator inherits the prior lockout window,
+        // and 61s later it has expired.
         let coordinator2 = PINVerifyCoordinator(store: store,
                                                 presenter: presenter,
-                                                now: { [unowned self] in self.clock })
+                                                now: { [unowned self] in self.clock },
+                                                defaults: defaults)
         coordinator2.runVerifyFlow(
             title: "Verify PIN",
             message: "Try again.",
@@ -1323,7 +1420,8 @@ final class PINVerifyCoordinatorTests: XCTestCase {
             onCancel: nil
         ) { confirmed = true }
         presenter.tap(1, values: ["abcd"])
-        XCTAssertTrue(confirmed, "lockout state is per-coordinator; a fresh flow accepts the correct PIN")
+        XCTAssertTrue(confirmed,
+                      "lockout window expires after 60s — fresh flow on the same defaults accepts correct PIN")
     }
 
     // MARK: Forgot PIN
@@ -1343,7 +1441,8 @@ final class PINVerifyCoordinatorTests: XCTestCase {
         presenter = TestPINPresenter()
         coordinator = PINVerifyCoordinator(store: store,
                                            presenter: presenter,
-                                           now: { [unowned self] in self.clock })
+                                           now: { [unowned self] in self.clock },
+                                           defaults: defaults)
         coordinator.runVerifyFlow(
             title: "Verify PIN",
             message: "Enter your PIN to continue.",
@@ -1487,5 +1586,74 @@ final class SettingsReconcilerTests: XCTestCase {
         XCTAssertEqual(reconciler.reconcile(), [.changePIN, .clearAllData])
         XCTAssertEqual(reconciler.reconcile(), [],
                        "second reconcile must be a no-op once one-shot toggles are cleared")
+    }
+}
+
+// MARK: - A5: KVS observer mirrors PIN-hash changes to pin_enabled
+
+/// Integration tests for `PanelStore.iCloudKeysDidChange` — when another
+/// device sets or clears the PIN remotely, this device's `pin_enabled`
+/// toggle in iOS Settings should follow so it doesn't lie about reality.
+///
+/// The observer writes to `UserDefaults.standard["pin_enabled"]` (the
+/// hardcoded Settings.bundle key), so each test save / restores that
+/// value rather than using an isolated suite.
+final class PINHashKVSObserverTests: XCTestCase {
+
+    private static let pinEnabledKey = "pin_enabled"
+    private static let pinHashKVSKey = "panelstore.pin_hash"
+
+    var tempDir: URL!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+    var savedPINEnabled: Bool!
+
+    override func setUp() {
+        super.setUp()
+        savedPINEnabled = UserDefaults.standard.bool(forKey: Self.pinEnabledKey)
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KVSObserver-\(UUID().uuidString)")
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir, keyValueStore: kvs)
+        store.startObservingICloudChanges()
+    }
+
+    override func tearDown() {
+        UserDefaults.standard.set(savedPINEnabled, forKey: Self.pinEnabledKey)
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private func postKVSChange(forKey key: String) {
+        NotificationCenter.default.post(
+            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: nil,
+            userInfo: [NSUbiquitousKeyValueStoreChangedKeysKey: [key]]
+        )
+    }
+
+    func testRemotePINHashSet_FlipsPinEnabledOn() {
+        UserDefaults.standard.set(false, forKey: Self.pinEnabledKey)
+        // Simulate another device pushing a hash.
+        kvs.set("some-hash-value", forKey: Self.pinHashKVSKey)
+        postKVSChange(forKey: Self.pinHashKVSKey)
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: Self.pinEnabledKey),
+                      "remote PIN set must turn pin_enabled toggle on locally")
+    }
+
+    func testRemotePINHashCleared_FlipsPinEnabledOff() {
+        UserDefaults.standard.set(true, forKey: Self.pinEnabledKey)
+        // Simulate another device clearing the hash (e.g. Forgot PIN reset).
+        kvs.removeObject(forKey: Self.pinHashKVSKey)
+        postKVSChange(forKey: Self.pinHashKVSKey)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: Self.pinEnabledKey),
+                       "remote PIN clear must turn pin_enabled toggle off locally")
+    }
+
+    func testUnrelatedKVSChange_DoesNotTouchPinEnabled() {
+        UserDefaults.standard.set(true, forKey: Self.pinEnabledKey)
+        // Some unrelated key changed — pin_enabled stays put.
+        postKVSChange(forKey: "panelstore.panels")
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: Self.pinEnabledKey))
     }
 }

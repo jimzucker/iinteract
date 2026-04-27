@@ -482,9 +482,10 @@ final class PINVerifyCoordinator {
 
     init(store: PanelStore = .shared,
          presenter: PINPresenter,
-         now: @escaping () -> Date = Date.init) {
+         now: @escaping () -> Date = Date.init,
+         defaults: UserDefaults = .standard) {
         self.store = store
-        self.state = PINGateState(store: store, now: now)
+        self.state = PINGateState(store: store, now: now, defaults: defaults)
         self.presenter = presenter
     }
 
