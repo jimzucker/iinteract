@@ -1,0 +1,371 @@
+PLAN — PIN FLOW IMPROVEMENTS + TESTABILITY
+============================================
+
+Author: drafted for Jim Zucker
+Date:   2026-04-27
+Branch: recommended `pin-hardening` (cut from `bugs-27Apr` HEAD = 3863af6)
+Status: PLAN ONLY — no code changes yet.
+
+This plan covers the rough edges that slipped through the bugs-27Apr
+work and the testability gaps that let them slip. Every code change
+below includes an explicit acceptance test. Every UX touch point that
+involves PIN length explicitly surfaces the 4–8 bounds to the user.
+
+
+GUARANTEE: PIN LENGTH VALIDATION + UX COVERAGE
+==============================================
+
+The plan REQUIRES that all of the following are true at the end:
+
+  (a) `PINPolicy` is the SINGLE source of truth for min/max length and
+      charset rules. minLength = 4, maxLength = 8, alphanumeric.
+  (b) NO code path silently truncates, drops chars, or accepts an out-
+      of-bounds PIN. If the user enters something invalid, the app
+      surfaces `PINPolicy.invalidMessage` ("PIN must be 4–8 letters or
+      numbers.") in a place the user will read, and the action does
+      not proceed.
+  (c) Length / charset feedback is visible in EVERY PIN-entry surface:
+      - `promptEnablePIN`        — set new PIN
+      - `promptDisablePIN`       — verify current PIN to disable
+      - `confirmActionWithPIN`   — verify current PIN to do destructive
+                                   action (Clear All, Empty Trash,
+                                   Delete Forever) or open editor
+      - PINSetupViewController   — change-PIN screen (NEW per A1 below)
+      - Any future PIN surface
+  (d) The bounds are stated up front in the prompt message ("Enter a
+      PIN (4–8 letters or numbers)"). Not just on failure.
+  (e) Tests assert the bounds at every level:
+      - Property-based on PINPolicy.isValid (G1)
+      - Unit on the new PINPromptCoordinator's cycle behavior (G2)
+      - XCUITest end-to-end on at least the set-PIN flow (G6)
+
+
+PART A — CODE CHANGES (in priority order)
+==========================================
+
+A1. CHANGE PIN PATH (without disable→enable round-trip)
+-------------------------------------------------------
+  Today: changing a PIN means toggling Enable PIN OFF in iOS Settings
+  (verify current PIN), returning to app, toggling Enable PIN ON,
+  re-entering a new PIN with confirmation. Two iOS-Settings round-
+  trips for what should be one action.
+
+  Plan:
+    - Add a third toggle to Settings.bundle Security: `change_pin`
+      (PSToggleSwitchSpecifier, default false).
+    - On app foreground, if `change_pin == true && hasPIN`, run the
+      change-PIN flow:
+         1. Combined alert: "Change PIN — enter your current PIN to
+            continue" (PIN field + Cancel + Continue, with Forgot PIN?
+            in keyboard accessory).
+         2. On correct verify: present "Set a new PIN" alert (same
+            cycling validation as promptEnablePIN — bounds visible in
+            message, prefilled values on retry, explicit error).
+         3. On success: setPIN(newPIN); flip change_pin = false; flip
+            pin_enabled stays true.
+         4. On Cancel anywhere: flip change_pin = false (don't loop).
+    - Add Footer text under Security explaining all three toggles.
+
+  UX bounds coverage:
+    - Step 2's "Set a new PIN" prompt message states "(4–8 letters or
+      numbers)" exactly like promptEnablePIN. Same cycling-on-failure
+      with same error copy.
+
+  Tests: A1.t1 unit-cycle, A1.t2 cancel reverts toggle, A1.t3 wrong
+  current PIN does NOT reach the new-PIN prompt, A1.t4 success path
+  flips change_pin = false.
+
+A2. FORGOT PIN FAILURE → RE-PRESENT PIN ENTRY
+---------------------------------------------
+  Today: tapping "Forgot PIN?" → action sheet → "Reset via iCloud
+  Account" → if iCloud signed out, show "Couldn't Reset" info alert.
+  When that info alert dismisses, the user is just back to the main
+  list — the original PIN-confirm alert is gone. They have to tap
+  the gear again.
+
+  Plan:
+    - `presentForgotPINResetSheet` accepts an optional `onAbort`
+      closure (alongside `onReset`). When iCloud reset fails OR the
+      user cancels the action sheet, call `onAbort?()`.
+    - Caller (showEditor + others) passes onAbort that re-presents
+      the original PIN-confirm alert.
+    - For the security-question reset path (when set), same treatment.
+
+  Tests: A2.t1 unit on the coordinator: failed-reset triggers onAbort.
+  A2.t2 XCUITest: tap Forgot PIN → Cancel → original alert is back.
+
+A3. SECURITY QUESTION OPTIONAL DURING PIN SETUP
+-----------------------------------------------
+  Today: PINSetupViewController has fields for security question/
+  answer, but is never presented in production. The only Forgot PIN
+  recovery is iCloud Account reset. If iCloud isn't signed in, the
+  user is locked out (escape: Clear All Data, which wipes EVERYTHING).
+
+  Plan:
+    - Either:
+      (a) Extend `promptEnablePIN` to a 2-step flow: PIN+Confirm in
+          alert 1; on success, show alert 2 "Set an optional security
+          question" with Question + Answer fields. Skip = no question.
+      (b) Use PINSetupViewController as the actual setup screen
+          (replace the inline alert). Reachable from iOS Settings →
+          Enable PIN with a "Manage PIN" sheet.
+
+  Recommend (a) — keeps the inline-alert UX consistent with the rest
+  of the bundle-driven settings flow; (b) requires a new in-app entry
+  point for what should be a Settings-driven action.
+
+  UX bounds coverage:
+    - The PIN+Confirm step in alert 1 still uses cycling validation
+      with PINPolicy.invalidMessage. Security question step has its
+      own validation (non-empty if both filled, both-or-neither).
+
+  Tests: A3.t1 unit: setup with question persists question + answer
+  hash. A3.t2 unit: setup with skip leaves question/answer nil.
+  A3.t3 unit: Forgot PIN reset via security question succeeds when
+  iCloud is signed out.
+
+A4. LOCKOUT PERSISTENCE ACROSS APP RESTART
+------------------------------------------
+  Today: PINGateState attempts/lockout are in-memory per presentation.
+  An attacker (or curious child) can kill+relaunch to reset attempts.
+
+  Plan:
+    - Persist (attempts, lockedUntil) in UserDefaults under
+      `panelstore.pin_lockout` (JSON: { attempts: Int, lockedUntilEpoch: Double? }).
+    - PINGateState reads on init; writes on every state mutation.
+    - On successful verify, clear the persisted state.
+    - The 60s lockout window therefore survives app restart.
+
+  Threat model decision: should the lockout be per-device or synced
+  across iCloud? Synced lockout would mean a brute-forcer on a
+  compromised device can lock the parent out of their own iPhone.
+  Recommend per-device (UserDefaults, not KVS).
+
+  Tests: A4.t1 5 wrong attempts → restart store → 6th attempt is
+  still locked-out. A4.t2 lockout window expires after 60s of wall
+  clock (use injected clock).
+
+A5. KVS OBSERVER RECONCILES `pin_enabled`
+-----------------------------------------
+  Today: another device clears the PIN (via Forgot PIN reset). KVS
+  observer mirrors the cleared hash down to local KVS, but
+  UserDefaults `pin_enabled` stays true on this device. On next
+  resume, applyPendingSettingsActions sees "wantEnabled=true,
+  hasPIN=false" → prompts user to set a new PIN. Confusing — the
+  user expected the OTHER device's reset to apply here too.
+
+  Plan:
+    - PanelStore.iCloudKeysDidChange already handles `kvsPanelsKey`,
+      `kvsLayoutKey`, `kvsModeKey`. Add handling for `pinHashKey`:
+      when the hash is removed remotely, post didChangeNotification.
+    - In FeelingTableViewController's panelStoreChanged handler, if
+      hasPIN flipped to false, also flip pin_enabled to false in
+      UserDefaults so iOS Settings reflects reality.
+    - Symmetric for set: if hash was added remotely AND pin_enabled
+      is false locally, set pin_enabled to true (so iOS Settings
+      shows ON).
+
+  Tests: A5.t1 simulate KVS external change for pinHashKey-removed →
+  pin_enabled becomes false. A5.t2 hash-added → pin_enabled becomes
+  true.
+
+A6. COALESCE applyPendingSettingsActions RETRIES
+------------------------------------------------
+  Today: each call to applyPendingSettingsActions when a modal is up
+  schedules a fresh asyncAfter chain. Multiple call sites (viewWillAppear,
+  appDidBecomeActive, future callers) can stack chains.
+
+  Plan:
+    - Add a single `pendingActionsTimer: Timer?` instance var. On
+      retry-needed, invalidate any existing timer before scheduling
+      a new one.
+    - Or use a `pendingActionsScheduled: Bool` flag.
+
+  Tests: A6.t1 unit: rapidly call applyPendingSettingsActions twice
+  while modal is up → only one retry fires.
+
+
+PART B — TESTABILITY REFACTORS
+==============================
+
+B1. EXTRACT PINPromptCoordinator
+-------------------------------
+  All the cycle-on-failure logic, prefill logic, cancel handling, and
+  validation currently lives in FeelingTableViewController as a
+  recursive method. Hard to test without UIKit.
+
+  Plan:
+    - New file: iInteract/PINPromptCoordinator.swift
+    - Define a `Presenter` protocol with one method:
+        func present(title: String, message: String, fields: [PINField],
+                     buttons: [PINButton]) -> Void
+
+      where PINField has placeholder/text/secure flags and PINButton
+      has title/style/handler.
+    - Coordinator is initialized with a Presenter, store, defaults,
+      and policy. It exposes:
+        func runEnablePINFlow()
+        func runDisablePINFlow()
+        func runChangePINFlow()    // for A1
+        func runForgotPINFlow(onReset:, onAbort:)   // for A2
+    - View controllers implement Presenter by translating
+      PINField/PINButton → UIAlertController. Coordinator never
+      imports UIKit.
+
+  Outcome: 80% of PIN logic becomes unit-testable in milliseconds
+  with a TestPresenter that records what would have been shown.
+
+  Tests: B1.t1–t10 — full cycle paths for each runX flow with
+  TestPresenter.
+
+B2. PROPERTY-BASED TESTS FOR PINPolicy
+--------------------------------------
+  Plan:
+    - Add SwiftCheck (or hand-rolled generator) to iInteractTests.
+    - Property: for any String s composed of ascii alphanumeric chars
+      with 4 ≤ count ≤ 8, isValid(s) == true.
+    - Property: for any String s with count < 4 OR count > 8, isValid
+      returns false.
+    - Property: for any String s containing at least one
+      non-alphanumeric char, isValid returns false.
+    - Property: sanitize is idempotent: sanitize(sanitize(s)) ==
+      sanitize(s).
+    - Property: isValid(sanitize(s)) implies all chars in
+      sanitize(s) are alphanumeric AND length is in [4..8].
+
+  Tests: PINPolicyPropertyTests with ~100 random cases per property.
+
+B3. MOCK PRESENTER FOR APPLY-PENDING-SETTINGS RETRY
+---------------------------------------------------
+  Today: applyPendingSettingsActions retries on a real DispatchQueue
+  timer. Untestable without driving the runloop.
+
+  Plan:
+    - Inject a `Scheduler` protocol (or async queue) — DispatchQueue
+      in production, MockScheduler in tests.
+    - MockScheduler exposes `advance(by: TimeInterval)` so tests can
+      simulate the 0.5s retry delay deterministically.
+
+  Tests: B3.t1 — modal up, call applyPending, advance time → retry
+  fires N times then gives up. B3.t2 — modal dismisses between
+  retries → next retry succeeds.
+
+B4. XCUITest TARGET
+-------------------
+  New target: iInteractUITests.
+
+  Test plan covers what unit tests can't:
+    - U1. enable PIN happy path: Settings → Enable PIN → return to
+      app → set 4-char PIN → confirm → success → toggle stays on.
+    - U2. enable PIN cycle on mismatch: type "abcd" / "abce" → see
+      "PINs didn't match. Try again." → re-enter same → success.
+    - U3. enable PIN cycle on bad length: type "abc" → see "PIN
+      must be 4–8 letters or numbers." → re-enter "abcd" → success.
+    - U4. enable PIN cancel: type "abcd" → Cancel → toggle reverts
+      to off in iOS Settings.
+    - U5. open editor with PIN set: tap gear → see PIN alert →
+      enter correct PIN → editor opens.
+    - U6. open editor with NO PIN set: tap gear → editor opens
+      directly (regression for the "alert when no PIN" bug).
+    - U7. wrong PIN: tap gear → enter wrong → see "Incorrect PIN.
+      4 attempts remaining." → enter correct → editor opens.
+    - U8. lockout: tap gear → 5 wrong → see "Too Many Attempts" →
+      OK dismisses → re-tap gear → 6th attempt still locked
+      (covers A4 persistence).
+    - U9. Forgot PIN with iCloud signed out → "Couldn't Reset" →
+      original alert returns (covers A2).
+    - U10. Hide Configuration: toggle on → gear disappears →
+      toggle off → gear returns.
+    - U11. Change PIN flow (after A1 lands).
+
+  XCUITest can drive iOS Settings via the springboard bundle ID,
+  toggle pin_enabled, then return to iInteract and validate
+  in-app prompts.
+
+B5. SNAPSHOT TESTS FOR ALERT COPY
+---------------------------------
+  Plan:
+    - Add SnapshotTesting library (pointfree.co) to iInteractTests.
+    - Snapshot each alert (just title + message + button titles, not
+      visual rendering) so PR diffs catch unintended copy changes.
+
+  Tests: snapshot for promptEnablePIN initial / after-too-short /
+  after-mismatch; snapshot for confirmActionWithPIN editor / delete /
+  empty-trash; snapshot for forgot-PIN action sheet.
+
+  Lower priority — useful but not load-bearing.
+
+
+PART C — UX VERIFICATION CHECKLIST
+==================================
+
+After the plan is implemented, the following must be hand-verified
+on a device (XCUITest covers most but a real-device pass is required
+for accessibility):
+
+  [ ] Set PIN with 3 chars → "PIN must be 4–8 letters or numbers."
+      visible in alert (not just an OK-and-bail).
+  [ ] Set PIN with 9 chars → same message.
+  [ ] Set PIN with "ab cd" (space) → same message.
+  [ ] Set PIN matches confirm → success, alert dismisses, toggle on.
+  [ ] Cancel set-PIN → toggle reverts to off in iOS Settings.
+  [ ] Disable PIN with 3 chars typed → wrong-PIN message (not
+      length error — verify is lenient).
+  [ ] Open editor with no PIN → no alert, editor opens.
+  [ ] Open editor with PIN → alert shown.
+  [ ] Forgot PIN with iCloud signed out → info alert → original
+      PIN alert is back when info dismisses.
+  [ ] Forgot PIN with iCloud signed in → reset, "PIN Cleared" info,
+      editor opens, pin_enabled toggle in iOS Settings is OFF.
+  [ ] Change PIN flow (A1) — current PIN check, then new-PIN cycle.
+  [ ] Lockout persists across app restart (A4).
+  [ ] Hide Configuration on → gear gone → off → gear back.
+  [ ] VoiceOver reads the bounds message ("PIN must be 4 to 8
+      letters or numbers") clearly.
+
+
+PART D — SEQUENCING
+====================
+
+  Phase 1 (½ day): A2 (re-present after Forgot PIN failure) +
+    related tests. Quick win, closes a real flow break.
+
+  Phase 2 (1 day): B1 (PINPromptCoordinator extraction) — refactor
+    only, no behavior change. All existing tests + new B1.t1–t10
+    pass. Foundation for everything below.
+
+  Phase 3 (1 day): A1 (Change PIN flow) on top of B1. The
+    coordinator makes this a small addition.
+
+  Phase 4 (1 day): A4 (lockout persistence) + A5 (KVS observer
+    reconciles pin_enabled) + A6 (coalesce retries) + B2
+    (property-based PINPolicy tests).
+
+  Phase 5 (1 day): A3 (security question optional) — UX iteration
+    likely needed.
+
+  Phase 6 (1–2 days): B4 (XCUITest target) — covers everything
+    end-to-end. Owner runs through Part C checklist on device.
+
+  Phase 7 (½ day, optional): B5 (snapshot tests).
+
+Total: ~6 days of focused work for a PIN flow that's robust,
+testable, and gives the user clear feedback at every length boundary.
+
+
+OPEN QUESTIONS FOR JIM
+=======================
+
+  Q1. Threat model for lockout persistence (A4): per-device
+      (recommend) or iCloud-synced?
+  Q2. Security question UI (A3): inline 2-step alert or
+      PINSetupViewController as a separate screen?
+  Q3. Change PIN trigger (A1): Settings.bundle toggle (recommend)
+      or in-app entry from the editor?
+  Q4. Should "Hide Configuration" + Forgot-PIN-locked-out be
+      explicitly documented as "your escape hatch is iOS Settings →
+      Privacy → Clear All My Data"? Add a footer note?
+  Q5. Snapshot tests (B5) — worth the dependency for the copy
+      stability they buy?
+
+END OF PLAN.
