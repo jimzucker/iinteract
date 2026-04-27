@@ -300,6 +300,13 @@ class FeelingTableViewController: UITableViewController {
             let editor = PanelListEditorViewController(mode: self.configurationMode)
             self.navigationController?.pushViewController(editor, animated: true)
         }
+        // No PIN set → no protection to enforce, so don't show the
+        // Cancel/Configure alert with its misleading "PIN-protected"
+        // message. Open the editor directly.
+        guard PanelStore.shared.hasPIN else {
+            openEditor()
+            return
+        }
         confirmActionWithPIN(
             title: "Open Configuration",
             message: "Configuration is PIN-protected. Enter your PIN to open the editor.",
