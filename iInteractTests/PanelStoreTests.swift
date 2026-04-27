@@ -614,6 +614,41 @@ final class PanelStoreTests: XCTestCase {
         }
     }
 
+    // MARK: setSecurityQuestion (A3 — separate from setPIN)
+
+    func testSetSecurityQuestion_BothFilled_StoresQuestionAndAnswer() throws {
+        store.setPIN("1234")
+        XCTAssertFalse(store.hasSecurityQuestion)
+        store.setSecurityQuestion("Pet?", answer: "Fido")
+        XCTAssertTrue(store.hasSecurityQuestion)
+        XCTAssertEqual(store.securityQuestion, "Pet?")
+        // Answer must verify (case-insensitive, whitespace-trimmed).
+        try store.resetPIN(securityAnswer: "  fido  ")
+        XCTAssertFalse(store.hasPIN, "correct answer resets PIN")
+    }
+
+    func testSetSecurityQuestion_OneEmpty_ClearsBoth() {
+        store.setPIN("1234", securityQuestion: "Old?", securityAnswer: "Yes")
+        XCTAssertTrue(store.hasSecurityQuestion)
+        // Saving with empty answer wipes the previously-set question too.
+        store.setSecurityQuestion("Just question", answer: "")
+        XCTAssertFalse(store.hasSecurityQuestion)
+    }
+
+    func testSetSecurityQuestion_DoesNotTouchPIN() {
+        store.setPIN("1234")
+        store.setSecurityQuestion("Pet?", answer: "Fido")
+        XCTAssertTrue(store.hasPIN)
+        XCTAssertTrue(store.verifyPIN("1234"),
+                      "setSecurityQuestion must not re-hash or change the PIN")
+    }
+
+    func testSetSecurityQuestion_NilArgs_ClearsBoth() {
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
+        store.setSecurityQuestion(nil, answer: nil)
+        XCTAssertFalse(store.hasSecurityQuestion)
+    }
+
     // MARK: applyOrder / applyHiddenFilter
 
     func testApplyOrderAloneDoesNotFilterHidden() throws {
@@ -1268,6 +1303,79 @@ final class PINPromptCoordinatorEnableTests: XCTestCase {
         presenter.tap(1, values: ["abcdefgh", "abcdefgh"])
         XCTAssertEqual(completion, true)
         XCTAssertTrue(store.verifyPIN("abcdefgh"))
+    }
+
+    // MARK: runEnablePINFlowWithSecurityQuestion (A3)
+
+    func testRunEnablePINWithQuestion_SkipQuestion_PINSaved_NoQuestion() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+
+        // Step 1: PIN + confirm.
+        presenter.tap(1, values: ["abcd", "abcd"])
+        // PIN is saved immediately so a crash between steps doesn't
+        // leave the user with no PIN even though they typed one.
+        XCTAssertTrue(store.hasPIN)
+        XCTAssertTrue(store.verifyPIN("abcd"))
+        XCTAssertNil(completion, "completion fires after the question step")
+
+        // Step 2: question prompt should be the second presentation.
+        XCTAssertEqual(presenter.presentations.count, 2)
+        let q = presenter.presentations[1].config
+        XCTAssertEqual(q.title, "Add a Security Question")
+        XCTAssertEqual(q.buttons.map(\.title), ["Skip", "Save"])
+
+        // User taps Skip.
+        presenter.tap(0, values: [])
+        XCTAssertEqual(completion, true)
+        XCTAssertFalse(store.hasSecurityQuestion,
+                       "Skip leaves no question stored")
+    }
+
+    func testRunEnablePINWithQuestion_SaveQuestion_QuestionStored() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+        presenter.tap(1, values: ["abcd", "abcd"])
+        // Save with both fields filled.
+        presenter.tap(1, values: ["First pet?", "Fido"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.hasSecurityQuestion)
+        XCTAssertEqual(store.securityQuestion, "First pet?")
+    }
+
+    func testRunEnablePINWithQuestion_SaveOneEmpty_TreatedAsSkip() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+        presenter.tap(1, values: ["abcd", "abcd"])
+        // Save with answer empty — silently treated as Skip per the
+        // both-or-neither rule.
+        presenter.tap(1, values: ["First pet?", ""])
+        XCTAssertEqual(completion, true)
+        XCTAssertFalse(store.hasSecurityQuestion)
+    }
+
+    func testRunEnablePINWithQuestion_CancelAtPINStep_NoQuestionPrompt() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+        presenter.tap(0, values: ["", ""])  // Cancel at PIN step
+        XCTAssertEqual(completion, false)
+        XCTAssertEqual(presenter.presentations.count, 1,
+                       "no question prompt when PIN step cancelled")
+        XCTAssertFalse(store.hasPIN)
+    }
+
+    func testRunEnablePINWithQuestion_PINCycleStillWorks_BoundsLineVisible() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+        // Trigger bounds error at PIN step.
+        presenter.tap(1, values: ["a", "a"])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2,
+                       "PIN step re-presents on too-short, no question step yet")
+        XCTAssertTrue(presenter.presentations[1].config.message.contains(PINPolicy.humanDescription),
+                      "bounds error message visible on retry")
+        XCTAssertEqual(presenter.presentations[1].config.title, "Set PIN",
+                       "still in PIN step, not question step")
     }
 }
 

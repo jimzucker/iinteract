@@ -145,10 +145,10 @@ class FeelingTableViewController: UITableViewController {
         // coordinator itself has no other owner during the async
         // alert chain.
         objc_setAssociatedObject(self, &Self.enableCoordinatorKey, coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        coordinator.runEnablePINFlow { [weak self] _ in
-            // Either succeeded (toggle stays on) or cancelled
-            // (coordinator already flipped pin_enabled to false). Drop
-            // the coordinator reference; nothing more to do.
+        // Production flow includes the optional security-question step
+        // after the PIN is saved, so the user has a Forgot-PIN reset
+        // path even when iCloud isn't signed in.
+        coordinator.runEnablePINFlowWithSecurityQuestion { [weak self] _ in
             objc_setAssociatedObject(self ?? UIViewController(),
                                      &Self.enableCoordinatorKey, nil,
                                      .OBJC_ASSOCIATION_RETAIN_NONATOMIC)

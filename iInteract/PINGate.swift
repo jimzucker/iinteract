@@ -396,6 +396,63 @@ final class PINPromptCoordinator {
         return lines.joined(separator: "\n")
     }
 
+    /// Production set-PIN flow: PIN-and-confirm cycle followed by an
+    /// optional security-question step. Skipping the question is the
+    /// cheapest path; saving one enables Forgot-PIN reset via answer
+    /// when iCloud isn't available. Cancel at the PIN step reverts
+    /// pin_enabled (via runEnablePINFlow); Skip/Save at the question
+    /// step always completes(true) — the PIN itself was already saved.
+    func runEnablePINFlowWithSecurityQuestion(onComplete: @escaping (Bool) -> Void) {
+        runEnablePINFlow { [weak self] pinSet in
+            guard let self = self, pinSet else {
+                onComplete(false)
+                return
+            }
+            self.runSecurityQuestionPrompt(onComplete: onComplete)
+        }
+    }
+
+    private func runSecurityQuestionPrompt(onComplete: @escaping (Bool) -> Void) {
+        let config = PINAlertConfig(
+            title: "Add a Security Question",
+            message: "Optional. Lets you reset your PIN if you forget it. Skip to rely on your iCloud account for reset.",
+            fields: [
+                .init(placeholder: "Question (e.g. Mother's maiden name)",
+                      prefilledText: "",
+                      isSecureEntry: false,
+                      attachShowToggle: false),
+                .init(placeholder: "Answer",
+                      prefilledText: "",
+                      isSecureEntry: false,
+                      attachShowToggle: false),
+            ],
+            buttons: [
+                .init(title: "Skip", style: .cancel),
+                .init(title: "Save", style: .default),
+            ]
+        )
+        presenter?.presentPINAlert(config) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .forgotPIN:
+                return  // not exposed in this flow
+            case .buttonTapped(let buttonIndex, let values):
+                if buttonIndex == 0 {
+                    // Skip — leave question/answer cleared. PIN is
+                    // already saved from the prior step.
+                    onComplete(true)
+                    return
+                }
+                let q = values.indices.contains(0) ? values[0] : ""
+                let a = values.indices.contains(1) ? values[1] : ""
+                // setSecurityQuestion enforces both-or-neither; empty
+                // either side silently treats this as Skip.
+                self.store.setSecurityQuestion(q, answer: a)
+                onComplete(true)
+            }
+        }
+    }
+
     /// Cycling new-PIN flow used by the Change PIN action. Same alert
     /// shape as `runEnablePINFlow` but DOES NOT touch `pin_enabled` —
     /// the user already has a PIN, so Cancel here means "keep the old

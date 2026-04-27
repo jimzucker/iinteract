@@ -423,6 +423,24 @@ final class PanelStore {
         kvs.synchronize()
     }
 
+    /// Sets or clears the optional security question + answer without
+    /// touching the existing PIN hash. Use after `setPIN` to add or
+    /// update the recovery question, or pass nil/empty to clear.
+    /// Both must be non-empty to save; if either is empty, both are
+    /// cleared (matching the both-or-neither semantics of `setPIN`).
+    func setSecurityQuestion(_ question: String?, answer: String?) {
+        let q = question?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let a = answer?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !q.isEmpty, !a.isEmpty {
+            kvs.set(q, forKey: Self.questionKey)
+            kvs.set(Self.hash(a.lowercased()), forKey: Self.answerHashKey)
+        } else {
+            kvs.removeObject(forKey: Self.questionKey)
+            kvs.removeObject(forKey: Self.answerHashKey)
+        }
+        kvs.synchronize()
+    }
+
     func clearPIN() {
         kvs.removeObject(forKey: Self.pinHashKey)
         kvs.removeObject(forKey: Self.questionKey)
