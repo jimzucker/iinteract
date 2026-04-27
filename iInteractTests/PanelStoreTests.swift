@@ -869,3 +869,113 @@ final class ConfigurationModeSyncTests: XCTestCase {
         XCTAssertEqual(ConfigurationMode.current(verifier), .configurable)
     }
 }
+
+// MARK: - PINPolicy
+
+/// Pure value tests for `PINPolicy` length / charset rules and `sanitize`,
+/// plus a couple of round-trip checks against `PanelStore.setPIN` /
+/// `verifyPIN` to ensure both legacy 4-digit numeric PINs and the new
+/// 4–6 alphanumeric format work end-to-end.
+final class PINPolicyTests: XCTestCase {
+
+    // MARK: isValid — length
+
+    func testIsValid_TooShort_Rejects() {
+        XCTAssertFalse(PINPolicy.isValid(""))
+        XCTAssertFalse(PINPolicy.isValid("a"))
+        XCTAssertFalse(PINPolicy.isValid("abc"))
+        XCTAssertFalse(PINPolicy.isValid("123"))
+    }
+
+    func testIsValid_MinLength_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("abcd"))
+        XCTAssertTrue(PINPolicy.isValid("1234"))
+    }
+
+    func testIsValid_MaxLength_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("abcdef"))
+        XCTAssertTrue(PINPolicy.isValid("123456"))
+    }
+
+    func testIsValid_TooLong_Rejects() {
+        XCTAssertFalse(PINPolicy.isValid("abcdefg"))
+        XCTAssertFalse(PINPolicy.isValid("1234567"))
+    }
+
+    // MARK: isValid — charset
+
+    func testIsValid_AlphanumericMixed_Accepts() {
+        XCTAssertTrue(PINPolicy.isValid("a1b2"))
+        XCTAssertTrue(PINPolicy.isValid("Pin99"))
+        XCTAssertTrue(PINPolicy.isValid("MIXED1"))
+    }
+
+    func testIsValid_NonAlphanumeric_Rejects() {
+        XCTAssertFalse(PINPolicy.isValid("ab cd"))     // space
+        XCTAssertFalse(PINPolicy.isValid("ab-cd"))     // dash
+        XCTAssertFalse(PINPolicy.isValid("12.34"))     // dot
+        XCTAssertFalse(PINPolicy.isValid("ab\ncd"))    // newline
+        XCTAssertFalse(PINPolicy.isValid("ab😀cd"))    // emoji
+    }
+
+    // MARK: sanitize
+
+    func testSanitize_StripsInvalidChars() {
+        XCTAssertEqual(PINPolicy.sanitize("ab-cd"), "abcd")
+        XCTAssertEqual(PINPolicy.sanitize("12 34"), "1234")
+        XCTAssertEqual(PINPolicy.sanitize("a@b#c$d"), "abcd")
+    }
+
+    func testSanitize_TruncatesToMaxLength() {
+        XCTAssertEqual(PINPolicy.sanitize("abcdefghij"), "abcdef")
+        XCTAssertEqual(PINPolicy.sanitize("1234567890"), "123456")
+    }
+
+    func testSanitize_StripThenTruncate() {
+        // "a-b-c-d-e-f-g" → strip dashes → "abcdefg" → truncate → "abcdef"
+        XCTAssertEqual(PINPolicy.sanitize("a-b-c-d-e-f-g"), "abcdef")
+    }
+
+    func testSanitize_EmptyAndAllInvalid_ReturnsEmpty() {
+        XCTAssertEqual(PINPolicy.sanitize(""), "")
+        XCTAssertEqual(PINPolicy.sanitize("---"), "")
+        XCTAssertEqual(PINPolicy.sanitize("😀😀😀"), "")
+    }
+
+    // MARK: humanDescription / bounds wired together
+
+    func testHumanDescription_MatchesPolicyBounds() {
+        XCTAssertEqual(PINPolicy.minLength, 4)
+        XCTAssertEqual(PINPolicy.maxLength, 6)
+        XCTAssertTrue(PINPolicy.humanDescription.contains("4"))
+        XCTAssertTrue(PINPolicy.humanDescription.contains("6"))
+    }
+
+    // MARK: PanelStore round-trip
+
+    private func makeStore() -> (PanelStore, URL) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PINPolicyRoundTrip-\(UUID().uuidString)")
+        let store = PanelStore(directory: dir, keyValueStore: MemoryKeyValueStore())
+        return (store, dir)
+    }
+
+    func testStore_VerifyPIN_AcceptsLegacy4DigitNumeric() {
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("1234")
+        XCTAssertTrue(store.verifyPIN("1234"))
+        XCTAssertFalse(store.verifyPIN("12345"))
+        XCTAssertFalse(store.verifyPIN("0000"))
+    }
+
+    func testStore_VerifyPIN_AcceptsNew6CharAlphanumeric() {
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("Pin999")
+        XCTAssertTrue(store.verifyPIN("Pin999"))
+        XCTAssertFalse(store.verifyPIN("pin999"))   // case sensitive
+        XCTAssertFalse(store.verifyPIN("Pin99"))    // shorter
+        XCTAssertFalse(store.verifyPIN("Pin9999"))  // longer
+    }
+}
