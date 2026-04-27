@@ -882,26 +882,34 @@ final class ClearAllUserDataPINHoleTests: XCTestCase {
 /// Recorder that scripts user interactions through PINPresenter. The
 /// coordinator drives `presentations` by appending one entry per
 /// `presentPINAlert` call; tests then call `tap(buttonIndex:values:)`
-/// to simulate the user tapping a button with the given field values.
+/// or `simulateForgotPIN()` to drive the flow deterministically.
 final class TestPINPresenter: PINPresenter {
     struct Recorded {
         let config: PINAlertConfig
-        let handler: (Int, [String]) -> Void
+        let handler: (PINAlertResult) -> Void
     }
     private(set) var presentations: [Recorded] = []
 
     func presentPINAlert(_ config: PINAlertConfig,
-                         handler: @escaping (Int, [String]) -> Void) {
+                         handler: @escaping (PINAlertResult) -> Void) {
         presentations.append(Recorded(config: config, handler: handler))
     }
 
     /// Simulates the user tapping the button at `buttonIndex` of the
     /// most recent presentation, with the given field values.
-    func tap(_ buttonIndex: Int, values: [String]) {
+    func tap(_ buttonIndex: Int, values: [String] = []) {
         guard let last = presentations.last else {
             XCTFail("No presentation to tap"); return
         }
-        last.handler(buttonIndex, values)
+        last.handler(.buttonTapped(index: buttonIndex, fieldValues: values))
+    }
+
+    /// Simulates the user tapping the Forgot PIN keyboard accessory link.
+    func simulateForgotPIN() {
+        guard let last = presentations.last else {
+            XCTFail("No presentation to forgot-tap"); return
+        }
+        last.handler(.forgotPIN)
     }
 }
 
@@ -1098,5 +1106,196 @@ final class PINPromptCoordinatorEnableTests: XCTestCase {
         let initial = presenter.presentations[0].config
         XCTAssertTrue(initial.message.contains(PINPolicy.humanDescription),
                       "initial Set-PIN prompt must state the 4–8 bounds up front")
+    }
+}
+
+// MARK: - PINVerifyCoordinator
+
+final class PINVerifyCoordinatorTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: PanelStore!
+    var presenter: TestPINPresenter!
+    var clock: Date = Date(timeIntervalSinceReferenceDate: 0)
+    var coordinator: PINVerifyCoordinator!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PINVerify-\(UUID().uuidString)")
+        store = PanelStore(directory: tempDir, keyValueStore: MemoryKeyValueStore())
+        store.setPIN("abcd")  // PIN must be set for the verify flow
+        presenter = TestPINPresenter()
+        clock = Date(timeIntervalSinceReferenceDate: 0)
+        coordinator = PINVerifyCoordinator(store: store,
+                                           presenter: presenter,
+                                           now: { [unowned self] in self.clock })
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private func runFlow(onForgotPIN: (() -> Void)? = nil,
+                         onCancel: (() -> Void)? = nil,
+                         onConfirm: @escaping () -> Void = {}) {
+        coordinator.runVerifyFlow(
+            title: "Verify PIN",
+            message: "Enter your PIN to continue.",
+            actionTitle: "Continue",
+            actionStyle: .destructive,
+            onForgotPIN: onForgotPIN,
+            onCancel: onCancel,
+            onConfirm: onConfirm
+        )
+    }
+
+    // MARK: happy path
+
+    func testCorrectPIN_FiresOnConfirm() {
+        var confirmed = false
+        runFlow { confirmed = true }
+
+        XCTAssertEqual(presenter.presentations.count, 1)
+        let initial = presenter.presentations[0].config
+        XCTAssertEqual(initial.title, "Verify PIN")
+        XCTAssertEqual(initial.fields.count, 1)
+        XCTAssertEqual(initial.buttons.map(\.title), ["Cancel", "Continue"])
+
+        presenter.tap(1, values: ["abcd"])
+        XCTAssertTrue(confirmed)
+    }
+
+    // MARK: cancel
+
+    func testCancel_FiresOnCancel_NoRetry() {
+        var cancelled = false
+        var confirmed = false
+        runFlow(onCancel: { cancelled = true }) { confirmed = true }
+
+        presenter.tap(0, values: [])
+        XCTAssertTrue(cancelled)
+        XCTAssertFalse(confirmed)
+        XCTAssertEqual(presenter.presentations.count, 1, "Cancel must not re-present")
+    }
+
+    // MARK: wrong PIN cycle
+
+    func testWrongPIN_CyclesWithRemainingAttempts() {
+        var confirmed = false
+        runFlow { confirmed = true }
+
+        presenter.tap(1, values: ["wrong"])
+        XCTAssertFalse(confirmed)
+        XCTAssertEqual(presenter.presentations.count, 2, "wrong PIN must re-present")
+
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.contains("Incorrect PIN"))
+        XCTAssertTrue(retry.message.contains("4 attempts remaining"),
+                      "expected 4 of 5 attempts left after one wrong try")
+    }
+
+    func testWrongPIN_BoundsLineAlwaysVisible() {
+        runFlow {}
+        presenter.tap(1, values: ["wrong"])
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.contains(PINPolicy.humanDescription),
+                      "bounds line must always appear, even on retry")
+    }
+
+    func testFiveWrongAttempts_TriggersLockoutAlert() {
+        var cancelled = false
+        runFlow(onCancel: { cancelled = true }) {}
+
+        for _ in 0..<5 { presenter.tap(1, values: ["wrong"]) }
+
+        // After 5 wrongs, the lockout alert is the 6th presentation
+        // (1 initial + 4 wrong-PIN re-presentations + 1 lockout).
+        XCTAssertEqual(presenter.presentations.count, 6)
+        let lockout = presenter.presentations.last!.config
+        XCTAssertEqual(lockout.title, "Too Many Attempts")
+        XCTAssertTrue(lockout.message.contains("60"))
+        XCTAssertEqual(lockout.buttons.map(\.title), ["OK"])
+
+        // Tapping OK invokes onCancel.
+        presenter.tap(0)
+        XCTAssertTrue(cancelled)
+    }
+
+    // MARK: lockout expiry
+
+    func testLockoutExpires_ThenSucceeds() {
+        runFlow {}
+
+        // Lock out via 5 wrong attempts.
+        for _ in 0..<5 { presenter.tap(1, values: ["wrong"]) }
+        XCTAssertEqual(presenter.presentations.last?.config.title, "Too Many Attempts")
+        presenter.tap(0)  // dismiss lockout
+
+        // 61s later the user starts a fresh verify flow.
+        clock = clock.addingTimeInterval(61)
+        var confirmed = false
+        let coordinator2 = PINVerifyCoordinator(store: store,
+                                                presenter: presenter,
+                                                now: { [unowned self] in self.clock })
+        coordinator2.runVerifyFlow(
+            title: "Verify PIN",
+            message: "Try again.",
+            actionTitle: "Continue",
+            actionStyle: .destructive,
+            onCancel: nil
+        ) { confirmed = true }
+        presenter.tap(1, values: ["abcd"])
+        XCTAssertTrue(confirmed, "lockout state is per-coordinator; a fresh flow accepts the correct PIN")
+    }
+
+    // MARK: Forgot PIN
+
+    func testForgotPIN_FiresOnForgotPIN_Closure() {
+        var forgot = false
+        runFlow(onForgotPIN: { forgot = true }) {}
+        presenter.simulateForgotPIN()
+        XCTAssertTrue(forgot)
+    }
+
+    func testForgotPIN_ConfigIncludesForgotLinkOnlyWhenHandlerProvided() {
+        runFlow(onForgotPIN: { }) {}
+        XCTAssertEqual(presenter.presentations[0].config.forgotPINButtonTitle, "Forgot PIN?")
+
+        // Re-init coordinator to clear presentation state.
+        presenter = TestPINPresenter()
+        coordinator = PINVerifyCoordinator(store: store,
+                                           presenter: presenter,
+                                           now: { [unowned self] in self.clock })
+        coordinator.runVerifyFlow(
+            title: "Verify PIN",
+            message: "Enter your PIN to continue.",
+            actionTitle: "Continue",
+            actionStyle: .destructive,
+            onForgotPIN: nil
+        ) {}
+        XCTAssertNil(presenter.presentations[0].config.forgotPINButtonTitle,
+                     "no Forgot PIN handler → no link in config")
+    }
+
+    // MARK: bounds wording
+
+    func testInitialMessage_StatesBoundsUpFront() {
+        runFlow {}
+        let initial = presenter.presentations[0].config
+        XCTAssertTrue(initial.message.contains(PINPolicy.humanDescription),
+                      "initial verify prompt must state the 4–8 bounds up front")
+    }
+
+    // MARK: handles paste of non-alphanumeric chars
+
+    func testWrongPINWithPasteJunk_StripsAndComparesCleanly() {
+        var confirmed = false
+        runFlow { confirmed = true }
+        // User pastes "ab cd" — sanitize strips space → "abcd" matches.
+        presenter.tap(1, values: ["ab cd"])
+        XCTAssertTrue(confirmed,
+                      "PINPolicy.sanitize stripping is applied before verify so paste with whitespace works")
     }
 }

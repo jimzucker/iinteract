@@ -110,17 +110,41 @@ extension UIViewController {
             present(alert, animated: true)
             return
         }
-        let state = PINGateState(store: store)
-        presentCombinedPINConfirm(title: title,
-                                  baseMessage: message,
-                                  actionTitle: actionTitle,
-                                  actionStyle: actionStyle,
-                                  state: state,
-                                  errorMessage: nil,
-                                  onForgotPIN: onForgotPIN,
-                                  onCancel: onCancel,
-                                  onConfirm: onConfirm)
+        // Delegate the cycle/lockout/Forgot-PIN logic to PINVerifyCoordinator
+        // so it's testable end-to-end. Keep the coordinator alive with an
+        // associated object until the flow completes (it owns its own
+        // PINGateState and weakly references this presenter).
+        let coordStyle: PINAlertConfig.Button.Style
+        switch actionStyle {
+        case .cancel:      coordStyle = .cancel
+        case .destructive: coordStyle = .destructive
+        default:           coordStyle = .default
+        }
+        let coordinator = PINVerifyCoordinator(store: store, presenter: self)
+        objc_setAssociatedObject(self, &Self.verifyCoordinatorKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runVerifyFlow(
+            title: title,
+            message: message,
+            actionTitle: actionTitle,
+            actionStyle: coordStyle,
+            onForgotPIN: onForgotPIN,
+            onCancel: { [weak self] in
+                objc_setAssociatedObject(self ?? UIViewController(),
+                                         &Self.verifyCoordinatorKey,
+                                         nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                onCancel?()
+            },
+            onConfirm: { [weak self] in
+                objc_setAssociatedObject(self ?? UIViewController(),
+                                         &Self.verifyCoordinatorKey,
+                                         nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                onConfirm()
+            }
+        )
     }
+
+    private static var verifyCoordinatorKey: UInt8 = 0
 
     /// Backwards-compatible alias — destructive is the most common case.
     func confirmDestructiveWithPIN(title: String,
@@ -135,83 +159,6 @@ extension UIViewController {
                              store: store,
                              onCancel: onCancel,
                              onConfirm: onConfirm)
-    }
-
-    private func presentCombinedPINConfirm(title: String,
-                                           baseMessage: String,
-                                           actionTitle: String,
-                                           actionStyle: UIAlertAction.Style,
-                                           state: PINGateState,
-                                           errorMessage: String?,
-                                           onForgotPIN: (() -> Void)?,
-                                           onCancel: (() -> Void)?,
-                                           onConfirm: @escaping () -> Void) {
-        var lines: [String] = [baseMessage, "", "Enter your PIN (\(PINPolicy.humanDescription)) to confirm."]
-        if let err = errorMessage { lines.append(err) }
-        let alert = UIAlertController(title: title,
-                                      message: lines.joined(separator: "\n"),
-                                      preferredStyle: .alert)
-        alert.addTextField { tf in
-            tf.placeholder = "PIN"
-            tf.keyboardType = .asciiCapable
-            tf.autocapitalizationType = .none
-            tf.autocorrectionType = .no
-            tf.isSecureTextEntry = true
-            tf.attachShowPINToggle()
-        }
-        let primary = UIAlertAction(title: actionTitle, style: actionStyle) { [weak self, weak alert] _ in
-            let entered = PINPolicy.sanitize(alert?.textFields?.first?.text ?? "")
-            switch state.attempt(entered) {
-            case .success:
-                onConfirm()
-            case .wrong(let remaining):
-                let msg = "Incorrect PIN. \(remaining) attempt\(remaining == 1 ? "" : "s") remaining."
-                self?.presentCombinedPINConfirm(title: title,
-                                                baseMessage: baseMessage,
-                                                actionTitle: actionTitle,
-                                                actionStyle: actionStyle,
-                                                state: state,
-                                                errorMessage: msg,
-                                                onForgotPIN: onForgotPIN,
-                                                onCancel: onCancel,
-                                                onConfirm: onConfirm)
-            case .lockedOut(let seconds):
-                let lock = UIAlertController(title: "Too Many Attempts",
-                                             message: "Try again in \(seconds)s.",
-                                             preferredStyle: .alert)
-                lock.addAction(UIAlertAction(title: "OK", style: .default) { _ in onCancel?() })
-                self?.present(lock, animated: true)
-            }
-        }
-        // Stack carries only Cancel + the primary action. Forgot PIN? lives
-        // on the keyboard toolbar below as a small link, so it's reachable
-        // while typing without competing for visual weight with the primary.
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in onCancel?() })
-        alert.addAction(primary)
-        alert.preferredAction = primary
-
-        if let onForgotPIN = onForgotPIN, let pinField = alert.textFields?.first {
-            let bar = UIToolbar()
-            bar.sizeToFit()
-            bar.tintColor = .systemBlue
-            // Custom-view button so we can bold the label — bare bar buttons
-            // render in default weight and are easy to overlook on the
-            // keyboard accessory.
-            let button = UIButton(type: .system)
-            button.setTitle("Forgot PIN?", for: .normal)
-            button.setTitleColor(.systemBlue, for: .normal)
-            button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-            button.addAction(UIAction { [weak alert] _ in
-                alert?.dismiss(animated: true) { onForgotPIN() }
-            }, for: .touchUpInside)
-            button.sizeToFit()
-            let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-            let link = UIBarButtonItem(customView: button)
-            bar.items = [spacer, link]
-            pinField.inputAccessoryView = bar
-        }
-
-        present(alert, animated: true)
     }
 
     /// Reusable Forgot-PIN flow: action sheet with "Reset via iCloud Account"
@@ -293,10 +240,10 @@ extension UIViewController {
     }
 }
 
-// MARK: - PINPromptCoordinator (UIKit-free, unit-testable)
+// MARK: - PINPromptCoordinator + PINVerifyCoordinator (UIKit-free, unit-testable)
 
 /// Configuration for a PIN-related alert. Models the alert as data so the
-/// coordinator can drive the flow without importing UIKit; a `PINPresenter`
+/// coordinators can drive the flow without importing UIKit; a `PINPresenter`
 /// (production: UIAlertController, tests: in-memory recorder) translates
 /// the config into a real surface.
 struct PINAlertConfig {
@@ -304,6 +251,23 @@ struct PINAlertConfig {
     let message: String
     let fields: [Field]
     let buttons: [Button]
+    /// When non-nil, the presenter renders a Forgot-PIN link (production:
+    /// keyboard input accessory toolbar; tests: simulated by calling
+    /// `simulateForgotPIN()` on the test presenter). Tapping it dismisses
+    /// the alert and reports `.forgotPIN` to the coordinator.
+    let forgotPINButtonTitle: String?
+
+    init(title: String,
+         message: String,
+         fields: [Field],
+         buttons: [Button],
+         forgotPINButtonTitle: String? = nil) {
+        self.title = title
+        self.message = message
+        self.fields = fields
+        self.buttons = buttons
+        self.forgotPINButtonTitle = forgotPINButtonTitle
+    }
 
     struct Field {
         let placeholder: String
@@ -319,14 +283,22 @@ struct PINAlertConfig {
     }
 }
 
+/// Outcome of a `PINPresenter` interaction. Either the user tapped one
+/// of the regular buttons (producing the index + the current text-field
+/// values) or they tapped the Forgot-PIN link (no values).
+enum PINAlertResult {
+    case buttonTapped(index: Int, fieldValues: [String])
+    case forgotPIN
+}
+
 /// Renders a `PINAlertConfig` and reports user interaction back. Production
 /// is a UIViewController extension that maps to UIAlertController; tests
 /// use a recorder that lets them script the user's taps deterministically.
 protocol PINPresenter: AnyObject {
-    /// Present `config`. When the user taps a button, call `handler` with
-    /// the tapped button index and the current text-field values.
+    /// Present `config`. When the user takes an action (tap button or tap
+    /// the Forgot-PIN link), call `handler` exactly once.
     func presentPINAlert(_ config: PINAlertConfig,
-                         handler: @escaping (_ buttonIndex: Int, _ fieldValues: [String]) -> Void)
+                         handler: @escaping (PINAlertResult) -> Void)
 }
 
 /// Drives PIN-prompt cycling logic without depending on UIKit. Extracted
@@ -378,29 +350,36 @@ final class PINPromptCoordinator {
                 .init(title: "Set PIN", style: .default),
             ]
         )
-        presenter?.presentPINAlert(config) { [weak self] buttonIndex, values in
+        presenter?.presentPINAlert(config) { [weak self] result in
             guard let self = self else { return }
-            if buttonIndex == 0 {  // Cancel
-                self.defaults.set(false, forKey: "pin_enabled")
-                self.defaults.synchronize()
-                onComplete(false)
+            switch result {
+            case .forgotPIN:
+                // Set-PIN flow doesn't expose Forgot PIN — config has
+                // forgotPINButtonTitle = nil — but be defensive.
                 return
-            }
-            let pin = values.indices.contains(0) ? values[0] : ""
-            let confirm = values.indices.contains(1) ? values[1] : ""
-            if !PINPolicy.isValid(pin) {
-                self.runEnablePIN(prefillPIN: pin,
-                                  prefillConfirm: confirm,
-                                  errorMessage: PINPolicy.invalidMessage,
-                                  onComplete: onComplete)
-            } else if pin != confirm {
-                self.runEnablePIN(prefillPIN: pin,
-                                  prefillConfirm: confirm,
-                                  errorMessage: "PINs didn't match. Try again.",
-                                  onComplete: onComplete)
-            } else {
-                self.store.setPIN(pin)
-                onComplete(true)
+            case .buttonTapped(let buttonIndex, let values):
+                if buttonIndex == 0 {  // Cancel
+                    self.defaults.set(false, forKey: "pin_enabled")
+                    self.defaults.synchronize()
+                    onComplete(false)
+                    return
+                }
+                let pin = values.indices.contains(0) ? values[0] : ""
+                let confirm = values.indices.contains(1) ? values[1] : ""
+                if !PINPolicy.isValid(pin) {
+                    self.runEnablePIN(prefillPIN: pin,
+                                      prefillConfirm: confirm,
+                                      errorMessage: PINPolicy.invalidMessage,
+                                      onComplete: onComplete)
+                } else if pin != confirm {
+                    self.runEnablePIN(prefillPIN: pin,
+                                      prefillConfirm: confirm,
+                                      errorMessage: "PINs didn't match. Try again.",
+                                      onComplete: onComplete)
+                } else {
+                    self.store.setPIN(pin)
+                    onComplete(true)
+                }
             }
         }
     }
@@ -418,11 +397,119 @@ final class PINPromptCoordinator {
     }
 }
 
+/// Drives the verify-PIN cycle (5 attempts then 60s lockout) without
+/// depending on UIKit. Wraps `PINGateState` and reports outcome through
+/// onCancel / onConfirm / onForgotPIN closures.
+final class PINVerifyCoordinator {
+
+    private let store: PanelStore
+    private let state: PINGateState
+    private weak var presenter: PINPresenter?
+
+    init(store: PanelStore = .shared,
+         presenter: PINPresenter,
+         now: @escaping () -> Date = Date.init) {
+        self.store = store
+        self.state = PINGateState(store: store, now: now)
+        self.presenter = presenter
+    }
+
+    /// One-shot verify flow. Calls exactly one of:
+    /// - `onConfirm()` after a correct PIN
+    /// - `onCancel?()` when the user dismisses (Cancel, or OK on the
+    ///   lockout alert)
+    /// - `onForgotPIN?()` when the user taps the Forgot PIN keyboard link
+    func runVerifyFlow(title: String,
+                       message: String,
+                       actionTitle: String,
+                       actionStyle: PINAlertConfig.Button.Style = .destructive,
+                       onForgotPIN: (() -> Void)? = nil,
+                       onCancel: (() -> Void)? = nil,
+                       onConfirm: @escaping () -> Void) {
+        runVerify(title: title,
+                  baseMessage: message,
+                  actionTitle: actionTitle,
+                  actionStyle: actionStyle,
+                  errorMessage: nil,
+                  onForgotPIN: onForgotPIN,
+                  onCancel: onCancel,
+                  onConfirm: onConfirm)
+    }
+
+    private func runVerify(title: String,
+                           baseMessage: String,
+                           actionTitle: String,
+                           actionStyle: PINAlertConfig.Button.Style,
+                           errorMessage: String?,
+                           onForgotPIN: (() -> Void)?,
+                           onCancel: (() -> Void)?,
+                           onConfirm: @escaping () -> Void) {
+        var lines: [String] = [baseMessage, "", "Enter your PIN (\(PINPolicy.humanDescription)) to confirm."]
+        if let err = errorMessage { lines.append(err) }
+        let config = PINAlertConfig(
+            title: title,
+            message: lines.joined(separator: "\n"),
+            fields: [
+                .init(placeholder: "PIN",
+                      prefilledText: "",
+                      isSecureEntry: true,
+                      attachShowToggle: true),
+            ],
+            buttons: [
+                .init(title: "Cancel", style: .cancel),
+                .init(title: actionTitle, style: actionStyle),
+            ],
+            forgotPINButtonTitle: onForgotPIN != nil ? "Forgot PIN?" : nil
+        )
+        presenter?.presentPINAlert(config) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .forgotPIN:
+                onForgotPIN?()
+            case .buttonTapped(let buttonIndex, let values):
+                if buttonIndex == 0 {  // Cancel
+                    onCancel?()
+                    return
+                }
+                let entered = PINPolicy.sanitize(values.first ?? "")
+                switch self.state.attempt(entered) {
+                case .success:
+                    onConfirm()
+                case .wrong(let remaining):
+                    let msg = "Incorrect PIN. \(remaining) attempt\(remaining == 1 ? "" : "s") remaining."
+                    self.runVerify(title: title,
+                                   baseMessage: baseMessage,
+                                   actionTitle: actionTitle,
+                                   actionStyle: actionStyle,
+                                   errorMessage: msg,
+                                   onForgotPIN: onForgotPIN,
+                                   onCancel: onCancel,
+                                   onConfirm: onConfirm)
+                case .lockedOut(let seconds):
+                    self.presentLockoutAlert(seconds: seconds, onCancel: onCancel)
+                }
+            }
+        }
+    }
+
+    private func presentLockoutAlert(seconds: Int, onCancel: (() -> Void)?) {
+        let lockConfig = PINAlertConfig(
+            title: "Too Many Attempts",
+            message: "Try again in \(seconds)s.",
+            fields: [],
+            buttons: [.init(title: "OK", style: .default)]
+        )
+        presenter?.presentPINAlert(lockConfig) { _ in
+            onCancel?()
+        }
+    }
+}
+
 // MARK: - UIKit-backed PINPresenter
 
 extension UIViewController: PINPresenter {
     func presentPINAlert(_ config: PINAlertConfig,
-                         handler: @escaping (Int, [String]) -> Void) {
+                         handler: @escaping (PINAlertResult) -> Void) {
         let alert = UIAlertController(title: config.title,
                                       message: config.message,
                                       preferredStyle: .alert)
@@ -446,7 +533,7 @@ extension UIViewController: PINPresenter {
             }
             alert.addAction(UIAlertAction(title: button.title, style: style) { [weak alert] _ in
                 let values = (alert?.textFields ?? []).map { $0.text ?? "" }
-                handler(index, values)
+                handler(.buttonTapped(index: index, fieldValues: values))
             })
         }
         // Mark the last non-cancel button as preferred so iOS bolds it
@@ -454,6 +541,26 @@ extension UIViewController: PINPresenter {
         if let primaryIdx = config.buttons.lastIndex(where: { $0.style != .cancel }) {
             alert.preferredAction = alert.actions[primaryIdx]
         }
+
+        // Forgot PIN link on the keyboard input accessory toolbar.
+        if let forgotTitle = config.forgotPINButtonTitle, let pinField = alert.textFields?.first {
+            let bar = UIToolbar()
+            bar.sizeToFit()
+            bar.tintColor = .systemBlue
+            let button = UIButton(type: .system)
+            button.setTitle(forgotTitle, for: .normal)
+            button.setTitleColor(.systemBlue, for: .normal)
+            button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
+            button.addAction(UIAction { [weak alert] _ in
+                alert?.dismiss(animated: true) { handler(.forgotPIN) }
+            }, for: .touchUpInside)
+            button.sizeToFit()
+            let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            let link = UIBarButtonItem(customView: button)
+            bar.items = [spacer, link]
+            pinField.inputAccessoryView = bar
+        }
+
         topmostPresenterForPINAlert().present(alert, animated: true)
     }
 
