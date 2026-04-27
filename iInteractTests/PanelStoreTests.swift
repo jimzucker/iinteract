@@ -1299,3 +1299,117 @@ final class PINVerifyCoordinatorTests: XCTestCase {
                       "PINPolicy.sanitize stripping is applied before verify so paste with whitespace works")
     }
 }
+
+// MARK: - SettingsReconciler
+
+final class SettingsReconcilerTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: PanelStore!
+    var defaults: UserDefaults!
+    var reconciler: SettingsReconciler!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Reconciler-\(UUID().uuidString)")
+        store = PanelStore(directory: tempDir, keyValueStore: MemoryKeyValueStore())
+        let suite = "ReconcilerTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        reconciler = SettingsReconciler(store: store, defaults: defaults)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: enable / disable PIN
+
+    func testWantPIN_ButNoPINSet_ReturnsEnablePIN() {
+        defaults.set(true, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [.enablePIN])
+    }
+
+    func testDontWantPIN_ButPINSet_ReturnsDisablePIN() {
+        store.setPIN("1234")
+        defaults.set(false, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [.disablePIN])
+    }
+
+    func testWantPIN_AndPINSet_NoEffect() {
+        store.setPIN("1234")
+        defaults.set(true, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [])
+    }
+
+    func testDontWantPIN_AndNoPIN_NoEffect() {
+        defaults.set(false, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [])
+    }
+
+    // MARK: change PIN (one-shot)
+
+    func testChangePIN_WithPINSet_ReturnsChangePIN_AndClearsToggle() {
+        store.setPIN("1234")
+        defaults.set(true, forKey: "pin_enabled")
+        defaults.set(true, forKey: "change_pin")
+        XCTAssertEqual(reconciler.reconcile(), [.changePIN])
+        XCTAssertFalse(defaults.bool(forKey: "change_pin"),
+                       "change_pin must be cleared after reconcile so it doesn't fire twice")
+    }
+
+    func testChangePIN_WithoutPIN_SilentlyClearsToggle() {
+        defaults.set(true, forKey: "change_pin")
+        XCTAssertEqual(reconciler.reconcile(), [],
+                       "no PIN to change → silently consume the toggle")
+        XCTAssertFalse(defaults.bool(forKey: "change_pin"))
+    }
+
+    // MARK: clear all data (one-shot)
+
+    func testPendingClearAll_ReturnsClearAllData_AndClearsToggle() {
+        defaults.set(true, forKey: "pending_clear_all")
+        XCTAssertEqual(reconciler.reconcile(), [.clearAllData])
+        XCTAssertFalse(defaults.bool(forKey: "pending_clear_all"))
+    }
+
+    // MARK: combinations
+
+    func testEnablePIN_AndChangePIN_AndClearAll_AllDispatched() {
+        // pin_enabled=true, hasPIN=false → enablePIN
+        // change_pin=true, hasPIN=false → silent (no effect)
+        // pending_clear_all=true → clearAllData
+        defaults.set(true, forKey: "pin_enabled")
+        defaults.set(true, forKey: "change_pin")
+        defaults.set(true, forKey: "pending_clear_all")
+        XCTAssertEqual(reconciler.reconcile(), [.enablePIN, .clearAllData])
+    }
+
+    func testDisablePIN_AndChangePIN_HasPIN_DispatchedInOrder() {
+        // pin_enabled=false, hasPIN=true → disablePIN
+        // change_pin=true, hasPIN=true → changePIN
+        // (intentionally weird state — both would be a contradiction in
+        // practice, but we want a deterministic order if it happens)
+        store.setPIN("1234")
+        defaults.set(false, forKey: "pin_enabled")
+        defaults.set(true, forKey: "change_pin")
+        XCTAssertEqual(reconciler.reconcile(), [.disablePIN, .changePIN])
+    }
+
+    // MARK: idempotency — one-shot toggles don't fire twice
+
+    func testTogglesNotFireTwice_OnConsecutiveReconciles() {
+        // Consistent baseline: pin_enabled=true, hasPIN=true (no enable/
+        // disable effect from this pair). Then add the one-shot toggles.
+        store.setPIN("1234")
+        defaults.set(true, forKey: "pin_enabled")
+        defaults.set(true, forKey: "change_pin")
+        defaults.set(true, forKey: "pending_clear_all")
+
+        XCTAssertEqual(reconciler.reconcile(), [.changePIN, .clearAllData])
+        XCTAssertEqual(reconciler.reconcile(), [],
+                       "second reconcile must be a no-op once one-shot toggles are cleared")
+    }
+}

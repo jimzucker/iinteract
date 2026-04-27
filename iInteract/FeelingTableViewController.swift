@@ -92,50 +92,47 @@ class FeelingTableViewController: UITableViewController {
         showSplashScreen()
     }
 
-    /// Reads iOS-Settings keys (`pin_enabled`, `pending_clear_all`) and
-    /// reconciles them with the actual app state. The Enable PIN toggle is
-    /// the source of intent — when it diverges from `PanelStore.hasPIN`, we
-    /// prompt the user in-app to bring them in sync (set new PIN with
-    /// confirmation, or enter current PIN to disable). Cancel reverts the
-    /// toggle so iOS Settings always reflects reality.
+    /// Computes pending iOS-Settings effects via `SettingsReconciler` and
+    /// dispatches each to the corresponding in-app prompt. The reconciler
+    /// is the single source of truth for "what does the user want us to
+    /// do given current toggle state vs. PIN store state" and is fully
+    /// unit-tested. This method only handles the modal-up retry policy
+    /// and the dispatch table from Effect → prompt method.
     ///
     /// If another modal is already up when we'd present, retry on a short
     /// delay so a Settings change made while the user was mid-dialog still
-    /// reaches the user once the existing dialog dismisses.
+    /// reaches the user once the existing dialog dismisses. Coalesces
+    /// multiple concurrent retries via `pendingRetryScheduled` so we
+    /// don't stack timers.
     private func applyPendingSettingsActions(retriesRemaining: Int = 5) {
-        let defaults = UserDefaults.standard
-        // iOS Settings.bundle commits its writes to our app's UserDefaults
-        // when the user navigates away. A fresh read after resume sometimes
-        // lags the commit by a tick; force a sync.
-        defaults.synchronize()
-
-        let wantEnabled = defaults.bool(forKey: "pin_enabled")
-        let hasPIN = PanelStore.shared.hasPIN
-        let wantClear = defaults.bool(forKey: "pending_clear_all")
-        let needsAttention = (wantEnabled != hasPIN) || wantClear
-
-        // If a modal is currently up, retry shortly. Without this the
-        // pending action gets dropped and the user's iOS Settings change
-        // never reaches the in-app confirmation flow.
-        if needsAttention, topmostPresenter().presentedViewController != nil {
+        if topmostPresenter().presentedViewController != nil {
             guard retriesRemaining > 0 else { return }
+            guard !pendingRetryScheduled else { return }
+            pendingRetryScheduled = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.applyPendingSettingsActions(retriesRemaining: retriesRemaining - 1)
+                guard let self = self else { return }
+                self.pendingRetryScheduled = false
+                self.applyPendingSettingsActions(retriesRemaining: retriesRemaining - 1)
             }
             return
         }
 
-        if wantEnabled && !hasPIN {
-            promptEnablePIN()
-        } else if !wantEnabled && hasPIN {
-            promptDisablePIN()
-        }
-
-        if wantClear {
-            defaults.set(false, forKey: "pending_clear_all")
-            confirmAndClearAllData()
+        let reconciler = SettingsReconciler()
+        for effect in reconciler.reconcile() {
+            switch effect {
+            case .enablePIN:    promptEnablePIN()
+            case .disablePIN:   promptDisablePIN()
+            case .changePIN:    break  // Phase 4 (A1) wires promptChangePIN
+            case .clearAllData: confirmAndClearAllData()
+            }
         }
     }
+
+    private var pendingRetryScheduled: Bool {
+        get { (objc_getAssociatedObject(self, &Self.pendingRetryKey) as? Bool) ?? false }
+        set { objc_setAssociatedObject(self, &Self.pendingRetryKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+    private static var pendingRetryKey: UInt8 = 0
 
     /// User toggled "Enable PIN" on in iOS Settings but no PIN is set
     /// yet. Delegates the cycle-on-failure / prefill / cancel logic to

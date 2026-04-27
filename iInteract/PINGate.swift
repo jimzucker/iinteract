@@ -505,6 +505,74 @@ final class PINVerifyCoordinator {
     }
 }
 
+// MARK: - SettingsReconciler (UIKit-free)
+
+/// Examines the current iOS-Settings flags + PIN state and returns the
+/// list of effects the view controller should apply. Pure logic — no
+/// UIKit dependency — so every input combination is unit-testable.
+///
+/// Also clears one-shot toggles (`change_pin`, `pending_clear_all`) as
+/// part of `reconcile()` so callers don't have to remember to do it
+/// themselves and we never have a path where an effect fires twice.
+final class SettingsReconciler {
+
+    /// Action the VC should dispatch. Order in the returned array is
+    /// the order the VC should run them.
+    enum Effect: Equatable {
+        case enablePIN
+        case disablePIN
+        case changePIN
+        case clearAllData
+    }
+
+    private let store: PanelStore
+    private let defaults: UserDefaults
+
+    init(store: PanelStore = .shared,
+         defaults: UserDefaults = .standard) {
+        self.store = store
+        self.defaults = defaults
+    }
+
+    func reconcile() -> [Effect] {
+        defaults.synchronize()
+        var effects: [Effect] = []
+
+        // Enable / disable PIN — derived from pin_enabled toggle vs
+        // the actual store-side hasPIN. Diverging means the user just
+        // changed the toggle and we need to bring state in sync.
+        let wantEnabled = defaults.bool(forKey: "pin_enabled")
+        let hasPIN = store.hasPIN
+        if wantEnabled && !hasPIN {
+            effects.append(.enablePIN)
+        } else if !wantEnabled && hasPIN {
+            effects.append(.disablePIN)
+        }
+
+        // Change PIN — fire-and-forget toggle. Clear immediately so it
+        // doesn't fire twice on consecutive reconciles. Silently
+        // consume if there's no PIN to change.
+        let wantChange = defaults.bool(forKey: "change_pin")
+        if wantChange {
+            defaults.set(false, forKey: "change_pin")
+            defaults.synchronize()
+            if hasPIN {
+                effects.append(.changePIN)
+            }
+        }
+
+        // Clear all data — same one-shot pattern.
+        let wantClear = defaults.bool(forKey: "pending_clear_all")
+        if wantClear {
+            defaults.set(false, forKey: "pending_clear_all")
+            defaults.synchronize()
+            effects.append(.clearAllData)
+        }
+
+        return effects
+    }
+}
+
 // MARK: - UIKit-backed PINPresenter
 
 extension UIViewController: PINPresenter {
