@@ -1107,6 +1107,82 @@ final class PINPromptCoordinatorEnableTests: XCTestCase {
         XCTAssertTrue(initial.message.contains(PINPolicy.humanDescription),
                       "initial Set-PIN prompt must state the 4–8 bounds up front")
     }
+
+    // MARK: runChangePINFlow
+
+    func testRunChangePINFlow_ValidNewPIN_SetsPIN_NoToggleSideEffect() {
+        // Pre-existing PIN + pin_enabled = true (this is the change scenario).
+        store.setPIN("oldd")
+        defaults.set(true, forKey: "pin_enabled")
+
+        var completion: Bool?
+        coordinator.runChangePINFlow { completion = $0 }
+
+        let initial = presenter.presentations[0].config
+        XCTAssertEqual(initial.title, "New PIN",
+                       "change flow uses 'New PIN' title, not 'Set PIN'")
+        XCTAssertEqual(initial.buttons.map(\.title), ["Cancel", "Save"])
+        XCTAssertTrue(initial.message.contains(PINPolicy.humanDescription),
+                      "bounds line up front in change flow too")
+
+        presenter.tap(1, values: ["newpass", "newpass"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.verifyPIN("newpass"))
+        XCTAssertFalse(store.verifyPIN("oldd"))
+        XCTAssertTrue(defaults.bool(forKey: "pin_enabled"),
+                      "change flow must NOT touch pin_enabled")
+    }
+
+    func testRunChangePINFlow_Cancel_KeepsOldPIN_AndPinEnabled() {
+        store.setPIN("oldd")
+        defaults.set(true, forKey: "pin_enabled")
+
+        var completion: Bool?
+        coordinator.runChangePINFlow { completion = $0 }
+        presenter.tap(0, values: [])
+
+        XCTAssertEqual(completion, false)
+        XCTAssertTrue(store.verifyPIN("oldd"),
+                      "Cancel must leave the old PIN in place")
+        XCTAssertTrue(defaults.bool(forKey: "pin_enabled"),
+                      "Cancel must NOT flip pin_enabled to false")
+    }
+
+    func testRunChangePINFlow_TooShort_CyclesWithBoundsError() {
+        store.setPIN("oldd")
+        var completion: Bool?
+        coordinator.runChangePINFlow { completion = $0 }
+
+        presenter.tap(1, values: ["abc", "abc"])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.contains(PINPolicy.humanDescription))
+        XCTAssertEqual(retry.fields[0].prefilledText, "abc")
+    }
+
+    func testRunChangePINFlow_Mismatch_CyclesWithMatchError() {
+        store.setPIN("oldd")
+        var completion: Bool?
+        coordinator.runChangePINFlow { completion = $0 }
+
+        presenter.tap(1, values: ["abcd", "abce"])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+        let retry = presenter.presentations[1].config
+        XCTAssertTrue(retry.message.lowercased().contains("match"))
+        XCTAssertEqual(retry.fields[0].prefilledText, "abcd")
+        XCTAssertEqual(retry.fields[1].prefilledText, "abce")
+    }
+
+    func testRunChangePINFlow_8CharBoundary_Accepted() {
+        store.setPIN("oldd")
+        var completion: Bool?
+        coordinator.runChangePINFlow { completion = $0 }
+        presenter.tap(1, values: ["abcdefgh", "abcdefgh"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.verifyPIN("abcdefgh"))
+    }
 }
 
 // MARK: - PINVerifyCoordinator

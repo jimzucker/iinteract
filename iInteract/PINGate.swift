@@ -395,6 +395,80 @@ final class PINPromptCoordinator {
         }
         return lines.joined(separator: "\n")
     }
+
+    /// Cycling new-PIN flow used by the Change PIN action. Same alert
+    /// shape as `runEnablePINFlow` but DOES NOT touch `pin_enabled` —
+    /// the user already has a PIN, so Cancel here means "keep the old
+    /// one." Title and body copy reflect that.
+    func runChangePINFlow(onComplete: @escaping (Bool) -> Void) {
+        runChangePIN(prefillPIN: "", prefillConfirm: "",
+                     errorMessage: nil, onComplete: onComplete)
+    }
+
+    private func runChangePIN(prefillPIN: String,
+                              prefillConfirm: String,
+                              errorMessage: String?,
+                              onComplete: @escaping (Bool) -> Void) {
+        let config = PINAlertConfig(
+            title: "New PIN",
+            message: composeChangePINMessage(error: errorMessage),
+            fields: [
+                .init(placeholder: "New PIN",
+                      prefilledText: prefillPIN,
+                      isSecureEntry: true,
+                      attachShowToggle: true),
+                .init(placeholder: "Confirm New PIN",
+                      prefilledText: prefillConfirm,
+                      isSecureEntry: true,
+                      attachShowToggle: true),
+            ],
+            buttons: [
+                .init(title: "Cancel", style: .cancel),
+                .init(title: "Save", style: .default),
+            ]
+        )
+        presenter?.presentPINAlert(config) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .forgotPIN:
+                return  // not exposed in this flow
+            case .buttonTapped(let buttonIndex, let values):
+                if buttonIndex == 0 {
+                    // Cancel — leave the existing PIN in place.
+                    onComplete(false)
+                    return
+                }
+                let pin = values.indices.contains(0) ? values[0] : ""
+                let confirm = values.indices.contains(1) ? values[1] : ""
+                if !PINPolicy.isValid(pin) {
+                    self.runChangePIN(prefillPIN: pin,
+                                      prefillConfirm: confirm,
+                                      errorMessage: PINPolicy.invalidMessage,
+                                      onComplete: onComplete)
+                } else if pin != confirm {
+                    self.runChangePIN(prefillPIN: pin,
+                                      prefillConfirm: confirm,
+                                      errorMessage: "PINs didn't match. Try again.",
+                                      onComplete: onComplete)
+                } else {
+                    self.store.setPIN(pin)
+                    onComplete(true)
+                }
+            }
+        }
+    }
+
+    private func composeChangePINMessage(error: String?) -> String {
+        var lines = [
+            "Enter a new PIN (\(PINPolicy.humanDescription)), then confirm it.",
+            "Your old PIN will be replaced once you tap Save."
+        ]
+        if let err = error {
+            lines.insert(err, at: 0)
+            lines.insert("", at: 1)
+        }
+        return lines.joined(separator: "\n")
+    }
 }
 
 /// Drives the verify-PIN cycle (5 attempts then 60s lockout) without

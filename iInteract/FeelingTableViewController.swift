@@ -122,7 +122,7 @@ class FeelingTableViewController: UITableViewController {
             switch effect {
             case .enablePIN:    promptEnablePIN()
             case .disablePIN:   promptDisablePIN()
-            case .changePIN:    break  // Phase 4 (A1) wires promptChangePIN
+            case .changePIN:    promptChangePIN()
             case .clearAllData: confirmAndClearAllData()
             }
         }
@@ -156,6 +156,54 @@ class FeelingTableViewController: UITableViewController {
     }
 
     private static var enableCoordinatorKey: UInt8 = 0
+
+    /// User toggled "Change PIN" in iOS Settings. Verify current PIN
+    /// (using the existing PINVerifyCoordinator under confirmActionWithPIN),
+    /// then on success, run the cycling new-PIN flow. Cancel at either
+    /// step leaves the existing PIN intact (Change is a no-op rollback).
+    private func promptChangePIN() {
+        confirmActionWithPIN(
+            title: "Change PIN",
+            message: "Enter your current PIN to continue.",
+            actionTitle: "Continue",
+            actionStyle: .default,
+            onForgotPIN: { [weak self] in
+                self?.presentForgotPINResetSheet(
+                    onAbort: { [weak self] in self?.promptChangePIN() },
+                    onReset: { [weak self] in
+                        // PIN cleared via reset — there's no current PIN
+                        // anymore, so the change flow doesn't apply.
+                        // Tell the user and bring iOS Settings in line.
+                        UserDefaults.standard.set(false, forKey: "pin_enabled")
+                        UserDefaults.standard.synchronize()
+                        let info = UIAlertController(
+                            title: "PIN Cleared",
+                            message: "Your PIN was reset and is now off. Re-enable it any time in Settings → iInteract → Enable PIN.",
+                            preferredStyle: .alert
+                        )
+                        info.addAction(UIAlertAction(title: "OK", style: .default))
+                        self?.topmostPresenter().present(info, animated: true)
+                    }
+                )
+            }
+        ) { [weak self] in
+            // Verify succeeded — prompt for new PIN with cycling validation.
+            self?.runSetNewPINAfterVerify()
+        }
+    }
+
+    private func runSetNewPINAfterVerify() {
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        objc_setAssociatedObject(self, &Self.changeCoordinatorKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runChangePINFlow { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.changeCoordinatorKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    private static var changeCoordinatorKey: UInt8 = 0
 
     /// User toggled "Enable PIN" off in iOS Settings while a PIN is set.
     /// One combined alert: enter current PIN + confirm disable in a single
