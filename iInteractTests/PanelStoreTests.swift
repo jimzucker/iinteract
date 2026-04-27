@@ -979,3 +979,132 @@ final class PINPolicyTests: XCTestCase {
         XCTAssertFalse(store.verifyPIN("Pin9999"))  // longer
     }
 }
+
+// MARK: - clearAllUserData (KVS + bundled-panel + composite reset)
+
+/// Complements the existing `testClearAllUserDataWipesEverything` (which
+/// covers panels / layout / PIN / asset files) with explicit checks that
+/// the iCloud KVS keys are also dropped, that bundled panels are
+/// untouched, and that the production caller's post-clear mode-reset
+/// flow lands at .default.
+final class ClearAllUserDataKVSTests: XCTestCase {
+
+    var tempDir: URL!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClearAllUserDataKVSTests-\(UUID().uuidString)", isDirectory: true)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir, keyValueStore: kvs)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private func makeIsolatedDefaults() -> UserDefaults {
+        let suite = "iInteractTests-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        return d
+    }
+
+    /// After clearAllUserData, a fresh "first launch" adoption should NOT
+    /// pull a stale mode out of KVS — proving the KVS mode key was wiped.
+    func testClearAllUserData_WipesKVSModeKey() {
+        let primer = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.custom, defaults: primer)
+
+        store.clearAllUserData()
+
+        // KVS mode key is gone → adopt into a fresh defaults stays at .default.
+        let verifier = makeIsolatedDefaults()
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: verifier)
+        XCTAssertEqual(ConfigurationMode.current(verifier), .default,
+                       "KVS mode key should have been removed by clearAllUserData")
+    }
+
+    /// After clearAllUserData, a fresh load of user panels through KVS
+    /// should be empty — proving the KVS panels key was wiped.
+    func testClearAllUserData_WipesKVSPanelsKey() throws {
+        let panel = Panel(title: "School", color: .systemTeal,
+                          interactions: [Interaction(id: UUID(), name: "playground")],
+                          isBuiltIn: false)
+        try store.savePanel(panel)
+        XCTAssertFalse(store.userPanels().isEmpty)
+
+        store.clearAllUserData()
+
+        // Make a fresh store (new directory) on the SAME KVS — if KVS still
+        // had data it would be loaded here. Empty means KVS was wiped.
+        let freshDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Verify-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: freshDir) }
+        let fresh = PanelStore(directory: freshDir, keyValueStore: kvs)
+        XCTAssertTrue(fresh.userPanels().isEmpty,
+                      "KVS panels key should have been removed by clearAllUserData")
+    }
+
+    /// After clearAllUserData, a fresh load of layout through KVS should
+    /// also be empty — proving the KVS layout key was wiped.
+    func testClearAllUserData_WipesKVSLayoutKey() throws {
+        let id = UUID()
+        try store.setOrder([id])
+        try store.setHidden(true, for: id)
+        XCTAssertEqual(store.layout().orderedIDs, [id])
+
+        store.clearAllUserData()
+
+        let freshDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VerifyLayout-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: freshDir) }
+        let fresh = PanelStore(directory: freshDir, keyValueStore: kvs)
+        XCTAssertEqual(fresh.layout().orderedIDs, [])
+        XCTAssertTrue(fresh.layout().hiddenIDs.isEmpty)
+    }
+
+    /// Bundled panels live in the app bundle (panels.plist) and must not
+    /// be touched by clearAllUserData — only user-authored data goes away.
+    func testClearAllUserData_PreservesBundledPanels() {
+        let bundledBefore = Panel.readFromPlist().map { $0.title }
+        XCTAssertFalse(bundledBefore.isEmpty)
+        store.clearAllUserData()
+        let bundledAfter = Panel.readFromPlist().map { $0.title }
+        XCTAssertEqual(bundledBefore, bundledAfter)
+    }
+
+    /// Trash entries (and their snapshot blobs) must also be wiped.
+    func testClearAllUserData_EmptiesTrash() throws {
+        let panel = Panel(title: "School", color: .systemTeal,
+                          interactions: [Interaction(id: UUID(), name: "playground")],
+                          isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashPanel(panel)
+        XCTAssertEqual(store.trashedItems().count, 1)
+
+        store.clearAllUserData()
+        XCTAssertEqual(store.trashedItems().count, 0)
+    }
+
+    /// Mirrors what FeelingTableViewController.confirmAndClearAllData does:
+    /// after clearAllUserData it calls setConfigurationMode(.default) so
+    /// the device returns to a first-launch-like state. Verify the
+    /// composite resolves to .default end-to-end.
+    func testClearAllUserDataPlusModeReset_FollowedByReconcile_ReturnsDefault() throws {
+        let d = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.custom, defaults: d)
+        XCTAssertEqual(ConfigurationMode.current(d), .custom)
+
+        store.clearAllUserData()
+        // Production caller does this immediately after clearAllUserData:
+        _ = store.setConfigurationMode(.default, defaults: d)
+
+        let resolved = store.reconcileConfigurationMode(defaults: d)
+        XCTAssertEqual(resolved, .default)
+        XCTAssertEqual(ConfigurationMode.current(d), .default)
+    }
+}
