@@ -1,0 +1,403 @@
+M1 DETAIL — TEST GAP CLOSURES (G1, G2, G3)
+============================================
+
+Branch: `v3-mac-watch` (cut from `master` @ 5240c71)
+Goal:   Take iInteractTests from 76 → ~95 tests, all passing.
+Files:  All additions land in `iInteractTests/PanelStoreTests.swift`
+        EXCEPT G2 which gets a new file `iInteractTests/PINPolicyTests.swift`.
+
+Test conventions (matched to the existing PanelStoreTests style):
+  - `XCTestCase` subclasses with setUp/tearDown for isolation
+  - `MemoryKeyValueStore` injected for KVS — already exists in the test file
+  - Fresh `tempDir` per test; cleaned up in tearDown
+  - `iCloudSignedIn` flag for the iCloudAvailability closure
+
+Tests below are listed in the order they should be added (each batch
+forms one logical commit; commit at the end of every section).
+
+
+=================================================================
+G1 — CONFIGURATION MODE SYNC (PanelStoreTests.swift)
+=================================================================
+
+Add a new "MARK: Configuration mode" section at the bottom of the file.
+All tests use a fresh in-memory UserDefaults via `UserDefaults(suiteName:)`
+to avoid polluting the simulator's standard defaults.
+
+HELPER (add once to the test file, near the top of the class):
+
+    private func makeIsolatedDefaults() -> UserDefaults {
+        let suite = "iInteractTests-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        return d
+    }
+
+------------------------------------------------------------------
+testAdoptCloudConfigurationMode_FirstLaunch_NoCloudValue
+------------------------------------------------------------------
+  Setup:    fresh defaults, KVS empty.
+  Action:   store.adoptCloudConfigurationModeIfFirstLaunch(defaults: d)
+  Assert:
+    - d.string(forKey: ConfigurationMode.userDefaultsKey) is nil
+    - d.bool(forKey: "panelstore.configuration_mode_adopted") == true
+              (use ConfigurationMode.userDefaultsKey for clarity; the
+               adopted-key is currently a private static; pick one of:
+               (a) expose it to test target via a `#if DEBUG` accessor,
+               (b) set it via the public adopt() side-effect and verify
+                   indirectly by calling adopt twice and confirming the
+                   second call doesn't overwrite a manually-set value)
+
+------------------------------------------------------------------
+testAdoptCloudConfigurationMode_FirstLaunch_AdoptsCloudValue
+------------------------------------------------------------------
+  Setup:    fresh defaults, KVS has "configurable" under kvsModeKey
+            (set via store.setConfigurationMode(.configurable, defaults: d)
+             then clear the adopted flag — see helper note above).
+            Cleaner alternative: directly seed the in-memory KVS:
+              kvs.set("configurable", forKey: "panelstore.configuration_mode")
+            and use a fresh defaults that has the adopted flag = false.
+  Action:   store.adoptCloudConfigurationModeIfFirstLaunch(defaults: d)
+  Assert:
+    - d.string(forKey: ConfigurationMode.userDefaultsKey) == "configurable"
+    - ConfigurationMode.current(d) == .configurable
+
+------------------------------------------------------------------
+testAdoptCloudConfigurationMode_NoOpAfterFirstAdoption
+------------------------------------------------------------------
+  Setup:    fresh defaults; first call adopts (KVS empty so default).
+            Then user changes mode locally to .custom.
+            Then KVS gains a new value "configurable" (simulating a
+            stale push from another device — should NOT win because
+            we already adopted).
+  Action:   store.adoptCloudConfigurationModeIfFirstLaunch(defaults: d)
+            (called a second time)
+  Assert:   d.string(forKey: ConfigurationMode.userDefaultsKey) == "custom"
+            (NOT "configurable")
+
+------------------------------------------------------------------
+testReconcileConfigurationMode_LocalAndCloudAgree_NoWrite
+------------------------------------------------------------------
+  Setup:    d set to "configurable", kvs set to "configurable"
+  Action:   let mode = store.reconcileConfigurationMode(defaults: d)
+  Assert:
+    - mode == .configurable
+    - kvs.string(forKey: kvsModeKey) == "configurable" (unchanged)
+            (We can't easily detect "no write" without instrumenting
+             the kvs; assert the value is still correct, which is
+             sufficient as a behavioral test.)
+
+------------------------------------------------------------------
+testReconcileConfigurationMode_LocalDiffersFromCloud_LocalWins
+------------------------------------------------------------------
+  Setup:    d set to "custom" (intent — user just changed in Settings)
+            kvs holds "configurable" (stale)
+  Action:   let mode = store.reconcileConfigurationMode(defaults: d)
+  Assert:
+    - mode == .custom
+    - kvs.string(forKey: "panelstore.configuration_mode") == "custom"
+      (cloud was overwritten with local intent)
+
+------------------------------------------------------------------
+testReconcileConfigurationMode_LocalMissing_FallsBackToDefault
+------------------------------------------------------------------
+  Setup:    d has nothing set for the mode key, kvs also empty
+  Action:   let mode = store.reconcileConfigurationMode(defaults: d)
+  Assert:
+    - mode == .default
+    - kvs may now hold "default" (because reconcile pushes local-resolved
+      to cloud) — assert this matches what the SUT does, not strict no-op
+
+------------------------------------------------------------------
+testSetConfigurationMode_WritesBothStores_ReturnsTrueWhenChanged
+------------------------------------------------------------------
+  Setup:    d empty, kvs empty
+  Action:   let changed1 = store.setConfigurationMode(.custom, defaults: d)
+            let changed2 = store.setConfigurationMode(.custom, defaults: d)
+  Assert:
+    - changed1 == true   (default → custom)
+    - changed2 == false  (custom → custom)
+    - d.string(forKey: ConfigurationMode.userDefaultsKey) == "custom"
+    - kvs.string(forKey: "panelstore.configuration_mode") == "custom"
+
+------------------------------------------------------------------
+testKVSExternalChange_ForModeKey_MirrorsToUserDefaults
+------------------------------------------------------------------
+  Setup:    Use the iCloudKeysDidChange code path. Easiest approach:
+            post NSUbiquitousKeyValueStore.didChangeExternallyNotification
+            with userInfo = [
+              NSUbiquitousKeyValueStoreChangedKeysKey: ["panelstore.configuration_mode"]
+            ] AFTER seeding kvs with "custom" for that key.
+            Note: production wiring observes NSUbiquitousKeyValueStore.default,
+            not the injected MemoryKeyValueStore. To test, either:
+              (a) Skip this test (mark it as integration-only) and rely on
+                  the fact that the path is exercised by testReconcileConfigurationMode.
+              (b) Refactor PanelStore.iCloudKeysDidChange to take an injectable
+                  "notification source" so tests can drive it.
+            Recommendation: (a) for M1 — log this as a known gap and revisit
+            in a future round once we want full coverage of the observer.
+
+CLEAR-ALL-DATA SIDE-EFFECT (covered in G3 below — one combined test there).
+
+COMMIT (G1):
+  Subject:  Test configuration_mode KVS sync and reconcile direction
+  Body:     5–7 new test cases covering adoption (first launch / no-op
+            after), reconcile (agree / local-wins / fallback), and
+            setConfigurationMode return value. Excludes the live KVS
+            external-change observer (deferred — needs PanelStore
+            refactor to inject the notification source).
+
+  Test count: 76 → 82
+
+
+=================================================================
+G2 — PIN POLICY VALIDATION (NEW FILE: PINPolicyTests.swift)
+=================================================================
+
+Why a new file: PINPolicy is in iInteract/PINGate.swift but it's a
+self-contained value enum with no UIKit dependencies. Keeping its tests
+in their own file makes the boundary explicit and the file stays small.
+
+NEW FILE — iInteractTests/PINPolicyTests.swift
+
+  import XCTest
+  @testable import iInteract
+
+  final class PINPolicyTests: XCTestCase {
+
+      // MARK: isValid — length
+
+      func testIsValid_TooShort_Rejects() {
+          XCTAssertFalse(PINPolicy.isValid(""))
+          XCTAssertFalse(PINPolicy.isValid("a"))
+          XCTAssertFalse(PINPolicy.isValid("abc"))
+      }
+
+      func testIsValid_MinLength_Accepts() {
+          XCTAssertTrue(PINPolicy.isValid("abcd"))
+          XCTAssertTrue(PINPolicy.isValid("1234"))
+      }
+
+      func testIsValid_MaxLength_Accepts() {
+          XCTAssertTrue(PINPolicy.isValid("abcdef"))
+          XCTAssertTrue(PINPolicy.isValid("123456"))
+      }
+
+      func testIsValid_TooLong_Rejects() {
+          XCTAssertFalse(PINPolicy.isValid("abcdefg"))
+          XCTAssertFalse(PINPolicy.isValid("1234567"))
+      }
+
+      // MARK: isValid — charset
+
+      func testIsValid_AlphanumericMixed_Accepts() {
+          XCTAssertTrue(PINPolicy.isValid("a1b2"))
+          XCTAssertTrue(PINPolicy.isValid("Pin99"))
+          XCTAssertTrue(PINPolicy.isValid("MIXED1"))
+      }
+
+      func testIsValid_NonAlphanumeric_Rejects() {
+          XCTAssertFalse(PINPolicy.isValid("ab cd"))     // space
+          XCTAssertFalse(PINPolicy.isValid("ab-cd"))     // dash
+          XCTAssertFalse(PINPolicy.isValid("12.34"))     // dot
+          XCTAssertFalse(PINPolicy.isValid("ab\ncd"))    // newline
+          XCTAssertFalse(PINPolicy.isValid("ab😀cd"))    // emoji
+      }
+
+      // MARK: sanitize
+
+      func testSanitize_StripsInvalidChars() {
+          XCTAssertEqual(PINPolicy.sanitize("ab-cd"), "abcd")
+          XCTAssertEqual(PINPolicy.sanitize("12 34"), "1234")
+          XCTAssertEqual(PINPolicy.sanitize("a@b#c$d"), "abcd")
+      }
+
+      func testSanitize_TruncatesToMaxLength() {
+          XCTAssertEqual(PINPolicy.sanitize("abcdefghij"), "abcdef")
+          XCTAssertEqual(PINPolicy.sanitize("1234567890"), "123456")
+      }
+
+      func testSanitize_StripThenTruncate_OrderProducesExpectedResult() {
+          // "a-b-c-d-e-f-g" — strip dashes → "abcdefg" → truncate → "abcdef"
+          XCTAssertEqual(PINPolicy.sanitize("a-b-c-d-e-f-g"), "abcdef")
+      }
+
+      func testSanitize_EmptyAndAllInvalid_ReturnsEmpty() {
+          XCTAssertEqual(PINPolicy.sanitize(""), "")
+          XCTAssertEqual(PINPolicy.sanitize("---"), "")
+          XCTAssertEqual(PINPolicy.sanitize("😀😀😀"), "")
+      }
+
+      // MARK: round-trip with PanelStore
+
+      func testStore_VerifyPIN_AcceptsLegacy4DigitNumeric() {
+          let kvs = MemoryKeyValueStore()
+          let dir = FileManager.default.temporaryDirectory
+              .appendingPathComponent("PINPolicyTests-\(UUID().uuidString)")
+          let store = PanelStore(directory: dir, keyValueStore: kvs)
+          defer { try? FileManager.default.removeItem(at: dir) }
+
+          store.setPIN("1234")
+          XCTAssertTrue(store.verifyPIN("1234"))
+          XCTAssertFalse(store.verifyPIN("12345"))
+      }
+
+      func testStore_VerifyPIN_AcceptsNew6CharAlphanumeric() {
+          let kvs = MemoryKeyValueStore()
+          let dir = FileManager.default.temporaryDirectory
+              .appendingPathComponent("PINPolicyTests-\(UUID().uuidString)")
+          let store = PanelStore(directory: dir, keyValueStore: kvs)
+          defer { try? FileManager.default.removeItem(at: dir) }
+
+          store.setPIN("Pin999")
+          XCTAssertTrue(store.verifyPIN("Pin999"))
+          XCTAssertFalse(store.verifyPIN("pin999"))   // case sensitive
+          XCTAssertFalse(store.verifyPIN("Pin99"))    // shorter
+      }
+
+      // MARK: humanDescription is consistent
+
+      func testHumanDescription_MatchesPolicyBounds() {
+          XCTAssertEqual(PINPolicy.minLength, 4)
+          XCTAssertEqual(PINPolicy.maxLength, 6)
+          XCTAssertTrue(PINPolicy.humanDescription.contains("4"))
+          XCTAssertTrue(PINPolicy.humanDescription.contains("6"))
+      }
+  }
+
+  Total: 13 tests in this new file.
+
+XCODE PROJECT WORK:
+  Add PINPolicyTests.swift to the iInteractTests target via Ruby
+  xcodeproj gem (per feedback_workflow memory). Sample script:
+
+    require 'xcodeproj'
+    project = Xcodeproj::Project.open('iInteract.xcodeproj')
+    test_target = project.native_targets.find { |t| t.name == 'iInteractTests' }
+    group = project.main_group['iInteractTests']
+    file_ref = group.new_reference('PINPolicyTests.swift')
+    test_target.source_build_phase.add_file_reference(file_ref)
+    project.save
+
+COMMIT (G2):
+  Subject:  Test PINPolicy validation and PanelStore PIN verify round-trip
+  Body:     New PINPolicyTests covers length bounds, charset rejection,
+            sanitize stripping + truncation, and round-trip with
+            PanelStore (legacy 4-digit numeric and new 6-char alphanumeric).
+
+  Test count: 82 → 95
+
+
+=================================================================
+G3 — CLEAR ALL DATA REGRESSION (PanelStoreTests.swift)
+=================================================================
+
+Add a new "MARK: clearAllUserData" section near the bottom of
+PanelStoreTests.swift.
+
+------------------------------------------------------------------
+testClearAllUserData_RemovesPanelsLayoutPINAndKVSKeys
+------------------------------------------------------------------
+  Setup:
+    - Add a user panel with one interaction (creates panels.json,
+      potentially writes blobs to assetsDirectory)
+    - Set hidden + order on layout (creates layout.json)
+    - setPIN with a security question + answer
+    - Verify all four KVS keys present:
+        panelstore.panels, panelstore.layout, panelstore.pin_hash,
+        panelstore.pin_question (and answer hash), panelstore.configuration_mode
+  Action:   store.clearAllUserData()
+  Assert:
+    - userPanels() returns []
+    - layout() returns the empty default
+    - hasPIN == false
+    - hasSecurityQuestion == false
+    - All five KVS keys are gone:
+        kvs.data(forKey: "panelstore.panels") == nil
+        kvs.data(forKey: "panelstore.layout") == nil
+        kvs.string(forKey: "panelstore.pin_hash") == nil
+        kvs.string(forKey: "panelstore.pin_question") == nil
+        kvs.string(forKey: "panelstore.configuration_mode") == nil
+    - panels.json and layout.json no longer exist on disk
+
+------------------------------------------------------------------
+testClearAllUserData_PreservesBundledPanels
+------------------------------------------------------------------
+  Setup:    just call clearAllUserData on a fresh store
+  Action:   Panel.readFromPlist()
+  Assert:   .count == 7  (the bundled panels are NOT user data; they
+            still load from the bundled plist)
+
+------------------------------------------------------------------
+testClearAllUserData_EmptiesTrash
+------------------------------------------------------------------
+  Setup:    create a user panel, trash it (so trash has 1 item with blobs)
+  Action:   store.clearAllUserData()
+  Assert:
+    - store.trashedItems().count == 0
+    - The Trash/ directory either doesn't exist or is empty
+    - The trash-index.json file is gone
+
+------------------------------------------------------------------
+testClearAllUserData_FollowedByReconcileMode_ReturnsDefault
+------------------------------------------------------------------
+  Setup:
+    - d.set("custom", forKey: ConfigurationMode.userDefaultsKey)
+    - kvs.set("custom", forKey: "panelstore.configuration_mode")
+    - store.clearAllUserData()
+    - (Note: clearAllUserData wipes KVS mode but not UserDefaults mode —
+       the production code path in confirmAndClearAllData calls
+       setConfigurationMode(.default) AFTER clear to reset both. Test
+       what the production caller does, not just clear in isolation.)
+  Action:
+    store.setConfigurationMode(.default, defaults: d)
+    let mode = store.reconcileConfigurationMode(defaults: d)
+  Assert:
+    - mode == .default
+    - d.string(forKey: ConfigurationMode.userDefaultsKey) == "default"
+    - kvs.string(forKey: "panelstore.configuration_mode") == "default"
+
+COMMIT (G3):
+  Subject:  Test clearAllUserData wipes panels, layout, PIN, trash, and KVS
+  Body:     Four tests covering the wipe paths (active panels + layout +
+            PIN + trash + KVS keys), bundled-panel preservation, trash
+            emptied, and post-clear mode-reset flow that
+            confirmAndClearAllData performs.
+
+  Test count: 95 → 99
+
+
+=================================================================
+RUNNING & ACCEPTANCE
+=================================================================
+
+After each commit, run the full test suite to ensure no regressions:
+
+    xcodebuild -scheme iInteract \
+      -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' test \
+      2>&1 | tail -10
+
+Acceptance:
+  - 99/99 tests pass after all three commits
+  - No flakiness across 3 consecutive runs
+  - Each commit is independently green (so we can bisect later)
+
+Once M1 is done and tests are green, push the branch and decide
+whether to merge to master immediately (low risk — additive tests
+only) or hold pending Mac Catalyst work in M2.
+
+OPEN QUESTIONS FOR THE REVIEWER (Jim) BEFORE STARTING M1:
+  Q1. The KVS observer test (testKVSExternalChange_ForModeKey_*) is
+      currently "deferred — needs SUT refactor". Is that acceptable
+      for M1, or should we refactor PanelStore to inject a notification
+      source now?
+  Q2. The `panelstore.configuration_mode_adopted` flag is a private
+      static. To test it cleanly we should expose it via a `#if DEBUG`
+      computed property or a static-let test accessor. Acceptable?
+  Q3. `PanelStore.clearAllUserData()` doesn't currently reset
+      UserDefaults["configuration_mode"] — that's done by the caller
+      (FeelingTableViewController.confirmAndClearAllData). Is the
+      current split intentional, or should clearAllUserData own that
+      reset for symmetry with the KVS wipe?
+
+END M1 DETAIL.

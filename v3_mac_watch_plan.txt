@@ -1,0 +1,348 @@
+PLAN — RESTORE MAC CATALYST + APPLE WATCH FOR v3.x
+====================================================
+
+Author: drafted for Jim Zucker
+Branch:  recommended `v3-mac-watch` (cut from current `master` @ 5240c71)
+Status:  PLAN ONLY — no code changes yet.
+
+This plan covers (1) bringing Mac Catalyst back to functional parity with
+v3.0, (2) deciding & executing on the Apple Watch story, and (3) closing
+specific gaps in the test suite.
+
+
+CURRENT STATE (verified 2026-04-26)
+-----------------------------------
+
+Project targets:
+  - iInteract                       (iOS app, IPHONEOS_DEPLOYMENT_TARGET = 14.0,
+                                     SUPPORTS_MACCATALYST = YES, IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*] = 11.0)
+  - iInteractTests                  (unit tests; 76/76 passing)
+  - iInteractWatch                  (WatchKit App — legacy WatchKit2 architecture)
+  - iInteractWatch Extension        (WatchKit2 extension with InterfaceController/PanelController/InteractionInterfaceController)
+
+Schemes: iInteract, iInteractWatch.
+
+Catalyst is technically enabled but has NOT been re-tested against v3.0
+features (PHPickerViewController, AVAudioRecorder, NSUbiquitousKeyValueStore,
+Settings.bundle bridge to System Settings, multi-mode UX, custom panel grid).
+
+Watch target uses the OBSOLETE WatchKit2 (extension + WatchKit App) pattern.
+Apple deprecated this architecture in 2022 and modern watchOS apps use a
+single-target Watch App (watchOS 6+). The current watch UI is driven by
+its own `events.plist` — it is NOT connected to the iOS panels list or to
+WatchSync's KVS payload that v3.0 already pushes. Effectively, the watch
+ships but does not benefit from v3.0 at all.
+
+`WatchSync.swift` on the iOS side already pushes the visible-panel order
+to the paired watch via `WCSession.updateApplicationContext` — but no
+watch-side consumer reads it.
+
+
+PART 1 — MAC CATALYST RESTORATION
+==================================
+
+GOAL
+  iInteract runs on macOS via Catalyst with all v3.0 features functional,
+  with Catalyst-specific UX adjustments where iOS conventions don't apply
+  (System Settings vs in-app Settings.bundle, menu bar, window resizing,
+  pointer interactions).
+
+NON-GOAL
+  Native AppKit port. Stay on Catalyst — same codebase, one target.
+
+STEP 1A — VERIFY CURRENT BUILD
+  Action:
+    xcodebuild -scheme iInteract \
+      -destination 'platform=macOS,variant=Mac Catalyst' \
+      build
+
+  Expected: succeeds (Catalyst is enabled). If it fails, fix compile errors
+  first — likely UIKit-vs-Catalyst availability differences.
+
+  Open the .app under DerivedData and launch it. Capture every issue in
+  a checklist before changing anything.
+
+STEP 1B — AUDIT v3.0 FEATURES ON CATALYST
+  For each feature, document expected vs. actual behavior:
+
+  [ ] Bundled panels render and play audio
+  [ ] Tap-to-speak works (AVAudioSession.playback on Mac uses AVAudioEngine
+      / AVAudioPlayer — verify silent-switch logic doesn't break Mac which
+      has no silent switch)
+  [ ] Settings.bundle: Catalyst maps to System Settings → iInteract.
+      Verify the three modes show; verify Mode picker writes UserDefaults
+      and the live-mode-change path fires on app foreground
+  [ ] Custom panel editor opens in Customize mode
+  [ ] PHPickerViewController for "choose photo" — Catalyst-supported
+  [ ] UIImagePickerController for "take photo" — Catalyst NOT supported
+      on Mac (no camera in many Macs). Branch UI: hide camera option on
+      Catalyst.
+  [ ] AVAudioRecorder — works on Catalyst BUT requires NSMicrophoneUsageDescription
+      to be present (already in iOS Info.plist; Catalyst inherits)
+  [ ] PIN flow (combined alert, show toggle, keyboard accessory bar) —
+      Mac AppKit-style alerts may render the toolbar differently
+  [ ] iCloud KVS sync between Catalyst and iOS (test by changing mode on
+      Mac and confirming iPhone picks it up after foreground)
+  [ ] Trash 30-day flow on Mac
+  [ ] Window resizing — does the panel grid relayout cleanly?
+  [ ] Pointer hover / right-click menus — nice-to-have
+
+STEP 1C — CATALYST-SPECIFIC ADJUSTMENTS
+  Likely changes (will be confirmed during 1B):
+
+  - InteractionEditorViewController — branch the picker chooser sheet:
+    on `traitCollection.userInterfaceIdiom == .mac`, omit the Camera
+    option (UIImagePickerController.SourceType.camera fails on Mac).
+  - FeelingTableViewController — confirm `appDidBecomeActive` fires on
+    Catalyst the same as iOS (it does — same notification).
+  - Add `#if targetEnvironment(macCatalyst)` guards only where strictly
+    needed; prefer runtime branching on `userInterfaceIdiom`.
+  - Verify `AVAudioSession.playback` doesn't crash on Mac (AVAudioSession
+    is iOS-only — Catalyst exposes it but most setters are no-ops). The
+    existing code calls it; wrap in `#if !targetEnvironment(macCatalyst)`
+    if it warns.
+  - Settings.bundle: Catalyst auto-bridges to System Settings on macOS 13+,
+    but verify the `pin_enabled` / `pending_clear_all` toggle resume
+    flow works (it should — same UserDefaults).
+  - Check window minimum size (probably need to set in SceneDelegate or
+    a UIScene config plist) so the panel grid doesn't collapse.
+
+STEP 1D — DOCUMENT MAC LIMITATIONS
+  Anything that genuinely can't work on Mac (e.g., camera capture on
+  cameraless Macs) gets a clear in-app message rather than a silent
+  failure or grayed-out button.
+
+ACCEPTANCE — PART 1
+  - Catalyst build succeeds without warnings.
+  - All Part 1B checklist items pass on a Mac.
+  - Mac and iPhone running with the same iCloud account stay in sync
+    (panels, layout, mode, PIN hash).
+
+
+PART 2 — APPLE WATCH STRATEGY
+==============================
+
+THE DECISION POINT
+  The existing watch target uses the deprecated WatchKit2 architecture
+  AND has its own data model (events.plist, Event.swift) that has nothing
+  to do with iInteract panels. There are two viable paths:
+
+  PATH A — MODERNIZE: Replace with single-target watchOS app
+    Pros:
+      - Future-proof (Apple recommends single-target since watchOS 6)
+      - Smaller binary, faster launch, simpler debugging
+      - Can use SwiftUI for the watch UI (concise, reactive)
+      - Required eventually anyway — Apple may drop WatchKit2 SDK support
+    Cons:
+      - More upfront work — new target, new storyboard or SwiftUI views,
+        Xcode project surgery
+      - Existing events.plist content goes away; replaced by panels-driven UI
+
+  PATH B — REVIVE EXISTING TARGET: Wire WatchKit2 ext to v3.0 panels
+    Pros:
+      - Less project surgery
+      - Watch users on older watchOS versions still supported
+    Cons:
+      - Building on a deprecated foundation
+      - WatchKit2 will eventually be removed; this work has a shelf life
+      - WCSession + WatchKit2 + Storyboard is brittle
+
+  RECOMMENDATION: PATH A, with one twist.
+    Modernize to a single-target watchOS app, and KILL the events.plist
+    side entirely. Watch UI shows the iOS visible panel list (pushed by
+    WatchSync.shared.pushVisiblePanels). Watch acts as a true companion:
+    same panels, same boards, same audio behavior — just on the wrist.
+
+STEP 2A — REMOVE LEGACY WATCH TARGETS (only after Path A is decided)
+  Use the Ruby xcodeproj gem (per feedback_workflow memory) to:
+    - Remove `iInteractWatch` and `iInteractWatch Extension` targets
+    - Remove the embed-watch-content build phase from iInteract
+    - Delete `iInteractWatch/` and `iInteractWatch Extension/` directories
+  Commit as a single "remove legacy WatchKit2 targets" commit.
+
+STEP 2B — ADD MODERN WATCH APP TARGET
+  Add via Xcode UI (or scripted): Target → "Watch App" (single-target,
+  watchOS 10.0+). Name: `iInteractWatch`. Bundle ID: companion to
+  iOS bundle ID. Use SwiftUI as the interface.
+
+  Configure as a companion app:
+    - WKCompanionAppBundleIdentifier in watch Info.plist
+    - WKWatchOnly = NO
+    - Embedded into iOS .app via the embed-watch-content phase
+
+STEP 2C — WATCH-SIDE DATA SYNC
+  New file in watch target: `WatchPanelStore.swift`
+    - Receives KVS / WCSession.applicationContext payload from iOS
+    - Decodes the visible panel list (titles + IDs only — watch doesn't
+      need full asset blobs)
+    - Caches to disk for offline cold-launch
+
+  iOS side already pushes — WatchSync.shared.pushVisiblePanels(). Verify
+  the payload includes everything the watch needs:
+    - Panel titles
+    - Panel colors (hex string for SwiftUI Color decoding)
+    - For each panel: list of interaction names + image data (small)
+      — watch needs visual rendering, so include thumbnails (e.g.
+      JPEG-encoded at 200x200)
+    - For each interaction: bundled audio file name OR a flag indicating
+      "user-recorded — must request from iOS on demand"
+
+  For user-recorded audio, the watch can either:
+    - Cache m4a clips locally (push the bytes via WCSession.transferFile,
+      keyed by interaction id), OR
+    - On tap, ask iPhone (via WCSession.sendMessage) to play it remotely
+      — simpler, but requires phone in range. Cache is better.
+
+STEP 2D — WATCH UI (SwiftUI)
+  Mirror the iOS information architecture:
+    PanelListView (List of panels, colored backgrounds, title)
+      → PanelDetailView (Grid of 1–6 interactions for that panel)
+        → tap an interaction = play audio + show selected animation
+  No editing on watch — it's read-only. Settings (voice style) optionally
+  reflected from the synced UserDefaults.
+
+STEP 2E — APPLE WATCH-SPECIFIC TESTS
+  - WatchPanelStoreTests: round-trip decode of a panel payload, fallback
+    when payload is missing, behavior when iOS pushes an updated payload
+  - WatchAudioPlaybackTests: audio file loading, silent-mode behavior,
+    voice fallback when only one voice is recorded
+
+ACCEPTANCE — PART 2
+  - Modern watch app builds for watchOS 10+
+  - Phone change to panel list shows up on watch within a few seconds
+    (or on next watch app foreground)
+  - Tap on watch plays the recorded audio
+  - Works without iPhone in range (cached panels + audio)
+
+
+PART 3 — TEST GAPS TO CLOSE (regardless of platform work)
+==========================================================
+
+CURRENT TEST FILES (confirmed in iInteractTests/):
+  - PanelStoreTests.swift   (49 tests — store, layout, trash, PIN hash)
+  - iInteractTests.swift    (10 tests — Panel/Interaction reading from plist)
+  - Other (referenced in memory): PINGateStateTests, PlaybackTests, totaling 76 with the v3-fixes additions
+
+GAPS IDENTIFIED (highest value first):
+
+  [G1] CONFIGURATION MODE SYNC
+    - Test PanelStore.adoptCloudConfigurationModeIfFirstLaunch:
+        - Fresh defaults + KVS empty           → defaults unchanged, marked adopted
+        - Fresh defaults + KVS = "configurable" → defaults gets "configurable"
+        - Already-adopted defaults + KVS differs → defaults unchanged
+    - Test PanelStore.reconcileConfigurationMode:
+        - Local matches cloud → no KVS write
+        - Local differs from cloud → cloud overwritten with local
+        - Local missing → falls back to .default, not pushed
+    - Test setConfigurationMode writes both UserDefaults and KVS, returns
+      `true` only when value actually changed
+    - Test KVS observer for `kvsModeKey`: simulated remote change writes
+      to UserDefaults and posts didChangeNotification
+
+  [G2] PIN POLICY VALIDATION
+    - PINPolicy.isValid: 4 alpha, 6 numeric, 3 chars (too short),
+      7 chars (too long), special chars (rejected), mixed case OK
+    - PINPolicy.sanitize: drops invalid chars, truncates to 6
+    - Round-trip: setPIN then verifyPIN with both legacy 4-digit numeric
+      and new 6-char alphanumeric
+
+  [G3] CLEAR ALL DATA REGRESSION
+    - clearAllUserData wipes panels, layout, KVS panels/layout/mode keys,
+      PIN hash, security question/answer hash
+    - Subsequent reconcileConfigurationMode returns .default
+
+  [G4] TRASH AUTO-PURGE
+    - Inject `now` into PanelStore (or use a `nowProvider`) so we can
+      simulate 31 days passing
+    - Item dated 31 days ago is purged on next trashedItems() call
+    - Item dated 29 days ago is preserved
+    - Asset blobs for purged items are deleted from disk
+
+  [G5] RESTORE FALLBACK PATHS
+    - restorePanel with name collision → throws nameNotUnique
+    - restorePanel with rename → succeeds, panel appears in active list
+    - restoreInteraction when parent gone → throws panelNotFound
+    - restoreInteraction with explicit `to:` parent → goes there
+    - canRestoreInteractionToOriginalParent + parentPanelTrashID branches
+
+  [G6] WATCHSYNC PAYLOAD ROUND-TRIP
+    - Build a panel list, run pushVisiblePanels, decode the payload bytes
+      back, confirm no info loss
+    - This guards against payload schema regressions when adding fields
+
+  [G7] CONFIGURATION MODE LOAD
+    - Panel.load(mode: .default) returns plist verbatim regardless of layout
+    - Panel.load(mode: .configurable) applies layout to built-ins, NO user panels
+    - Panel.load(mode: .custom) applies layout to built-ins + user panels
+
+  [G8] INTERACTION PLAYER VOICE FALLBACK
+    - Pause/resume behavior when AVAudioSession was already configured
+    - When boy voice missing → falls back to girl
+    - When girl voice missing → falls back to boy
+    - When both missing → silent (no crash)
+
+UI TESTS (NEW TEST TARGET, OPTIONAL BUT VALUABLE)
+  Add `iInteractUITests` (XCUITest). Cover the few flows that have caused
+  regressions in the past:
+  - Default mode → tap gear → see "Configuration is Off" alert with the
+    three-mode explanation
+  - Switch to Customize via Settings simulator (UI testing can drive
+    Settings.app via the bundle ID), return to app, tap gear → editor opens
+  - Add a custom panel with one interaction (skip recording), save, see
+    it on the main list
+
+ACCEPTANCE — PART 3
+  - All G1–G8 unit test gaps closed
+  - Test count climbs from 76 to ~110+
+  - At least one UI test exercising the gear → editor → add panel flow
+
+
+SEQUENCING & MILESTONES
+========================
+
+  M1 (1 day):  Branch off master → test gap closures G1, G2, G3.
+               Commit per gap. Tests: 76 → ~95.
+
+  M2 (1 day):  Mac Catalyst audit (Steps 1A, 1B). Document findings in
+               this plan file. No code changes yet.
+
+  M3 (1–2 days): Mac Catalyst fixes (Step 1C) + remaining test gaps
+                 G4–G8. Tests: ~95 → ~110+. Catalyst build green.
+
+  M4 (decision): Path A vs B for watch. Recommendation: A.
+
+  M5 (3–5 days): Watch modernization (Steps 2A–2D) + watch tests (G6, G2E).
+                 Single squash commit per Step.
+
+  M6 (1 day):  End-to-end smoke test on iPhone, iPad, Mac, Apple Watch
+               with one iCloud account. Verify changes propagate.
+
+  M7:          Squash branch onto master, push, tag as 3.1.0 (or 3.0.1
+               if scope ends up Mac-only).
+
+
+RISK / OPEN QUESTIONS
+======================
+
+  ? Catalyst & iCloud KVS — does CloudKit need to be enabled in
+    capabilities for Catalyst, or does NSUbiquitousKeyValueStore "just work"?
+    (Probably just works — KVS is part of the iOS-on-Mac runtime.)
+
+  ? Watch + WCSession + audio file transfer — file transfer over WCSession
+    is "best effort" and can take minutes if iPhone is asleep. May need
+    a "syncing…" UI on the watch for first launch.
+
+  ? events.plist — confirm this file is unused on iOS side (probably
+    only the watch consumed it). Removing the legacy watch target
+    means we can delete it too.
+
+  ? Recording via Mac microphone — Catalyst supports AVAudioRecorder but
+    needs the mic permission prompt UX to feel right on macOS (system
+    prompt, not in-app).
+
+  ? WCSession on Catalyst — Catalyst does NOT have WatchConnectivity.
+    iOS-only. Mac will not be able to push to watch — only iPhone will.
+    If user only has Mac + Watch (no iPhone), watch loses sync. Document
+    this limitation.
+
+END OF PLAN.
