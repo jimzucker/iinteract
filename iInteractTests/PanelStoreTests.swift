@@ -726,3 +726,146 @@ final class ConfigurationModeTests: XCTestCase {
         XCTAssertEqual(ConfigurationMode.current(suite), .default)
     }
 }
+
+// MARK: - ConfigurationMode KVS sync (PanelStore-backed)
+
+/// Tests adopt / reconcile / setConfigurationMode using a shared in-memory
+/// KVS and isolated `UserDefaults` suites. All assertions are black-box —
+/// state is seeded by the SUT's own write paths so we don't depend on
+/// private KVS key strings.
+final class ConfigurationModeSyncTests: XCTestCase {
+
+    var tempDir: URL!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ConfigurationModeSyncTests-\(UUID().uuidString)", isDirectory: true)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir, keyValueStore: kvs)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    /// Fresh `UserDefaults` per call — registered defaults from AppDelegate
+    /// don't leak in because suite names are unique.
+    private func makeIsolatedDefaults() -> UserDefaults {
+        let suite = "iInteractTests-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        return d
+    }
+
+    // MARK: adoptCloudConfigurationModeIfFirstLaunch
+
+    func testAdoptCloudConfigurationMode_FirstLaunch_NoCloudValue_LeavesDefaultsAlone() {
+        let d = makeIsolatedDefaults()
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: d)
+        // No KVS value to adopt → mode falls through to .default.
+        XCTAssertEqual(ConfigurationMode.current(d), .default)
+    }
+
+    func testAdoptCloudConfigurationMode_FirstLaunch_AdoptsCloudValue() {
+        // Seed the KVS via a "primer" UserDefaults so we use the production
+        // write path without touching the test's main `defaults`.
+        let primer = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.configurable, defaults: primer)
+
+        let main = makeIsolatedDefaults()
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: main)
+        XCTAssertEqual(ConfigurationMode.current(main), .configurable)
+    }
+
+    func testAdoptCloudConfigurationMode_NoOpOnSecondCall() {
+        // 1. Seed cloud + adopt once.
+        let primer = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.configurable, defaults: primer)
+
+        let main = makeIsolatedDefaults()
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: main)
+        XCTAssertEqual(ConfigurationMode.current(main), .configurable)
+
+        // 2. User changes mode locally.
+        main.set(ConfigurationMode.custom.rawValue, forKey: ConfigurationMode.userDefaultsKey)
+
+        // 3. Another device pushes a different cloud value.
+        _ = store.setConfigurationMode(.default, defaults: primer)
+
+        // 4. Adopt is called again (next launch). Should be a no-op because
+        //    we already adopted — local intent must NOT be clobbered.
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: main)
+        XCTAssertEqual(ConfigurationMode.current(main), .custom,
+                       "second adoption must not overwrite local intent")
+    }
+
+    // MARK: reconcileConfigurationMode
+
+    func testReconcileConfigurationMode_LocalAndCloudAgree() {
+        let d = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.configurable, defaults: d)
+        // Both local and cloud now hold "configurable".
+        let resolved = store.reconcileConfigurationMode(defaults: d)
+        XCTAssertEqual(resolved, .configurable)
+        XCTAssertEqual(ConfigurationMode.current(d), .configurable)
+    }
+
+    func testReconcileConfigurationMode_LocalDiffersFromCloud_LocalWins() {
+        // Cloud holds "configurable" (via primer); local intent is "custom".
+        let primer = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.configurable, defaults: primer)
+
+        let d = makeIsolatedDefaults()
+        d.set(ConfigurationMode.custom.rawValue, forKey: ConfigurationMode.userDefaultsKey)
+
+        let resolved = store.reconcileConfigurationMode(defaults: d)
+        XCTAssertEqual(resolved, .custom, "local UserDefaults wins at runtime")
+
+        // Cloud was overwritten — verify by adopting into a fresh defaults.
+        let verifier = makeIsolatedDefaults()
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: verifier)
+        XCTAssertEqual(ConfigurationMode.current(verifier), .custom,
+                       "reconcile must have pushed local intent up to KVS")
+    }
+
+    func testReconcileConfigurationMode_LocalMissing_FallsBackToDefault() {
+        // Use a fresh store with an empty KVS to ensure no carry-over from
+        // setUp's shared `kvs` (which is empty here anyway, but be explicit).
+        let freshKvs = MemoryKeyValueStore()
+        let freshDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ReconcileFresh-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: freshDir) }
+        let freshStore = PanelStore(directory: freshDir, keyValueStore: freshKvs)
+
+        let d = makeIsolatedDefaults()
+        let resolved = freshStore.reconcileConfigurationMode(defaults: d)
+        XCTAssertEqual(resolved, .default)
+    }
+
+    // MARK: setConfigurationMode
+
+    func testSetConfigurationMode_ReturnsTrueOnlyWhenChanged() {
+        let d = makeIsolatedDefaults()
+        let changed1 = store.setConfigurationMode(.custom, defaults: d)
+        let changed2 = store.setConfigurationMode(.custom, defaults: d)
+        let changed3 = store.setConfigurationMode(.configurable, defaults: d)
+        XCTAssertTrue(changed1, "default → custom is a change")
+        XCTAssertFalse(changed2, "custom → custom is a no-op")
+        XCTAssertTrue(changed3, "custom → configurable is a change")
+    }
+
+    func testSetConfigurationMode_WritesToBothLocalAndCloud() {
+        let d = makeIsolatedDefaults()
+        _ = store.setConfigurationMode(.configurable, defaults: d)
+        // Local was written.
+        XCTAssertEqual(ConfigurationMode.current(d), .configurable)
+        // Cloud was written — verify by adopting into a fresh defaults.
+        let verifier = makeIsolatedDefaults()
+        store.adoptCloudConfigurationModeIfFirstLaunch(defaults: verifier)
+        XCTAssertEqual(ConfigurationMode.current(verifier), .configurable)
+    }
+}
