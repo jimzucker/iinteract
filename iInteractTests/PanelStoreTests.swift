@@ -1590,15 +1590,17 @@ final class SettingsBundleKeyContractTests: XCTestCase {
     }
 
     func testSettingsBundleKeys_MatchExpectedSet() throws {
-        // Order matches the Phase 6 most-important-first layout:
-        // Mode → Voice → Security → Privacy.
+        // Order: Mode → Security → Voice → Privacy. iOS auto-appends an
+        // "Allow [App] to Access" section at the bottom from the
+        // Info.plist usage descriptions (camera / photo library /
+        // microphone / Face ID); that's not in this plist.
         let expected = [
             "configuration_mode",
-            "voice_enabled",
-            "voice_style",
             "pin_enabled",
             "change_pin",
             "hide_config",
+            "voice_enabled",
+            "voice_style",
             "pending_clear_all",
         ]
         let actual = try bundleKeys()

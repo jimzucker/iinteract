@@ -54,42 +54,6 @@ Your choice syncs across your iCloud devices.</string>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
-			<string>Voice</string>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>Enable Sound</string>
-			<key>Key</key>
-			<string>voice_enabled</string>
-			<key>DefaultValue</key>
-			<true/>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSMultiValueSpecifier</string>
-			<key>Title</key>
-			<string>Voice Style</string>
-			<key>Key</key>
-			<string>voice_style</string>
-			<key>Titles</key>
-			<array>
-				<string>Girl</string>
-				<string>Boy</string>
-			</array>
-			<key>DefaultValue</key>
-			<string>girl</string>
-			<key>Values</key>
-			<array>
-				<string>girl</string>
-				<string>boy</string>
-			</array>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-			<key>Title</key>
 			<string>Security</string>
 			<key>FooterText</key>
 			<string>Toggling Enable PIN sends you back to iInteract to set a new PIN (4–8 letters or numbers, with confirmation), or to enter the current PIN to disable it. The PIN is hashed before storage and syncs across your iCloud devices.
@@ -127,6 +91,42 @@ Hide Configuration removes the gear icon from the main screen so children can't 
 			<string>hide_config</string>
 			<key>DefaultValue</key>
 			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Voice</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Enable Sound</string>
+			<key>Key</key>
+			<string>voice_enabled</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Voice Style</string>
+			<key>Key</key>
+			<string>voice_style</string>
+			<key>Titles</key>
+			<array>
+				<string>Girl</string>
+				<string>Boy</string>
+			</array>
+			<key>DefaultValue</key>
+			<string>girl</string>
+			<key>Values</key>
+			<array>
+				<string>girl</string>
+				<string>boy</string>
+			</array>
 		</dict>
 		<dict>
 			<key>Type</key>
