@@ -762,6 +762,106 @@ final class ConfigurationModeTests: XCTestCase {
     }
 }
 
+// MARK: - PanelListEditorAffordances + DeletePanelConfirmSpec
+
+/// Verifies the per-mode UI decisions that drive
+/// `PanelListEditorViewController` — sections shown, add button
+/// visibility, row-selectable / row-deletable, footer copy.
+final class PanelListEditorAffordancesTests: XCTestCase {
+
+    private let userPanel = Panel(title: "School", color: .systemTeal,
+                                  interactions: [], isBuiltIn: false)
+    private let builtInPanel = Panel(title: "I feel", color: .systemRed,
+                                     interactions: [], isBuiltIn: true)
+
+    // MARK: sections
+
+    func testSections_DefaultMode_PanelsOnly() {
+        XCTAssertEqual(PanelListEditorAffordances.sections(for: .default), [.panels])
+    }
+
+    func testSections_ConfigurableMode_PanelsOnly() {
+        XCTAssertEqual(PanelListEditorAffordances.sections(for: .configurable), [.panels])
+    }
+
+    func testSections_CustomMode_PanelsAndTrash() {
+        XCTAssertEqual(PanelListEditorAffordances.sections(for: .custom), [.panels, .trash])
+    }
+
+    // MARK: add button
+
+    func testAddButton_VisibleOnlyInCustom() {
+        XCTAssertFalse(PanelListEditorAffordances.addButtonVisible(for: .default))
+        XCTAssertFalse(PanelListEditorAffordances.addButtonVisible(for: .configurable))
+        XCTAssertTrue(PanelListEditorAffordances.addButtonVisible(for: .custom))
+    }
+
+    // MARK: row selectable (tap to edit)
+
+    func testPanelRowSelectable_BuiltInNeverSelectable() {
+        for mode: ConfigurationMode in [.default, .configurable, .custom] {
+            XCTAssertFalse(PanelListEditorAffordances.panelRowSelectable(panel: builtInPanel, mode: mode),
+                           "built-in panels are never editable in mode \(mode)")
+        }
+    }
+
+    func testPanelRowSelectable_UserPanelOnlyInCustom() {
+        XCTAssertFalse(PanelListEditorAffordances.panelRowSelectable(panel: userPanel, mode: .default))
+        XCTAssertFalse(PanelListEditorAffordances.panelRowSelectable(panel: userPanel, mode: .configurable))
+        XCTAssertTrue(PanelListEditorAffordances.panelRowSelectable(panel: userPanel, mode: .custom))
+    }
+
+    // MARK: row deletable (swipe-to-delete)
+
+    func testPanelRowDeletable_BuiltInNeverDeletable() {
+        for mode: ConfigurationMode in [.default, .configurable, .custom] {
+            XCTAssertFalse(PanelListEditorAffordances.panelRowDeletable(panel: builtInPanel, mode: mode),
+                           "built-in panels are never deletable in mode \(mode)")
+        }
+    }
+
+    func testPanelRowDeletable_UserPanelOnlyInCustom() {
+        XCTAssertFalse(PanelListEditorAffordances.panelRowDeletable(panel: userPanel, mode: .default))
+        XCTAssertFalse(PanelListEditorAffordances.panelRowDeletable(panel: userPanel, mode: .configurable))
+        XCTAssertTrue(PanelListEditorAffordances.panelRowDeletable(panel: userPanel, mode: .custom))
+    }
+
+    // MARK: footers
+
+    func testPanelsFooter_DefaultMode_NoFooter() {
+        XCTAssertNil(PanelListEditorAffordances.panelsFooter(for: .default))
+    }
+
+    func testPanelsFooter_Configurable_MentionsCustomize() {
+        let footer = PanelListEditorAffordances.panelsFooter(for: .configurable) ?? ""
+        XCTAssertTrue(footer.contains("Customize"))
+        XCTAssertFalse(footer.contains("Swipe to delete"),
+                       "Configurable can't delete; footer must not advertise it")
+    }
+
+    func testPanelsFooter_Custom_MentionsSwipeToDelete() {
+        let footer = PanelListEditorAffordances.panelsFooter(for: .custom) ?? ""
+        XCTAssertTrue(footer.contains("Swipe to delete"))
+    }
+
+    func testTrashFooter_MentionsThirtyDays() {
+        XCTAssertTrue(PanelListEditorAffordances.trashFooter.contains("30 days"))
+    }
+
+    // MARK: DeletePanelConfirmSpec
+
+    func testDeletePanelConfirmSpec_QuotesPanelTitle() {
+        let spec = DeletePanelConfirmSpec.make(panelTitle: "School")
+        XCTAssertEqual(spec.title, "Delete \"School\"?")
+    }
+
+    func testDeletePanelConfirmSpec_MessageMentionsTrashAnd30Days() {
+        let spec = DeletePanelConfirmSpec.make(panelTitle: "School")
+        XCTAssertTrue(spec.message.contains("Trash"))
+        XCTAssertTrue(spec.message.contains("30 days"))
+    }
+}
+
 // MARK: - TrashRestoreCoordinator decision tree
 
 /// Verifies the pure-logic decision for "what should the UI do next when
@@ -906,6 +1006,12 @@ final class TrashRestoreCoordinatorTests: XCTestCase {
         } else {
             XCTFail("expected .needsAlternateDestination, got \(plan)")
         }
+    }
+
+    func testAlternateReason_BlurbIsHumanReadable() {
+        XCTAssertTrue(TrashAlternateReason.parentGone.blurb.contains("deleted"))
+        XCTAssertTrue(TrashAlternateReason.parentInTrash.blurb.contains("Trash"))
+        XCTAssertTrue(TrashAlternateReason.parentFull.blurb.contains("6"))
     }
 
     func testPlan_Interaction_NoCandidatesAvailable() throws {

@@ -795,6 +795,84 @@ final class PanelStore {
     }
 }
 
+// MARK: - PanelListEditor mode-aware affordances (UIKit-free)
+
+/// Section identity for `PanelListEditorViewController` — at file scope
+/// so the affordance helpers below can return them as data without the
+/// VC having to hold them privately.
+enum PanelListEditorSection: Equatable {
+    case panels
+    case trash
+}
+
+/// Pure decisions about which UI affordances to show in
+/// `PanelListEditorViewController` given the current `ConfigurationMode`.
+/// Extracted so the per-mode logic is unit-testable without
+/// instantiating a UITableViewController.
+enum PanelListEditorAffordances {
+
+    /// Sections to display for `mode`. Configurable hides Trash because
+    /// user panels (and therefore trash entries) can't exist outside
+    /// Customize.
+    static func sections(for mode: ConfigurationMode) -> [PanelListEditorSection] {
+        mode == .custom ? [.panels, .trash] : [.panels]
+    }
+
+    /// True when the "+" add-panel button should be shown in the
+    /// navigation bar. Configurable can hide / reorder built-ins but
+    /// can't author new panels.
+    static func addButtonVisible(for mode: ConfigurationMode) -> Bool {
+        mode == .custom
+    }
+
+    /// True when tapping the row should push into `PanelEditor`.
+    /// Built-in panels are never editable; user panels are only
+    /// editable in Customize.
+    static func panelRowSelectable(panel: Panel,
+                                   mode: ConfigurationMode) -> Bool {
+        mode == .custom && !panel.isBuiltIn
+    }
+
+    /// True when swipe-to-delete should be available on the row.
+    static func panelRowDeletable(panel: Panel,
+                                  mode: ConfigurationMode) -> Bool {
+        mode == .custom && !panel.isBuiltIn
+    }
+
+    /// Footer text under the Panels section. Default mode has no
+    /// editor → no footer; Configurable explains the limited edits;
+    /// Customize explains full edits.
+    static func panelsFooter(for mode: ConfigurationMode) -> String? {
+        switch mode {
+        case .custom:
+            return "Toggle to hide a panel from the main list. Drag to reorder. Swipe to delete custom panels. PIN and Clear All My Data live in iOS Settings → iInteract."
+        case .configurable:
+            return "Toggle to hide a panel from the main list. Drag to reorder. To add or modify panels with your own pictures and recordings, switch to Customize in Settings → iInteract."
+        case .default:
+            return nil
+        }
+    }
+
+    /// Footer text under the Trash section. Same in every mode (only
+    /// shown in Customize per the `sections(for:)` decision).
+    static let trashFooter = "Deleted panels and interactions stay here for 30 days before they're permanently removed."
+}
+
+/// Copy for the move-to-Trash confirmation alert shown when the user
+/// swipes to delete a custom panel. Extracted as data so tests can
+/// snapshot the strings without driving a real `UIAlertController`.
+struct DeletePanelConfirmSpec: Equatable {
+    let title: String
+    let message: String
+
+    static func make(panelTitle: String) -> Self {
+        Self(
+            title: "Delete \"\(panelTitle)\"?",
+            message: "The panel, every interaction on it, and all of its pictures and voice recordings (sound) will move to Trash and be permanently removed after 30 days."
+        )
+    }
+}
+
 // MARK: - TrashRestoreCoordinator (UIKit-free, unit-testable)
 
 /// Why an interaction can't go back to its original parent.
@@ -802,6 +880,16 @@ enum TrashAlternateReason: Equatable {
     case parentGone        // parent was permanently deleted
     case parentInTrash     // parent is itself in the recycle bin
     case parentFull        // parent exists but already at 6-interaction cap
+
+    /// Human-readable lead-in used in the alternate-destination action
+    /// sheet and the no-candidates error alert.
+    var blurb: String {
+        switch self {
+        case .parentGone:    return "The original panel has been deleted."
+        case .parentInTrash: return "The original panel is in Trash."
+        case .parentFull:    return "The original panel already has 6 interactions."
+        }
+    }
 }
 
 /// Decision for what to do when the user asks to restore an item from

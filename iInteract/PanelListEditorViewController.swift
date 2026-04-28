@@ -17,10 +17,6 @@ import UIKit
 /// voice and mode also live there.
 final class PanelListEditorViewController: UITableViewController {
 
-    private enum Section: Int {
-        case panels, trash
-    }
-
     private let store: PanelStore
     private let mode: ConfigurationMode
     /// Read-only accessor so the root list controller can detect whether a
@@ -32,11 +28,10 @@ final class PanelListEditorViewController: UITableViewController {
     private static let panelCell = "PanelListEditorPanelCell"
     private static let trashCell = "PanelListEditorTrashCell"
 
-    /// Sections actually displayed for the current mode. Configurable hides
-    /// Trash because user panels (and therefore trash entries) can't exist
-    /// without Customize.
-    private var visibleSections: [Section] {
-        mode == .custom ? [.panels, .trash] : [.panels]
+    /// Sections actually displayed for the current mode — delegated to
+    /// the unit-tested PanelListEditorAffordances helper.
+    private var visibleSections: [PanelListEditorSection] {
+        PanelListEditorAffordances.sections(for: mode)
     }
 
     init(mode: ConfigurationMode = ConfigurationMode.current(),
@@ -55,9 +50,7 @@ final class PanelListEditorViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Edit Panels"
-        // Add (+) is only meaningful in Customize. Configurable can hide
-        // and reorder built-ins but cannot author new panels.
-        if mode == .custom {
+        if PanelListEditorAffordances.addButtonVisible(for: mode) {
             navigationItem.rightBarButtonItem = UIBarButtonItem(
                 barButtonSystemItem: .add,
                 target: self,
@@ -113,7 +106,7 @@ final class PanelListEditorViewController: UITableViewController {
 
     // MARK: - Sections
 
-    private func section(at index: Int) -> Section { visibleSections[index] }
+    private func section(at index: Int) -> PanelListEditorSection { visibleSections[index] }
 
     override func numberOfSections(in tableView: UITableView) -> Int { visibleSections.count }
 
@@ -126,17 +119,8 @@ final class PanelListEditorViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch self.section(at: section) {
-        case .panels:
-            switch mode {
-            case .custom:
-                return "Toggle to hide a panel from the main list. Drag to reorder. Swipe to delete custom panels. PIN and Clear All My Data live in iOS Settings → iInteract."
-            case .configurable:
-                return "Toggle to hide a panel from the main list. Drag to reorder. To add or modify panels with your own pictures and recordings, switch to Customize in Settings → iInteract."
-            case .default:
-                return nil
-            }
-        case .trash:
-            return "Deleted panels and interactions stay here for 30 days before they're permanently removed."
+        case .panels: return PanelListEditorAffordances.panelsFooter(for: mode)
+        case .trash:  return PanelListEditorAffordances.trashFooter
         }
     }
 
@@ -207,10 +191,8 @@ final class PanelListEditorViewController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
         switch section(at: indexPath.section) {
         case .panels:
-            // Configurable: built-in rows are not selectable (no editing).
-            guard mode == .custom else { return }
             let panel = panels[indexPath.row]
-            guard !panel.isBuiltIn else { return }
+            guard PanelListEditorAffordances.panelRowSelectable(panel: panel, mode: mode) else { return }
             let editor = PanelEditorViewController(panel: panel, store: store)
             editor.onSave = { [weak self] _ in self?.loadPanels() }
             navigationController?.pushViewController(editor, animated: true)
@@ -254,29 +236,26 @@ final class PanelListEditorViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView,
                             editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
-        // Only available in Customize: Configurable can't delete built-ins
-        // and has no user panels to delete.
-        guard mode == .custom,
-              section(at: indexPath.section) == .panels else { return .none }
-        return panels[indexPath.row].isBuiltIn ? .none : .delete
+        guard section(at: indexPath.section) == .panels else { return .none }
+        return PanelListEditorAffordances.panelRowDeletable(panel: panels[indexPath.row],
+                                                            mode: mode) ? .delete : .none
     }
 
     override func tableView(_ tableView: UITableView,
                             shouldIndentWhileEditingRowAt indexPath: IndexPath) -> Bool {
-        guard mode == .custom,
-              section(at: indexPath.section) == .panels else { return false }
-        return !panels[indexPath.row].isBuiltIn
+        guard section(at: indexPath.section) == .panels else { return false }
+        return PanelListEditorAffordances.panelRowDeletable(panel: panels[indexPath.row],
+                                                            mode: mode)
     }
 
     override func tableView(_ tableView: UITableView,
                             commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
-        guard mode == .custom,
-              editingStyle == .delete,
+        guard editingStyle == .delete,
               section(at: indexPath.section) == .panels,
               let panelsIndex = panelsSectionIndex else { return }
         let panel = panels[indexPath.row]
-        guard !panel.isBuiltIn else { return }
+        guard PanelListEditorAffordances.panelRowDeletable(panel: panel, mode: mode) else { return }
 
         // Reset the swipe-exposed row immediately so it doesn't stay
         // half-swiped while the confirm alert is up.
@@ -284,11 +263,10 @@ final class PanelListEditorViewController: UITableViewController {
 
         // Reversible (move to Trash for 30 days), so no PIN gate — only the
         // permanent-purge actions in TrashViewController require the PIN.
-        let alert = UIAlertController(
-            title: "Delete \"\(panel.title)\"?",
-            message: "The panel, every interaction on it, and all of its pictures and voice recordings (sound) will move to Trash and be permanently removed after 30 days.",
-            preferredStyle: .alert
-        )
+        let spec = DeletePanelConfirmSpec.make(panelTitle: panel.title)
+        let alert = UIAlertController(title: spec.title,
+                                      message: spec.message,
+                                      preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
             guard let self = self,
