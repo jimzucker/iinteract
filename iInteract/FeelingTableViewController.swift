@@ -126,10 +126,11 @@ class FeelingTableViewController: UITableViewController {
         let reconciler = SettingsReconciler()
         for effect in reconciler.reconcile() {
             switch effect {
-            case .enablePIN:    promptEnablePIN()
-            case .disablePIN:   promptDisablePIN()
-            case .changePIN:    promptChangePIN()
-            case .clearAllData: confirmAndClearAllData()
+            case .enablePIN:               promptEnablePIN()
+            case .disablePIN:              promptDisablePIN()
+            case .changePIN:               promptChangePIN()
+            case .completeSecurityQuestion: promptCompleteSecurityQuestion()
+            case .clearAllData:            confirmAndClearAllData()
             }
         }
     }
@@ -162,6 +163,23 @@ class FeelingTableViewController: UITableViewController {
     }
 
     private static var enableCoordinatorKey: UInt8 = 0
+
+    /// Recovery for users in the orphan PIN-without-security-question
+    /// state (caused by force-quit during the original Set PIN flow,
+    /// before transactional save was added). Re-fires every reconcile
+    /// until the user completes the question step.
+    private func promptCompleteSecurityQuestion() {
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        objc_setAssociatedObject(self, &Self.completeSecQuestionKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runCompleteSecurityQuestionFlow { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.completeSecQuestionKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    private static var completeSecQuestionKey: UInt8 = 0
 
     /// User toggled "Change PIN" in iOS Settings. Verify current PIN
     /// (using the existing PINVerifyCoordinator under confirmActionWithPIN),

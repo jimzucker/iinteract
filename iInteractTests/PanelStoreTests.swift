@@ -2076,6 +2076,143 @@ final class PINEnableSecurityQuestionTests: XCTestCase {
         XCTAssertEqual(presenter.presentations[1].config.title, "Set PIN",
                        "still in PIN step, not question step")
     }
+
+    // MARK: - Transactional save regression
+
+    /// Force-quit between PIN step and question step must not leave the
+    /// user with a saved PIN and no security question — they'd be locked
+    /// out (security question is the only Forgot-PIN recovery path).
+    /// Tests that the production flow holds the PIN in memory across the
+    /// two steps and only persists after the question is also entered.
+    func testRunEnablePINWithQuestion_PINNotSaved_UntilQuestionStepCompletes() {
+        coordinator.runEnablePINFlowWithSecurityQuestion { _ in }
+        // PIN step: user enters and confirms a valid PIN.
+        presenter.tap(1, values: ["abcd", "abcd"])
+        // Now we're on the question step but haven't saved yet —
+        // simulating a force-quit window. PIN must NOT be in the store.
+        XCTAssertFalse(store.hasPIN,
+                       "PIN must not be saved until the question step completes")
+        XCTAssertFalse(store.hasSecurityQuestion)
+        // Show we're parked at the question step.
+        XCTAssertEqual(presenter.presentations.count, 2)
+        XCTAssertEqual(presenter.presentations[1].config.title, "Set a Security Question")
+    }
+
+    func testRunEnablePINWithQuestion_PINNotSaved_WhileQuestionStepCycles() {
+        coordinator.runEnablePINFlowWithSecurityQuestion { _ in }
+        presenter.tap(1, values: ["abcd", "abcd"])
+        // Question step cycles on empty input — still no PIN persisted.
+        presenter.tap(0, values: ["First pet?", ""])
+        XCTAssertFalse(store.hasPIN,
+                       "PIN must remain unsaved while the question step is still cycling")
+        XCTAssertFalse(store.hasSecurityQuestion)
+    }
+
+    func testRunEnablePINWithQuestion_PINAndQuestionPersisted_Atomically() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+        presenter.tap(1, values: ["abcd", "abcd"])
+        XCTAssertFalse(store.hasPIN, "no PIN yet — question step still pending")
+        // Complete the question step.
+        presenter.tap(0, values: ["First pet?", "Fido"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.hasPIN, "PIN persisted alongside the question")
+        XCTAssertTrue(store.hasSecurityQuestion)
+        XCTAssertTrue(store.verifyPIN("abcd"))
+        // Recovery path also works — question is genuinely usable, not just present.
+        XCTAssertNoThrow(try store.resetPIN(securityAnswer: "Fido"))
+    }
+
+    /// `runEnablePINFlow` (no question step) still saves the PIN
+    /// immediately — preserves backwards-compatibility for tests/callers
+    /// that explicitly opt out of the security-question chain.
+    func testRunEnablePINFlow_NoQuestionStep_PINSavedImmediately() {
+        var completion: Bool?
+        coordinator.runEnablePINFlow { completion = $0 }
+        presenter.tap(1, values: ["abcd", "abcd"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.hasPIN)
+        XCTAssertFalse(store.hasSecurityQuestion,
+                       "no question step ran — store reflects exactly that")
+    }
+}
+
+// MARK: - runCompleteSecurityQuestionFlow (orphan-state recovery)
+
+/// Recovery flow for users in the orphan PIN-without-question state
+/// (force-quit during the original Set PIN flow before transactional
+/// save was added). Re-fires every reconcile until the user finishes
+/// the question step. No Cancel — once a PIN exists, the recovery
+/// path must be set up.
+final class PINCompleteSecurityQuestionTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: PanelStore!
+    var defaults: UserDefaults!
+    var presenter: TestPINPresenter!
+    var coordinator: PINPromptCoordinator!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PINCompleteSecQ-\(UUID().uuidString)")
+        store = PanelStore(directory: tempDir, keyValueStore: MemoryKeyValueStore())
+        let suite = "PINCompleteSecQTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        presenter = TestPINPresenter()
+        coordinator = PINPromptCoordinator(store: store,
+                                           defaults: defaults,
+                                           presenter: presenter)
+        // Seed orphan state: PIN, no question.
+        store.setPIN("1234")
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    func testCompleteSecQ_OnlySaveButton_NoCancel() {
+        coordinator.runCompleteSecurityQuestionFlow { _ in }
+        XCTAssertEqual(presenter.presentations.count, 1)
+        let cfg = presenter.presentations[0].config
+        XCTAssertEqual(cfg.title, "Finish PIN Setup")
+        XCTAssertEqual(cfg.buttons.map(\.title), ["Save"],
+                       "no Cancel — recovery is mandatory once a PIN exists")
+    }
+
+    func testCompleteSecQ_Save_PersistsQuestion_PreservesPIN() {
+        var completion: Bool?
+        coordinator.runCompleteSecurityQuestionFlow { completion = $0 }
+        presenter.tap(0, values: ["Street?", "Maple"])
+        XCTAssertEqual(completion, true)
+        XCTAssertTrue(store.hasSecurityQuestion)
+        XCTAssertEqual(store.securityQuestion, "Street?")
+        XCTAssertTrue(store.verifyPIN("1234"),
+                      "original PIN must remain intact through the question-only save")
+        XCTAssertNoThrow(try store.resetPIN(securityAnswer: "Maple"))
+    }
+
+    func testCompleteSecQ_OneEmpty_Cycles() {
+        var completion: Bool?
+        coordinator.runCompleteSecurityQuestionFlow { completion = $0 }
+        presenter.tap(0, values: ["Street?", ""])
+        XCTAssertNil(completion, "empty answer must cycle, not complete")
+        XCTAssertEqual(presenter.presentations.count, 2)
+        XCTAssertTrue(presenter.presentations[1].config.message.lowercased().contains("required"))
+        XCTAssertEqual(presenter.presentations[1].config.fields[0].prefilledText, "Street?")
+        XCTAssertFalse(store.hasSecurityQuestion)
+    }
+
+    func testCompleteSecQ_BothEmpty_Cycles() {
+        var completion: Bool?
+        coordinator.runCompleteSecurityQuestionFlow { completion = $0 }
+        presenter.tap(0, values: ["", ""])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 2)
+        XCTAssertFalse(store.hasSecurityQuestion)
+    }
 }
 
 // MARK: - PINVerifyCoordinator
@@ -2356,13 +2493,13 @@ final class SettingsReconcilerTests: XCTestCase {
     }
 
     func testDontWantPIN_ButPINSet_ReturnsDisablePIN() {
-        store.setPIN("1234")
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
         defaults.set(false, forKey: "pin_enabled")
         XCTAssertEqual(reconciler.reconcile(), [.disablePIN])
     }
 
     func testWantPIN_AndPINSet_NoEffect() {
-        store.setPIN("1234")
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
         defaults.set(true, forKey: "pin_enabled")
         XCTAssertEqual(reconciler.reconcile(), [])
     }
@@ -2375,7 +2512,7 @@ final class SettingsReconcilerTests: XCTestCase {
     // MARK: change PIN (one-shot)
 
     func testChangePIN_WithPINSet_ReturnsChangePIN_AndClearsToggle() {
-        store.setPIN("1234")
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
         defaults.set(true, forKey: "pin_enabled")
         defaults.set(true, forKey: "change_pin")
         XCTAssertEqual(reconciler.reconcile(), [.changePIN])
@@ -2415,7 +2552,7 @@ final class SettingsReconcilerTests: XCTestCase {
         // change_pin=true, hasPIN=true → changePIN
         // (intentionally weird state — both would be a contradiction in
         // practice, but we want a deterministic order if it happens)
-        store.setPIN("1234")
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
         defaults.set(false, forKey: "pin_enabled")
         defaults.set(true, forKey: "change_pin")
         XCTAssertEqual(reconciler.reconcile(), [.disablePIN, .changePIN])
@@ -2424,9 +2561,9 @@ final class SettingsReconcilerTests: XCTestCase {
     // MARK: idempotency — one-shot toggles don't fire twice
 
     func testTogglesNotFireTwice_OnConsecutiveReconciles() {
-        // Consistent baseline: pin_enabled=true, hasPIN=true (no enable/
-        // disable effect from this pair). Then add the one-shot toggles.
-        store.setPIN("1234")
+        // Consistent baseline: pin_enabled=true, hasPIN=true, hasSecurityQuestion=true
+        // (no enable/disable/orphan-recovery effect). Then add the one-shot toggles.
+        store.setPIN("1234", securityQuestion: "Pet?", securityAnswer: "Fido")
         defaults.set(true, forKey: "pin_enabled")
         defaults.set(true, forKey: "change_pin")
         defaults.set(true, forKey: "pending_clear_all")
@@ -2434,6 +2571,44 @@ final class SettingsReconcilerTests: XCTestCase {
         XCTAssertEqual(reconciler.reconcile(), [.changePIN, .clearAllData])
         XCTAssertEqual(reconciler.reconcile(), [],
                        "second reconcile must be a no-op once one-shot toggles are cleared")
+    }
+
+    // MARK: orphan-state recovery (PIN saved but no security question)
+
+    /// Force-quit between PIN step and question step in pre-transactional
+    /// builds left the store with a PIN and no question. Forgot PIN now
+    /// requires a question, so without recovery the user is locked out.
+    func testOrphanPINNoQuestion_FiresCompleteSecurityQuestion() {
+        // setPIN(_:) without question/answer = the orphan state.
+        store.setPIN("1234")
+        defaults.set(true, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [.completeSecurityQuestion])
+    }
+
+    func testOrphanPIN_FiresEveryReconcile_UntilQuestionAdded() {
+        store.setPIN("1234")
+        defaults.set(true, forKey: "pin_enabled")
+        // Mandatory: re-fires until satisfied.
+        XCTAssertEqual(reconciler.reconcile(), [.completeSecurityQuestion])
+        XCTAssertEqual(reconciler.reconcile(), [.completeSecurityQuestion])
+        store.setSecurityQuestion("Pet?", answer: "Fido")
+        XCTAssertEqual(reconciler.reconcile(), [],
+                       "completing the question step satisfies the recovery effect")
+    }
+
+    func testOrphanPIN_DoesNotFire_WhenWantDisable() {
+        // wantEnabled=false → user is in the disable flow; don't pile a
+        // recovery prompt on top. disablePIN clears the orphan anyway.
+        store.setPIN("1234")
+        defaults.set(false, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [.disablePIN])
+    }
+
+    func testOrphanPIN_DoesNotFire_WhenNoPIN() {
+        // No PIN, even with pin_enabled=true → enablePIN, not orphan
+        // recovery. The branches are mutually exclusive.
+        defaults.set(true, forKey: "pin_enabled")
+        XCTAssertEqual(reconciler.reconcile(), [.enablePIN])
     }
 }
 

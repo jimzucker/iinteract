@@ -367,21 +367,31 @@ final class PINPromptCoordinator {
         self.presenter = presenter
     }
 
-    /// Cycling set-PIN flow with confirmation. On every invalid-input
-    /// path the alert is re-presented with the user's typed values
-    /// prefilled and an explicit error message — Cancel is the only
-    /// way out, on which `pin_enabled` is reverted to false.
-    /// `onComplete(true)` after a successful set; `onComplete(false)`
-    /// after Cancel.
+    /// Cycling set-PIN flow with confirmation. Saves the PIN immediately
+    /// on success — used by tests and any future caller that doesn't
+    /// chain a security-question step. Production code uses
+    /// `runEnablePINFlowWithSecurityQuestion`, which keeps the PIN in
+    /// memory until the question step also completes (transactional).
     func runEnablePINFlow(onComplete: @escaping (Bool) -> Void) {
-        runEnablePIN(prefillPIN: "", prefillConfirm: "",
-                     errorMessage: nil, onComplete: onComplete)
+        runEnablePINBare(prefillPIN: "", prefillConfirm: "",
+                         errorMessage: nil) { [weak self] pin in
+            guard let self = self, let pin = pin else {
+                onComplete(false)
+                return
+            }
+            self.store.setPIN(pin)
+            onComplete(true)
+        }
     }
 
-    private func runEnablePIN(prefillPIN: String,
-                              prefillConfirm: String,
-                              errorMessage: String?,
-                              onComplete: @escaping (Bool) -> Void) {
+    /// PIN+Confirm cycling without saving. Caller receives the validated
+    /// PIN (or nil for Cancel) and decides whether/when to persist it.
+    /// Cancel reverts `pin_enabled` to false — that side effect is
+    /// inherent to the flow even though saving isn't.
+    private func runEnablePINBare(prefillPIN: String,
+                                  prefillConfirm: String,
+                                  errorMessage: String?,
+                                  onResult: @escaping (String?) -> Void) {
         let config = PINAlertConfig(
             title: "Set PIN",
             message: composeSetPINMessage(error: errorMessage),
@@ -404,31 +414,28 @@ final class PINPromptCoordinator {
             guard let self = self else { return }
             switch result {
             case .forgotPIN:
-                // Set-PIN flow doesn't expose Forgot PIN — config has
-                // forgotPINButtonTitle = nil — but be defensive.
-                return
+                return  // not exposed in this flow
             case .buttonTapped(let buttonIndex, let values):
                 if buttonIndex == 0 {  // Cancel
                     self.defaults.set(false, forKey: "pin_enabled")
                     self.defaults.synchronize()
-                    onComplete(false)
+                    onResult(nil)
                     return
                 }
                 let pin = values.indices.contains(0) ? values[0] : ""
                 let confirm = values.indices.contains(1) ? values[1] : ""
                 if !PINPolicy.isValid(pin) {
-                    self.runEnablePIN(prefillPIN: pin,
-                                      prefillConfirm: confirm,
-                                      errorMessage: PINPolicy.invalidMessage,
-                                      onComplete: onComplete)
+                    self.runEnablePINBare(prefillPIN: pin,
+                                          prefillConfirm: confirm,
+                                          errorMessage: PINPolicy.invalidMessage,
+                                          onResult: onResult)
                 } else if pin != confirm {
-                    self.runEnablePIN(prefillPIN: pin,
-                                      prefillConfirm: confirm,
-                                      errorMessage: "PINs didn't match. Try again.",
-                                      onComplete: onComplete)
+                    self.runEnablePINBare(prefillPIN: pin,
+                                          prefillConfirm: confirm,
+                                          errorMessage: "PINs didn't match. Try again.",
+                                          onResult: onResult)
                 } else {
-                    self.store.setPIN(pin)
-                    onComplete(true)
+                    onResult(pin)
                 }
             }
         }
@@ -456,19 +463,32 @@ final class PINPromptCoordinator {
     /// no PIN" — if they really want to back out they cancel at the
     /// PIN step.
     func runEnablePINFlowWithSecurityQuestion(onComplete: @escaping (Bool) -> Void) {
-        runEnablePINFlow { [weak self] pinSet in
-            guard let self = self, pinSet else {
+        // PIN is held in memory through the question step. setPIN with
+        // both PIN + question/answer is called atomically at the end —
+        // a force-quit between the two steps must not leave the user
+        // with a saved PIN but no recovery question (they'd be
+        // permanently locked out if they ever forgot the PIN, since
+        // security question is the ONLY Forgot-PIN path).
+        runEnablePINBare(prefillPIN: "", prefillConfirm: "",
+                         errorMessage: nil) { [weak self] pin in
+            guard let self = self, let pin = pin else {
                 onComplete(false)
                 return
             }
-            self.runSecurityQuestionPrompt(prefillQuestion: "",
+            self.runSecurityQuestionPrompt(pin: pin,
+                                           prefillQuestion: "",
                                            prefillAnswer: "",
                                            errorMessage: nil,
                                            onComplete: onComplete)
         }
     }
 
-    private func runSecurityQuestionPrompt(prefillQuestion: String,
+    /// Question step of the new-PIN flow. `pin` is held by the caller
+    /// (via this closure-chain). On Save with both fields filled,
+    /// `setPIN(pin, securityQuestion:, securityAnswer:)` saves both
+    /// atomically. Cycles on empty input.
+    private func runSecurityQuestionPrompt(pin: String,
+                                           prefillQuestion: String,
                                            prefillAnswer: String,
                                            errorMessage: String?,
                                            onComplete: @escaping (Bool) -> Void) {
@@ -509,10 +529,75 @@ final class PINPromptCoordinator {
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if q.isEmpty || a.isEmpty {
                     // Cycle on empty input — user must fill both.
-                    self.runSecurityQuestionPrompt(prefillQuestion: q,
+                    self.runSecurityQuestionPrompt(pin: pin,
+                                                   prefillQuestion: q,
                                                    prefillAnswer: a,
                                                    errorMessage: "Both Question and Answer are required.",
                                                    onComplete: onComplete)
+                    return
+                }
+                // Atomic: PIN + question/answer in one store write.
+                self.store.setPIN(pin, securityQuestion: q, securityAnswer: a)
+                onComplete(true)
+            }
+        }
+    }
+
+    /// Recovery flow for users in the orphan state (PIN saved but no
+    /// security question — e.g. force-quit during the original setup).
+    /// Same UI as the question step inside Set PIN, but calls
+    /// `setSecurityQuestion` (no PIN change) since the PIN is already
+    /// in place. Mandatory completion (no Cancel) — once the user
+    /// committed to a PIN they need a recovery path.
+    func runCompleteSecurityQuestionFlow(onComplete: @escaping (Bool) -> Void) {
+        runStandaloneSecurityQuestion(prefillQuestion: "", prefillAnswer: "",
+                                       errorMessage: nil, onComplete: onComplete)
+    }
+
+    private func runStandaloneSecurityQuestion(prefillQuestion: String,
+                                               prefillAnswer: String,
+                                               errorMessage: String?,
+                                               onComplete: @escaping (Bool) -> Void) {
+        var lines = [
+            "You set a PIN earlier but didn't finish the recovery question.",
+            "Add one now — it's the only way to reset your PIN if you forget it."
+        ]
+        if let err = errorMessage {
+            lines.insert(err, at: 0)
+            lines.insert("", at: 1)
+        }
+        let config = PINAlertConfig(
+            title: "Finish PIN Setup",
+            message: lines.joined(separator: "\n"),
+            fields: [
+                .init(placeholder: "Question (e.g. Mother's maiden name)",
+                      prefilledText: prefillQuestion,
+                      isSecureEntry: false,
+                      attachShowToggle: false),
+                .init(placeholder: "Answer",
+                      prefilledText: prefillAnswer,
+                      isSecureEntry: false,
+                      attachShowToggle: false),
+            ],
+            buttons: [
+                .init(title: "Save", style: .default),
+            ]
+        )
+        presenter?.presentPINAlert(config) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .forgotPIN:
+                return
+            case .buttonTapped(_, let values):
+                let q = (values.indices.contains(0) ? values[0] : "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let a = (values.indices.contains(1) ? values[1] : "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if q.isEmpty || a.isEmpty {
+                    self.runStandaloneSecurityQuestion(prefillQuestion: q,
+                                                        prefillAnswer: a,
+                                                        errorMessage: "Both Question and Answer are required.",
+                                                        onComplete: onComplete)
                     return
                 }
                 self.store.setSecurityQuestion(q, answer: a)
@@ -764,6 +849,13 @@ final class SettingsReconciler {
         case enablePIN
         case disablePIN
         case changePIN
+        /// Orphan-state recovery: PIN exists but no security question
+        /// (force-quit during the Set PIN flow before the question step
+        /// completed). Forgot PIN now requires a question, so without
+        /// this re-prompt the user would be permanently locked out if
+        /// they ever forgot the PIN. Effect fires every reconcile until
+        /// the user finishes the question step.
+        case completeSecurityQuestion
         case clearAllData
     }
 
@@ -789,6 +881,10 @@ final class SettingsReconciler {
             effects.append(.enablePIN)
         } else if !wantEnabled && hasPIN {
             effects.append(.disablePIN)
+        } else if wantEnabled && hasPIN && !store.hasSecurityQuestion {
+            // Orphan: PIN exists but no question — finish the setup so
+            // the user has a Forgot-PIN recovery path.
+            effects.append(.completeSecurityQuestion)
         }
 
         // Change PIN — fire-and-forget toggle. Clear immediately so it
