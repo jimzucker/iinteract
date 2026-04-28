@@ -605,20 +605,8 @@ final class InteractionEditorViewController: UITableViewController,
         reloadSectionWhenSafe(.picture)
     }
 
-    /// Calls `tableView.reloadSections` once the view is back in a
-    /// window. If we're not in a window yet, defers via async to next
-    /// runloop. Used for reloads triggered from async callbacks
-    /// (PHPicker, AVAudioRecorder) that may race the modal dismiss.
     private func reloadSectionWhenSafe(_ section: Section) {
-        if isViewLoaded, view.window != nil {
-            tableView.reloadSections([section.rawValue], with: .none)
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self,
-                      self.isViewLoaded, self.view.window != nil else { return }
-                self.tableView.reloadSections([section.rawValue], with: .none)
-            }
-        }
+        safeReloadSections([section.rawValue], with: .none)
     }
 
     // PHPickerViewControllerDelegate

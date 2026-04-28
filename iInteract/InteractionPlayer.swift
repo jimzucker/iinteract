@@ -38,13 +38,17 @@ final class InteractionPlayer {
         let preferred: URL? = (voiceStyle == "girl") ? interaction.girlSound : interaction.boySound
         let fallback:  URL? = (voiceStyle == "girl") ? interaction.boySound  : interaction.girlSound
         guard let url = preferred ?? fallback else {
+            #if DEBUG
             print("InteractionPlayer: no audio recorded for \(interaction.name ?? "?")")
+            #endif
             return minimum
         }
         // For user files (not bundled), verify the path is on disk so we
         // surface a clearer error than AVAudioPlayer's generic OSStatus.
         if url.isFileURL && !FileManager.default.fileExists(atPath: url.path) {
+            #if DEBUG
             print("InteractionPlayer: file missing at \(url.path)")
+            #endif
             return minimum
         }
 
@@ -56,7 +60,9 @@ final class InteractionPlayer {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
+            #if DEBUG
             print("InteractionPlayer: AVAudioSession setup failed: \(error)")
+            #endif
         }
 
         do {
@@ -66,7 +72,9 @@ final class InteractionPlayer {
             player.play()
             return max(player.duration, minimum)
         } catch {
+            #if DEBUG
             print("InteractionPlayer: AVAudioPlayer failed for \(url.lastPathComponent): \(error)")
+            #endif
             return minimum
         }
     }

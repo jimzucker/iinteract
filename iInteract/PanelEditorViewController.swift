@@ -342,7 +342,10 @@ final class PanelEditorViewController: UITableViewController,
             } else {
                 self.workingPanel.interactions.append(interaction)
             }
-            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+            // onSave may fire just as InteractionEditor pops back —
+            // defer through safeReloadSections so we don't trigger
+            // the off-screen-layout warning during the transition.
+            self.safeReloadSections([Section.interactions.rawValue])
         }
         navigationController?.pushViewController(editor, animated: true)
     }
@@ -427,7 +430,9 @@ final class PanelEditorViewController: UITableViewController,
             else { return }
             let removed = self.workingPanel.interactions.remove(at: row)
             try? self.store.trashInteraction(removed, fromPanelID: self.workingPanel.id)
-            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+            // Alert dismiss animation overlaps this handler — use the
+            // safe variant so we don't reload mid-transition.
+            self.safeReloadSections([Section.interactions.rawValue])
         })
         present(alert, animated: true)
     }

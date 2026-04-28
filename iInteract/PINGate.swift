@@ -69,6 +69,27 @@ enum PINPolicy {
     }
 }
 
+extension UITableViewController {
+    /// `tableView.reloadSections` that defers to the next runloop if
+    /// the view isn't in a window yet — avoids "UITableView was told
+    /// to layout … outside the view hierarchy" warnings when reloads
+    /// fire from async callbacks (PHPicker, AVAudioRecorder, alert
+    /// dismiss handlers) that race a transition animation.
+    func safeReloadSections(_ sections: [Int],
+                            with animation: UITableView.RowAnimation = .automatic) {
+        let indexSet = IndexSet(sections)
+        if isViewLoaded, view.window != nil {
+            tableView.reloadSections(indexSet, with: animation)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self,
+                      self.isViewLoaded, self.view.window != nil else { return }
+                self.tableView.reloadSections(indexSet, with: animation)
+            }
+        }
+    }
+}
+
 extension UITextField {
     /// Adds a trailing eye toggle that flips `isSecureTextEntry` between
     /// hidden (default) and visible. Use on every PIN entry field so the

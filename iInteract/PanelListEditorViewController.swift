@@ -278,7 +278,9 @@ final class PanelListEditorViewController: UITableViewController {
                                           with: .automatic)
                 self.trashCount = self.store.trashedItems().count
                 if let trashIndex = self.visibleSections.firstIndex(of: .trash) {
-                    self.tableView.reloadSections([trashIndex], with: .none)
+                    // Alert is mid-dismiss; use safe variant so the
+                    // reload defers past the transition if needed.
+                    self.safeReloadSections([trashIndex], with: .none)
                 }
             } catch {
                 let a = UIAlertController(title: "Couldn't Delete", message: "\(error)",
