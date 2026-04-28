@@ -53,6 +53,7 @@
 		E409F84B90774C306773919D /* TrashViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948C3F6D42C555364F9C25FA /* TrashViewController.swift */; };
 		E73FBA0D861A3B54CA9F4BD4 /* WatchSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E66F726B2D4B5EB44AA716 /* WatchSync.swift */; };
 		E8238E4F6B2868DAE2439170 /* PlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */; };
+		EE4537F6E0A217A1FCC32146 /* AssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F76A89D7F9825DE3A86F06A /* AssetStore.swift */; };
 		FA69869249842A76B5EC8C54 /* iInteractUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E4633EED6B838FD6B63CCB /* iInteractUITests.swift */; };
 /* End PBXBuildFile section */
 
@@ -118,6 +119,7 @@
 		154AFF6CFD19463B4E90DA45 /* PanelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStore.swift; sourceTree = "<group>"; };
 		28E4633EED6B838FD6B63CCB /* iInteractUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = iInteractUITests.swift; sourceTree = "<group>"; };
 		2DD3B51CACC0DBA9B48C8A8C /* iInteractUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iInteractUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3F76A89D7F9825DE3A86F06A /* AssetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssetStore.swift; sourceTree = "<group>"; };
 		5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelListEditorViewController.swift; sourceTree = "<group>"; };
 		6D0D7D6F1BFBE3C1002B9090 /* iInteract.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iInteract.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D0D7D721BFBE3C1002B9090 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -272,6 +274,7 @@
 				E8E66F726B2D4B5EB44AA716 /* WatchSync.swift */,
 				948C3F6D42C555364F9C25FA /* TrashViewController.swift */,
 				EE3FBE4ABFF95A8A93243304 /* PINGate.swift */,
+				3F76A89D7F9825DE3A86F06A /* AssetStore.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -562,6 +565,7 @@
 				E73FBA0D861A3B54CA9F4BD4 /* WatchSync.swift in Sources */,
 				E409F84B90774C306773919D /* TrashViewController.swift in Sources */,
 				E366C6CA702E99AFB19C2E54 /* PINGate.swift in Sources */,
+				EE4537F6E0A217A1FCC32146 /* AssetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -73,20 +73,6 @@ final class PanelStore {
         case assetWriteFailed
     }
 
-    enum AssetKind {
-        case picture
-        case boyAudio
-        case girlAudio
-
-        var fileSuffix: String {
-            switch self {
-            case .picture:   return ".jpg"
-            case .boyAudio:  return ".boy.m4a"
-            case .girlAudio: return ".girl.m4a"
-            }
-        }
-    }
-
     enum Voice {
         case boy, girl
         var assetKind: AssetKind { self == .boy ? .boyAudio : .girlAudio }
@@ -95,13 +81,16 @@ final class PanelStore {
     private let directory: URL
     private let kvs: KeyValueStorage
     private let iCloudAvailability: () -> Bool
+    private let assetStore: AssetStore
 
     init(directory: URL,
          keyValueStore: KeyValueStorage,
-         iCloudAvailability: @escaping () -> Bool = { false }) {
+         iCloudAvailability: @escaping () -> Bool = { false },
+         assetStore: AssetStore? = nil) {
         self.directory = directory
         self.kvs = keyValueStore
         self.iCloudAvailability = iCloudAvailability
+        self.assetStore = assetStore ?? LocalFSAssetStore(parentDirectory: directory)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 
@@ -115,17 +104,18 @@ final class PanelStore {
     private var panelsURL: URL { directory.appendingPathComponent("panels.json") }
     private var layoutURL: URL { directory.appendingPathComponent("layout.json") }
 
-    /// Folder for user-recorded audio + chosen pictures, keyed by interaction id.
-    var assetsDirectory: URL {
-        let url = directory.appendingPathComponent("UserAssets", isDirectory: true)
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
-    }
+    /// Folder for user-recorded audio + chosen pictures. Exposed
+    /// because the trash/restore flow operates on raw URLs (move file
+    /// out of the active dir into a per-trash-item folder, and back on
+    /// restore). Delegates to the injected AssetStore so production
+    /// uses local FS today and a CloudKit-backed cache directory in
+    /// a future release.
+    var assetsDirectory: URL { assetStore.rootDirectory }
 
     /// File URL for a user interaction's asset, used both for reading on
     /// hydrate and for AVAudioRecorder/JPEG writes during editing.
     func assetURL(for interactionID: UUID, kind: AssetKind) -> URL {
-        assetsDirectory.appendingPathComponent("\(interactionID.uuidString)\(kind.fileSuffix)")
+        assetStore.url(for: kind, id: interactionID)
     }
 
     /// Reattaches picture and audio URLs to a freshly-decoded user interaction
@@ -133,17 +123,15 @@ final class PanelStore {
     /// already set by Interaction.init(interactionName:)).
     func hydrate(_ interaction: Interaction) {
         guard !interaction.isBuiltIn else { return }
-        let picURL = assetURL(for: interaction.id, kind: .picture)
-        if FileManager.default.fileExists(atPath: picURL.path) {
-            interaction.picture = UIImage(contentsOfFile: picURL.path)
+        if assetStore.exists(.picture, id: interaction.id) {
+            interaction.picture = UIImage(contentsOfFile: assetStore.url(for: .picture,
+                                                                          id: interaction.id).path)
         }
-        let boyURL = assetURL(for: interaction.id, kind: .boyAudio)
-        if FileManager.default.fileExists(atPath: boyURL.path) {
-            interaction.boySound = boyURL
+        if assetStore.exists(.boyAudio, id: interaction.id) {
+            interaction.boySound = assetStore.url(for: .boyAudio, id: interaction.id)
         }
-        let girlURL = assetURL(for: interaction.id, kind: .girlAudio)
-        if FileManager.default.fileExists(atPath: girlURL.path) {
-            interaction.girlSound = girlURL
+        if assetStore.exists(.girlAudio, id: interaction.id) {
+            interaction.girlSound = assetStore.url(for: .girlAudio, id: interaction.id)
         }
     }
 
@@ -158,14 +146,12 @@ final class PanelStore {
         guard let data = image.jpegData(compressionQuality: 0.85) else {
             throw StoreError.assetWriteFailed
         }
-        try data.write(to: assetURL(for: id, kind: .picture), options: .atomic)
+        try assetStore.write(data, kind: .picture, id: id)
     }
 
     /// Removes all asset files for an interaction. Safe if files don't exist.
     func deleteInteractionAssets(id: UUID) {
-        for kind in [AssetKind.picture, .boyAudio, .girlAudio] {
-            try? FileManager.default.removeItem(at: assetURL(for: id, kind: kind))
-        }
+        assetStore.deleteAll(id: id)
     }
 
     // MARK: - KVS keys for synced metadata
@@ -737,12 +723,7 @@ final class PanelStore {
     func clearAllUserData() {
         try? FileManager.default.removeItem(at: panelsURL)
         try? FileManager.default.removeItem(at: layoutURL)
-        if let entries = try? FileManager.default.contentsOfDirectory(at: assetsDirectory,
-                                                                       includingPropertiesForKeys: nil) {
-            for url in entries {
-                try? FileManager.default.removeItem(at: url)
-            }
-        }
+        assetStore.deleteEverything()
         emptyTrash()
         clearPIN()
         kvs.removeObject(forKey: Self.kvsPanelsKey)

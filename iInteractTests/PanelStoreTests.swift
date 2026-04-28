@@ -2743,3 +2743,115 @@ final class PINHashKVSObserverTests: XCTestCase {
         XCTAssertTrue(UserDefaults.standard.bool(forKey: Self.pinEnabledKey))
     }
 }
+
+// MARK: - LocalFSAssetStore (v3.1.0 — extracted from PanelStore)
+
+/// Direct tests for the AssetStore protocol's local-FS implementation.
+/// PanelStore's existing tests already exercise this via delegation;
+/// these target the protocol surface directly so the contract is
+/// pinned for the planned CloudKit implementation in v3.1.1+ (see
+/// docs/CLOUDKIT_MIGRATION.md).
+final class LocalFSAssetStoreTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: LocalFSAssetStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("LocalFSAssetStore-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        store = LocalFSAssetStore(parentDirectory: tempDir)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    func testRootDirectory_CreatedUnderParent() {
+        XCTAssertEqual(store.rootDirectory.lastPathComponent, "UserAssets")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.rootDirectory.path))
+    }
+
+    func testURL_DeterministicByIDAndKind() {
+        let id = UUID()
+        let pic = store.url(for: .picture, id: id)
+        XCTAssertEqual(pic.lastPathComponent, "\(id.uuidString).jpg")
+        XCTAssertEqual(store.url(for: .boyAudio, id: id).lastPathComponent,
+                       "\(id.uuidString).boy.m4a")
+        XCTAssertEqual(store.url(for: .girlAudio, id: id).lastPathComponent,
+                       "\(id.uuidString).girl.m4a")
+    }
+
+    func testExists_FalseUntilWritten_TrueAfterWrite() throws {
+        let id = UUID()
+        XCTAssertFalse(store.exists(.picture, id: id))
+        try store.write(Data([0xff, 0xd8]), kind: .picture, id: id)
+        XCTAssertTrue(store.exists(.picture, id: id))
+    }
+
+    func testWrite_AtomicallyReplacesExistingFile() throws {
+        let id = UUID()
+        try store.write(Data("first".utf8), kind: .boyAudio, id: id)
+        try store.write(Data("second".utf8), kind: .boyAudio, id: id)
+        let read = try Data(contentsOf: store.url(for: .boyAudio, id: id))
+        XCTAssertEqual(String(data: read, encoding: .utf8), "second")
+    }
+
+    func testDelete_SingleKind_LeavesOthersIntact() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        try store.write(Data([0x02]), kind: .boyAudio, id: id)
+        try store.write(Data([0x03]), kind: .girlAudio, id: id)
+        store.delete(.boyAudio, id: id)
+        XCTAssertTrue(store.exists(.picture, id: id))
+        XCTAssertFalse(store.exists(.boyAudio, id: id))
+        XCTAssertTrue(store.exists(.girlAudio, id: id))
+    }
+
+    func testDelete_NoOp_OnMissingFile() {
+        // Must not throw / crash when nothing is on disk.
+        store.delete(.picture, id: UUID())
+    }
+
+    func testDeleteAll_RemovesAllThreeKinds() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        try store.write(Data([0x02]), kind: .boyAudio, id: id)
+        try store.write(Data([0x03]), kind: .girlAudio, id: id)
+        store.deleteAll(id: id)
+        XCTAssertFalse(store.exists(.picture, id: id))
+        XCTAssertFalse(store.exists(.boyAudio, id: id))
+        XCTAssertFalse(store.exists(.girlAudio, id: id))
+    }
+
+    func testDeleteAll_OnlyAffectsTargetID() throws {
+        let keep = UUID(), wipe = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: keep)
+        try store.write(Data([0x02]), kind: .picture, id: wipe)
+        store.deleteAll(id: wipe)
+        XCTAssertTrue(store.exists(.picture, id: keep))
+        XCTAssertFalse(store.exists(.picture, id: wipe))
+    }
+
+    func testDeleteEverything_WipesAllInteractions() throws {
+        try store.write(Data([0x01]), kind: .picture, id: UUID())
+        try store.write(Data([0x02]), kind: .boyAudio, id: UUID())
+        try store.write(Data([0x03]), kind: .girlAudio, id: UUID())
+        store.deleteEverything()
+        let remaining = try FileManager.default.contentsOfDirectory(at: store.rootDirectory,
+                                                                    includingPropertiesForKeys: nil)
+        XCTAssertEqual(remaining, [])
+    }
+
+    /// Regression: PanelStore.assetURL must continue to return the same
+    /// URL the store wrote to — callers like AVAudioRecorder hold onto
+    /// the URL from a previous call and expect a subsequent read to hit
+    /// it. Equivalent to: round-trip URL stability across calls.
+    func testURL_StableAcrossCalls_ForSameIDAndKind() {
+        let id = UUID()
+        XCTAssertEqual(store.url(for: .picture, id: id),
+                       store.url(for: .picture, id: id))
+    }
+}
