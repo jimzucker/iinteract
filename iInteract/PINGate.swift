@@ -10,6 +10,7 @@
 //
 
 import UIKit
+import LocalAuthentication
 
 /// Pure-logic helpers for reading iOS-Settings flags that drive UI
 /// state (gear visibility, etc.). Extracted so the read paths are
@@ -209,6 +210,41 @@ extension UIViewController {
         let sheet = UIAlertController(title: "Reset PIN",
                                       message: "Choose how to reset your PIN.",
                                       preferredStyle: .actionSheet)
+        // Biometric reset is the strongest "you are this device's owner"
+        // signal we can ask for without violating Apple's no-Apple-ID-
+        // password rule. Only offered when the device has biometrics
+        // enrolled; falls back to the existing iCloud + security
+        // question paths.
+        let biometryContext = LAContext()
+        var biometryError: NSError?
+        if biometryContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
+                                              error: &biometryError) {
+            let title: String
+            switch biometryContext.biometryType {
+            case .faceID:  title = "Reset with Face ID"
+            case .touchID: title = "Reset with Touch ID"
+            case .opticID: title = "Reset with Optic ID"
+            default:       title = "Reset with Biometrics"
+            }
+            sheet.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                let reason = "Confirm it's you to reset your PIN."
+                biometryContext.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
+                                                localizedReason: reason) { success, _ in
+                    DispatchQueue.main.async {
+                        if success {
+                            store.clearPIN()
+                            onReset()
+                        } else {
+                            self?.presentSimpleInfoAlert(
+                                title: "Couldn't Reset",
+                                message: "Biometric verification didn't succeed. Try a different reset option.",
+                                onDismiss: onAbort
+                            )
+                        }
+                    }
+                }
+            })
+        }
         sheet.addAction(UIAlertAction(title: "Reset via iCloud Account", style: .default) { [weak self] _ in
             do {
                 try store.resetPINViaICloudAccount()
