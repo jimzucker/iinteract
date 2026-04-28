@@ -105,9 +105,13 @@ class FeelingTableViewController: UITableViewController {
     /// multiple concurrent retries via `pendingRetryScheduled` so we
     /// don't stack timers.
     private func applyPendingSettingsActions(retriesRemaining: Int = 5) {
-        if topmostPresenter().presentedViewController != nil {
-            guard retriesRemaining > 0 else { return }
-            guard !pendingRetryScheduled else { return }
+        let modalIsUp = topmostPresenter().presentedViewController != nil
+        switch PendingActionsDecision.decide(modalIsUp: modalIsUp,
+                                              pendingRetryScheduled: pendingRetryScheduled,
+                                              retriesRemaining: retriesRemaining) {
+        case .skip:
+            return
+        case .scheduleRetry:
             pendingRetryScheduled = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self = self else { return }
@@ -115,6 +119,8 @@ class FeelingTableViewController: UITableViewController {
                 self.applyPendingSettingsActions(retriesRemaining: retriesRemaining - 1)
             }
             return
+        case .fire:
+            break
         }
 
         let reconciler = SettingsReconciler()
@@ -504,8 +510,8 @@ class FeelingTableViewController: UITableViewController {
         // Hide the gear when iOS Settings → Hide Configuration is on, so
         // children don't see configuration exists. Parents toggle it off
         // in iOS Settings to bring it back.
-        let hideConfig = userDefaults.bool(forKey: "hide_config")
-        navigationItem.rightBarButtonItem = hideConfig ? nil : configurationButton
+        navigationItem.rightBarButtonItem = SettingsView.gearVisible(userDefaults)
+            ? configurationButton : nil
 
         if modeChanged && isViewLoaded {
             loadPanels()

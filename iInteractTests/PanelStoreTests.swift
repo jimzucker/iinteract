@@ -1606,6 +1606,69 @@ final class SettingsBundleKeyContractTests: XCTestCase {
                        "Settings.bundle keys drifted from the code contract — update both in lockstep")
     }
 
+    func testSettingsView_GearVisible_DefaultsToTrue() {
+        let suite = "GearVisible-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        XCTAssertTrue(SettingsView.gearVisible(d),
+                      "gear is visible by default (hide_config unset)")
+    }
+
+    func testSettingsView_GearVisible_FalseWhenHideConfigIsTrue() {
+        let suite = "GearVisible-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        d.set(true, forKey: "hide_config")
+        XCTAssertFalse(SettingsView.gearVisible(d))
+    }
+
+    func testSettingsView_GearVisible_TrueWhenHideConfigToggledBack() {
+        let suite = "GearVisible-\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        d.set(true, forKey: "hide_config")
+        d.set(false, forKey: "hide_config")
+        XCTAssertTrue(SettingsView.gearVisible(d),
+                      "runtime toggle off restores gear visibility on next read")
+    }
+
+    // MARK: PendingActionsDecision (modal-up retry)
+
+    func testPendingActions_NoModal_FiresImmediately() {
+        XCTAssertEqual(PendingActionsDecision.decide(modalIsUp: false,
+                                                      pendingRetryScheduled: false,
+                                                      retriesRemaining: 5),
+                       .fire)
+        // Even if a retry was pending, no modal up means we can fire now.
+        XCTAssertEqual(PendingActionsDecision.decide(modalIsUp: false,
+                                                      pendingRetryScheduled: true,
+                                                      retriesRemaining: 0),
+                       .fire)
+    }
+
+    func testPendingActions_ModalUp_FirstCall_SchedulesRetry() {
+        XCTAssertEqual(PendingActionsDecision.decide(modalIsUp: true,
+                                                      pendingRetryScheduled: false,
+                                                      retriesRemaining: 5),
+                       .scheduleRetry)
+    }
+
+    func testPendingActions_ModalUp_AlreadyScheduled_Skips() {
+        XCTAssertEqual(PendingActionsDecision.decide(modalIsUp: true,
+                                                      pendingRetryScheduled: true,
+                                                      retriesRemaining: 5),
+                       .skip,
+                       "coalesce: don't stack timers when one is already pending")
+    }
+
+    func testPendingActions_ModalUp_RetriesExhausted_Skips() {
+        XCTAssertEqual(PendingActionsDecision.decide(modalIsUp: true,
+                                                      pendingRetryScheduled: false,
+                                                      retriesRemaining: 0),
+                       .skip,
+                       "give up after maxRetries to avoid spinning forever")
+    }
+
     func testSettingsBundleKeys_UsedByCode() throws {
         // The reconciler reads pin_enabled / change_pin / pending_clear_all.
         // The VC reads voice_enabled / voice_style / hide_config.
@@ -1923,6 +1986,47 @@ final class PINVerifyCoordinatorTests: XCTestCase {
         presenter.tap(1, values: ["ab cd"])
         XCTAssertTrue(confirmed,
                       "PINPolicy.sanitize stripping is applied before verify so paste with whitespace works")
+    }
+
+    /// Production pattern (FeelingTableViewController.showPINGateForEditor):
+    /// Forgot PIN's onAbort closure re-creates a fresh coordinator and
+    /// re-runs the verify flow so the user isn't dead-ended after the
+    /// reset action sheet dismisses without a reset. This test simulates
+    /// that re-entry path at the coordinator level.
+    func testForgotPIN_AbortRePrompt_PresentsFreshVerifyAlert() {
+        var rebootCount = 0
+        // Retain successive coordinators so their handlers don't
+        // dealloc mid-flow (mirrors what showPINGateForEditor does
+        // via objc_setAssociatedObject in production).
+        var live: [PINVerifyCoordinator] = []
+
+        func runFresh() {
+            let fresh = PINVerifyCoordinator(store: store,
+                                             presenter: presenter,
+                                             now: { [unowned self] in self.clock },
+                                             defaults: defaults)
+            live.append(fresh)
+            fresh.runVerifyFlow(
+                title: "Open Configuration",
+                message: "Configuration is PIN-protected.",
+                actionTitle: "Configure",
+                actionStyle: .default,
+                onForgotPIN: {
+                    rebootCount += 1
+                    runFresh()  // simulates onAbort re-presenting the verify alert
+                },
+                onCancel: nil
+            ) {}
+        }
+        runFresh()
+
+        XCTAssertEqual(presenter.presentations.count, 1)
+        presenter.simulateForgotPIN()
+        XCTAssertEqual(rebootCount, 1)
+        XCTAssertEqual(presenter.presentations.count, 2,
+                       "after Forgot abort, fresh verify alert is presented again")
+        XCTAssertEqual(presenter.presentations[1].config.title, "Open Configuration",
+                       "re-prompt uses the same title as the original")
     }
 }
 

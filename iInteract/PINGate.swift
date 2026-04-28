@@ -11,6 +11,39 @@
 
 import UIKit
 
+/// Pure-logic helpers for reading iOS-Settings flags that drive UI
+/// state (gear visibility, etc.). Extracted so the read paths are
+/// unit-testable without instantiating a UIViewController.
+enum SettingsView {
+    /// True when the gear icon should be visible. False when the user
+    /// has set Hide Configuration in iOS Settings → iInteract.
+    static func gearVisible(_ defaults: UserDefaults = .standard) -> Bool {
+        !defaults.bool(forKey: "hide_config")
+    }
+}
+
+/// Pure decision for `applyPendingSettingsActions`'s modal-up retry
+/// policy. Extracted so the coalesce / max-retry behavior is testable
+/// without scheduling real timers.
+enum PendingActionsDecision: Equatable {
+    /// No modal up — fire the reconciler effects now.
+    case fire
+    /// Modal up and no retry pending — schedule a retry.
+    case scheduleRetry
+    /// Modal up but a retry is already pending OR retries exhausted —
+    /// drop this call (it would either stack timers or spin forever).
+    case skip
+
+    static func decide(modalIsUp: Bool,
+                       pendingRetryScheduled: Bool,
+                       retriesRemaining: Int) -> PendingActionsDecision {
+        if !modalIsUp { return .fire }
+        if pendingRetryScheduled { return .skip }
+        if retriesRemaining <= 0 { return .skip }
+        return .scheduleRetry
+    }
+}
+
 /// Length / charset rules for a user-chosen PIN. Existing PINs hashed
 /// under earlier rules (4-digit numeric, 4–6 alphanumeric) still verify
 /// because the store hashes whatever string is submitted; this only
@@ -532,7 +565,10 @@ final class PINPromptCoordinator {
     /// to true so iOS Settings reflects reality. Disable verifies the
     /// current PIN (via PINVerifyCoordinator); on success calls
     /// clearPIN(). Wrong PIN cycles via the verify coordinator's
-    /// 5-attempts + 60s lockout.
+    /// 5-attempts + 60s lockout. The inner verify coordinator is
+    /// retained as a property until the flow completes — without that
+    /// it gets deallocated mid-flow and the wrong/success handlers
+    /// silently no-op.
     func runDisablePINFlow(now: @escaping () -> Date = Date.init,
                            onComplete: @escaping (Bool) -> Void) {
         guard let presenter = presenter else { return }
@@ -540,6 +576,7 @@ final class PINPromptCoordinator {
                                           presenter: presenter,
                                           now: now,
                                           defaults: defaults)
+        activeVerifyCoordinator = verify
         verify.runVerifyFlow(
             title: "Disable PIN?",
             message: "Anyone using this device will be able to delete panels and clear data without entering a PIN.",
@@ -547,16 +584,23 @@ final class PINPromptCoordinator {
             actionStyle: .destructive,
             onForgotPIN: nil,
             onCancel: { [weak self] in
+                self?.activeVerifyCoordinator = nil
                 self?.defaults.set(true, forKey: "pin_enabled")
                 self?.defaults.synchronize()
                 onComplete(false)
             },
             onConfirm: { [weak self] in
+                self?.activeVerifyCoordinator = nil
                 self?.store.clearPIN()
                 onComplete(true)
             }
         )
     }
+
+    /// Strong reference for an in-flight PINVerifyCoordinator (created
+    /// inside `runDisablePINFlow` etc.) so the verify cycle's handlers
+    /// don't dealloc mid-flow.
+    private var activeVerifyCoordinator: PINVerifyCoordinator?
 }
 
 /// Drives the verify-PIN cycle (5 attempts then 60s lockout) without
