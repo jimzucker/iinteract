@@ -596,8 +596,29 @@ final class InteractionEditorViewController: UITableViewController,
             try? data.write(to: url, options: .atomic)
             tempPictureURL = url
         }
-        tableView.reloadSections([Section.picture.rawValue], with: .none)
         revalidate()
+        // Defer the reload to the next runloop tick so the picker's
+        // dismiss animation can complete before we trigger layout —
+        // calling reloadSections mid-transition was tripping the
+        // "UITableView was told to layout … without being in the
+        // view hierarchy" warning when the picker was the active modal.
+        reloadSectionWhenSafe(.picture)
+    }
+
+    /// Calls `tableView.reloadSections` once the view is back in a
+    /// window. If we're not in a window yet, defers via async to next
+    /// runloop. Used for reloads triggered from async callbacks
+    /// (PHPicker, AVAudioRecorder) that may race the modal dismiss.
+    private func reloadSectionWhenSafe(_ section: Section) {
+        if isViewLoaded, view.window != nil {
+            tableView.reloadSections([section.rawValue], with: .none)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self,
+                      self.isViewLoaded, self.view.window != nil else { return }
+                self.tableView.reloadSections([section.rawValue], with: .none)
+            }
+        }
     }
 
     // PHPickerViewControllerDelegate
