@@ -205,25 +205,22 @@ class FeelingTableViewController: UITableViewController {
 
     private static var changeCoordinatorKey: UInt8 = 0
 
-    /// User toggled "Enable PIN" off in iOS Settings while a PIN is set.
-    /// One combined alert: enter current PIN + confirm disable in a single
-    /// step. Cancel reverts the toggle so iOS Settings reflects reality.
+    /// User toggled "Enable PIN" off in iOS Settings while a PIN is
+    /// set. Delegates to PINPromptCoordinator.runDisablePINFlow so the
+    /// verify-then-clear logic and the cancel-reverts-toggle behavior
+    /// are unit-testable end-to-end without UIKit.
     private func promptDisablePIN() {
-        let host = topmostPresenter()
-        host.confirmDestructiveWithPIN(
-            title: "Disable PIN?",
-            message: "Anyone using this device will be able to delete panels and clear data without entering a PIN.",
-            destructiveTitle: "Disable",
-            onCancel: {
-                // Revert the toggle back to on so Settings reflects reality.
-                UserDefaults.standard.set(true, forKey: "pin_enabled")
-                UserDefaults.standard.synchronize()
-            }
-        ) {
-            PanelStore.shared.clearPIN()
-            // Toggle stays off — pin_enabled is already false.
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        objc_setAssociatedObject(self, &Self.disableCoordinatorKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runDisablePINFlow { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.disableCoordinatorKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
+
+    private static var disableCoordinatorKey: UInt8 = 0
 
     private func presentSimpleAlert(title: String, message: String) {
         let host = topmostPresenter()

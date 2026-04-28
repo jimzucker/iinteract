@@ -526,6 +526,37 @@ final class PINPromptCoordinator {
         }
         return lines.joined(separator: "\n")
     }
+
+    /// Verify-current-PIN-then-disable flow used when the user toggles
+    /// Enable PIN OFF in iOS Settings. Cancel reverts pin_enabled back
+    /// to true so iOS Settings reflects reality. Disable verifies the
+    /// current PIN (via PINVerifyCoordinator); on success calls
+    /// clearPIN(). Wrong PIN cycles via the verify coordinator's
+    /// 5-attempts + 60s lockout.
+    func runDisablePINFlow(now: @escaping () -> Date = Date.init,
+                           onComplete: @escaping (Bool) -> Void) {
+        guard let presenter = presenter else { return }
+        let verify = PINVerifyCoordinator(store: store,
+                                          presenter: presenter,
+                                          now: now,
+                                          defaults: defaults)
+        verify.runVerifyFlow(
+            title: "Disable PIN?",
+            message: "Anyone using this device will be able to delete panels and clear data without entering a PIN.",
+            actionTitle: "Disable",
+            actionStyle: .destructive,
+            onForgotPIN: nil,
+            onCancel: { [weak self] in
+                self?.defaults.set(true, forKey: "pin_enabled")
+                self?.defaults.synchronize()
+                onComplete(false)
+            },
+            onConfirm: { [weak self] in
+                self?.store.clearPIN()
+                onComplete(true)
+            }
+        )
+    }
 }
 
 /// Drives the verify-PIN cycle (5 attempts then 60s lockout) without
