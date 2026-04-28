@@ -35,6 +35,12 @@ final class PanelEditorViewController: UITableViewController,
     private var workingPanel: Panel
     private let isNewPanel: Bool
 
+    /// Snapshot of the panel state at init time. Used to detect
+    /// unsaved changes when the user taps Cancel.
+    private let originalTitle: String
+    private let originalColor: UIColor
+    private let originalInteractionIDs: [UUID]
+
     private var saveButton: UIBarButtonItem!
     private weak var titleField: UITextField?
     private weak var titleFooterLabel: UILabel?
@@ -56,6 +62,9 @@ final class PanelEditorViewController: UITableViewController,
                                       interactions: panel.interactions,
                                       isBuiltIn: false)
             self.isNewPanel = false
+            self.originalTitle = panel.title
+            self.originalColor = panel.color
+            self.originalInteractionIDs = panel.interactions.map { $0.id }
         } else {
             self.workingPanel = Panel(id: UUID(),
                                       title: "",
@@ -63,8 +72,27 @@ final class PanelEditorViewController: UITableViewController,
                                       interactions: [],
                                       isBuiltIn: false)
             self.isNewPanel = true
+            self.originalTitle = ""
+            self.originalColor = .systemBlue
+            self.originalInteractionIDs = []
         }
         super.init(style: .insetGrouped)
+    }
+
+    /// True when the user has made any changes the Cancel/X button
+    /// would discard. Used to gate the discard-confirmation alert.
+    private var hasUnsavedChanges: Bool {
+        let trimmedTitle = workingPanel.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedTitle != originalTitle.trimmingCharacters(in: .whitespacesAndNewlines) {
+            return true
+        }
+        if !UIColorComponents.areEqual(workingPanel.color, originalColor) {
+            return true
+        }
+        if workingPanel.interactions.map({ $0.id }) != originalInteractionIDs {
+            return true
+        }
+        return false
     }
 
     required init?(coder: NSCoder) {
@@ -97,7 +125,20 @@ final class PanelEditorViewController: UITableViewController,
     // MARK: Actions
 
     @objc private func cancelTapped() {
-        navigationController?.popViewController(animated: true)
+        guard hasUnsavedChanges else {
+            navigationController?.popViewController(animated: true)
+            return
+        }
+        let alert = UIAlertController(
+            title: "Discard Changes?",
+            message: "Your edits to this panel haven't been saved. Are you sure you want to discard them?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+            self?.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
 
     @objc private func saveTapped() {

@@ -795,6 +795,25 @@ final class PanelStore {
     }
 }
 
+// MARK: - UIColor component comparison (used by editor unsaved-changes detection)
+
+/// Compares two UIColor instances by their RGBA components rather than
+/// by reference. UIColor doesn't conform to Equatable, and identity
+/// comparison ('===') doesn't work because system colors like
+/// UIColor.systemBlue may return different instances on each access.
+enum UIColorComponents {
+    static func areEqual(_ a: UIColor, _ b: UIColor) -> Bool {
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        return abs(ar - br) < 0.001
+            && abs(ag - bg) < 0.001
+            && abs(ab - bb) < 0.001
+            && abs(aa - ba) < 0.001
+    }
+}
+
 // MARK: - PanelListEditor mode-aware affordances (UIKit-free)
 
 /// Section identity for `PanelListEditorViewController` — at file scope

@@ -521,8 +521,17 @@ class FeelingTableViewController: UITableViewController {
     }
   
     @objc func settingsChanged() {
-            //note currently if the panel is showing this does not take effect until the close and go back to the main menu this is becuase we currently set this in 'prepareForSegue'
-        updateSettings()
+        // UserDefaults.didChangeNotification can fire on any thread —
+        // PhotosUI in particular posts from a background queue when
+        // its picker dismisses. Hop to main before touching
+        // navigationItem etc. inside updateSettings.
+        if Thread.isMainThread {
+            updateSettings()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.updateSettings()
+            }
+        }
     }
 
     @objc func appDidBecomeActive() {
