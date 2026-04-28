@@ -762,6 +762,163 @@ final class ConfigurationModeTests: XCTestCase {
     }
 }
 
+// MARK: - TrashRestoreCoordinator decision tree
+
+/// Verifies the pure-logic decision for "what should the UI do next when
+/// the user asks to restore item X from Trash" — all six branches.
+final class TrashRestoreCoordinatorTests: XCTestCase {
+
+    var tempDir: URL!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TrashRestoreCoord-\(UUID().uuidString)", isDirectory: true)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir, keyValueStore: kvs)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: panel branches
+
+    func testPlan_PanelWithUniqueTitle_RestorePanelDirectly() throws {
+        let panel = Panel(title: "School", color: .systemTeal,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashPanel(panel)
+        let item = store.trashedItems().first!
+
+        XCTAssertEqual(TrashRestoreCoordinator.plan(for: item, in: store),
+                       .restorePanelDirectly(trashID: item.trashID))
+    }
+
+    func testPlan_PanelWithCollidingTitle_NeedsRename() throws {
+        let p1 = Panel(title: "School", color: .systemTeal,
+                       interactions: [], isBuiltIn: false)
+        try store.savePanel(p1)
+        try store.trashPanel(p1)
+        // Recreate with same title in active.
+        let p2 = Panel(title: "School", color: .systemBlue,
+                       interactions: [], isBuiltIn: false)
+        try store.savePanel(p2)
+
+        let item = store.trashedItems().first!
+        XCTAssertEqual(TrashRestoreCoordinator.plan(for: item, in: store),
+                       .needsRenameForPanel(trashID: item.trashID,
+                                             suggestedTitle: "School (restored)"))
+    }
+
+    // MARK: interaction branches
+
+    func testPlan_Interaction_OriginalParentActiveWithRoom_RestoreDirectly() throws {
+        let panelID = UUID()
+        let parent = Panel(id: panelID, title: "School", color: .systemTeal,
+                           interactions: [], isBuiltIn: false)
+        try store.savePanel(parent)
+        let interaction = Interaction(id: UUID(), name: "playground")
+        try store.trashInteraction(interaction, fromPanelID: panelID)
+
+        let item = store.trashedItems().first!
+        XCTAssertEqual(TrashRestoreCoordinator.plan(for: item, in: store),
+                       .restoreInteractionDirectly(trashID: item.trashID))
+    }
+
+    func testPlan_Interaction_ParentInTrash_NeedsParentDecision() throws {
+        let panel = Panel(title: "School", color: .systemTeal,
+                          interactions: [Interaction(id: UUID(), name: "playground")],
+                          isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashInteraction(panel.interactions[0], fromPanelID: panel.id)
+
+        // Now also trash the panel.
+        let updated = Panel(id: panel.id, title: panel.title,
+                            color: panel.color, interactions: [], isBuiltIn: false)
+        try store.savePanel(updated)
+        try store.trashPanel(updated)
+
+        let interactionItem = store.trashedItems()
+            .first(where: { $0.kind == .interaction })!
+
+        let plan = TrashRestoreCoordinator.plan(for: interactionItem, in: store)
+        if case let .needsParentDecision(intTrashID, _, parentName) = plan {
+            XCTAssertEqual(intTrashID, interactionItem.trashID)
+            XCTAssertEqual(parentName, "School")
+        } else {
+            XCTFail("expected .needsParentDecision, got \(plan)")
+        }
+    }
+
+    func testPlan_Interaction_ParentGoneWithCandidates_NeedsAlternateDestination() throws {
+        // No parent panel exists. There IS an alt panel with room.
+        let alt = Panel(title: "Alt", color: .systemTeal,
+                        interactions: [], isBuiltIn: false)
+        try store.savePanel(alt)
+        let i = Interaction(id: UUID(), name: "playground")
+        try store.trashInteraction(i, fromPanelID: UUID())  // ghost parent
+        let item = store.trashedItems().first!
+
+        let plan = TrashRestoreCoordinator.plan(for: item, in: store)
+        if case let .needsAlternateDestination(trashID, reason, candidateIDs) = plan {
+            XCTAssertEqual(trashID, item.trashID)
+            XCTAssertEqual(reason, .parentGone)
+            XCTAssertTrue(candidateIDs.contains(alt.id))
+        } else {
+            XCTFail("expected .needsAlternateDestination, got \(plan)")
+        }
+    }
+
+    func testPlan_Interaction_ParentFullWithCandidates_NeedsAlternate_ReasonParentFull() throws {
+        // Parent panel exists but is at the 6-item cap.
+        let interactions = (0..<PanelStore.maxInteractionsPerUserPanel).map {
+            Interaction(id: UUID(), name: "i\($0)")
+        }
+        let panelID = UUID()
+        let parent = Panel(id: panelID, title: "FullParent", color: .systemTeal,
+                           interactions: interactions, isBuiltIn: false)
+        try store.savePanel(parent)
+        // Trash one interaction so it has a parent reference but the
+        // parent is now also full again (we'll re-add to refill).
+        try store.trashInteraction(interactions[0], fromPanelID: panelID)
+        // Re-fill parent so canRestoreToOriginalParent is false.
+        let parentRefilled = Panel(id: panelID, title: "FullParent", color: .systemTeal,
+                                    interactions: interactions, isBuiltIn: false)
+        try store.savePanel(parentRefilled)
+        // Add an alt with room.
+        let alt = Panel(title: "Alt", color: .systemTeal,
+                        interactions: [], isBuiltIn: false)
+        try store.savePanel(alt)
+
+        let item = store.trashedItems()
+            .first(where: { $0.kind == .interaction })!
+        let plan = TrashRestoreCoordinator.plan(for: item, in: store)
+        if case let .needsAlternateDestination(_, reason, candidateIDs) = plan {
+            XCTAssertEqual(reason, .parentFull,
+                           "parent exists active but full → reason is parentFull")
+            XCTAssertTrue(candidateIDs.contains(alt.id))
+            XCTAssertFalse(candidateIDs.contains(panelID),
+                           "the full original parent is NOT a candidate")
+        } else {
+            XCTFail("expected .needsAlternateDestination, got \(plan)")
+        }
+    }
+
+    func testPlan_Interaction_NoCandidatesAvailable() throws {
+        // Parent gone AND no other active user panels.
+        let i = Interaction(id: UUID(), name: "playground")
+        try store.trashInteraction(i, fromPanelID: UUID())  // ghost parent
+
+        let item = store.trashedItems().first!
+        let plan = TrashRestoreCoordinator.plan(for: item, in: store)
+        XCTAssertEqual(plan, .noCandidatesAvailable(reason: .parentGone))
+    }
+}
+
 // MARK: - ConfigurationMode KVS sync (PanelStore-backed)
 
 /// Verifies the realtime propagation that the Mode picker in iOS Settings

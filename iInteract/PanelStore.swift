@@ -794,3 +794,121 @@ final class PanelStore {
         }
     }
 }
+
+// MARK: - TrashRestoreCoordinator (UIKit-free, unit-testable)
+
+/// Why an interaction can't go back to its original parent.
+enum TrashAlternateReason: Equatable {
+    case parentGone        // parent was permanently deleted
+    case parentInTrash     // parent is itself in the recycle bin
+    case parentFull        // parent exists but already at 6-interaction cap
+}
+
+/// Decision for what to do when the user asks to restore an item from
+/// Trash. Computed by inspecting current store state without doing the
+/// restore — the caller dispatches the right UI based on the case.
+enum TrashRestoreDecision: Equatable {
+    /// Store can restore the panel cleanly. Caller should call
+    /// `store.restorePanel(trashID:)` and reload.
+    case restorePanelDirectly(trashID: UUID)
+
+    /// Panel restore would collide with an active panel. Caller should
+    /// prompt for a new title (suggestion provided) and then call
+    /// `store.restorePanel(trashID:newTitle:)`.
+    case needsRenameForPanel(trashID: UUID, suggestedTitle: String)
+
+    /// Interaction's original parent is active and has room. Caller
+    /// should call `store.restoreInteraction(trashID:)` and reload.
+    case restoreInteractionDirectly(trashID: UUID)
+
+    /// Interaction's parent panel is itself in the trash. Caller
+    /// should ask: "Restore the panel first?" If yes, restore parent
+    /// then interaction. If no, fall back to alternate-destination.
+    case needsParentDecision(interactionTrashID: UUID,
+                             parentTrashID: UUID,
+                             parentName: String)
+
+    /// Interaction's parent is gone or full. Caller should show a
+    /// picker of alternative active panels with room.
+    case needsAlternateDestination(trashID: UUID,
+                                   reason: TrashAlternateReason,
+                                   candidatePanelIDs: [UUID])
+
+    /// Interaction has nowhere to go and no active panels with room.
+    /// Caller should show an explanation; no restore is possible
+    /// without making room first.
+    case noCandidatesAvailable(reason: TrashAlternateReason)
+}
+
+/// Computes a `TrashRestoreDecision` by inspecting the store. Pure
+/// logic — no UIKit dependency — so every branch is unit-testable.
+enum TrashRestoreCoordinator {
+
+    /// Compute the right next step for restoring `item` given current
+    /// store state. Caller dispatches UI based on the returned case.
+    static func plan(for item: PanelStore.TrashedItem,
+                     in store: PanelStore) -> TrashRestoreDecision {
+        switch item.kind {
+        case .panel:
+            // Decode the snapshot so we can pre-check the title for
+            // a collision rather than letting savePanel throw.
+            guard let panel = try? JSONDecoder().decode(Panel.self, from: item.snapshot) else {
+                // Snapshot is corrupt — best we can do is try the
+                // store path and let it surface the error.
+                return .restorePanelDirectly(trashID: item.trashID)
+            }
+            if store.isNameAvailable(panel.title, excluding: panel.id) {
+                return .restorePanelDirectly(trashID: item.trashID)
+            }
+            return .needsRenameForPanel(trashID: item.trashID,
+                                        suggestedTitle: panel.title + " (restored)")
+
+        case .interaction:
+            if store.canRestoreInteractionToOriginalParent(trashID: item.trashID) {
+                return .restoreInteractionDirectly(trashID: item.trashID)
+            }
+            if let parentTrashID = store.parentPanelTrashID(forInteractionTrashID: item.trashID),
+               let parentName = parentNameInTrash(trashID: parentTrashID, store: store) {
+                return .needsParentDecision(interactionTrashID: item.trashID,
+                                            parentTrashID: parentTrashID,
+                                            parentName: parentName)
+            }
+            // Parent gone OR full. Distinguish via store lookups.
+            let candidates = store.panelsAvailableToReceiveInteraction()
+            let reason = inferAlternateReason(for: item, store: store)
+            if candidates.isEmpty {
+                return .noCandidatesAvailable(reason: reason)
+            }
+            return .needsAlternateDestination(trashID: item.trashID,
+                                              reason: reason,
+                                              candidatePanelIDs: candidates.map { $0.id })
+        }
+    }
+
+    private static func parentNameInTrash(trashID: UUID, store: PanelStore) -> String? {
+        guard let parentItem = store.trashedItems().first(where: { $0.trashID == trashID }),
+              parentItem.kind == .panel,
+              let panel = try? JSONDecoder().decode(Panel.self, from: parentItem.snapshot) else {
+            return nil
+        }
+        return panel.title
+    }
+
+    /// Best-effort: parent exists in active panels but is full → .parentFull;
+    /// parent exists in trash → .parentInTrash; otherwise .parentGone.
+    /// Called only when canRestoreInteractionToOriginalParent already
+    /// returned false, so "parent active and has room" isn't a branch.
+    private static func inferAlternateReason(for item: PanelStore.TrashedItem,
+                                              store: PanelStore) -> TrashAlternateReason {
+        guard let parentID = item.parentPanelID else {
+            return .parentGone
+        }
+        if store.userPanels().contains(where: { $0.id == parentID }) {
+            return .parentFull
+        }
+        if store.parentPanelTrashID(forInteractionTrashID: item.trashID) != nil {
+            return .parentInTrash
+        }
+        return .parentGone
+    }
+}
