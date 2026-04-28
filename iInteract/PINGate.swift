@@ -10,7 +10,6 @@
 //
 
 import UIKit
-import LocalAuthentication
 
 /// Pure-logic helpers for reading iOS-Settings flags that drive UI
 /// state (gear visibility, etc.). Extracted so the read paths are
@@ -210,60 +209,17 @@ extension UIViewController {
         let sheet = UIAlertController(title: "Reset PIN",
                                       message: "Choose how to reset your PIN.",
                                       preferredStyle: .actionSheet)
-        // Biometric reset is the strongest "you are this device's owner"
-        // signal we can ask for without violating Apple's no-Apple-ID-
-        // password rule. Only offered when the device has biometrics
-        // enrolled; falls back to the existing iCloud + security
-        // question paths.
-        let biometryContext = LAContext()
-        var biometryError: NSError?
-        if biometryContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                              error: &biometryError) {
-            let title: String
-            switch biometryContext.biometryType {
-            case .faceID:  title = "Reset with Face ID"
-            case .touchID: title = "Reset with Touch ID"
-            case .opticID: title = "Reset with Optic ID"
-            default:       title = "Reset with Biometrics"
-            }
-            sheet.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
-                let reason = "Confirm it's you to reset your PIN."
-                biometryContext.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                                localizedReason: reason) { success, _ in
-                    DispatchQueue.main.async {
-                        if success {
-                            store.clearPIN()
-                            onReset()
-                        } else {
-                            self?.presentSimpleInfoAlert(
-                                title: "Couldn't Reset",
-                                message: "Biometric verification didn't succeed. Try a different reset option.",
-                                onDismiss: onAbort
-                            )
-                        }
-                    }
-                }
-            })
-        }
-        sheet.addAction(UIAlertAction(title: "Reset via iCloud Account", style: .default) { [weak self] _ in
-            do {
-                try store.resetPINViaICloudAccount()
-                onReset()
-            } catch {
-                self?.presentSimpleInfoAlert(
-                    title: "Couldn't Reset",
-                    message: "Sign into iCloud in Settings, then try again.",
-                    onDismiss: onAbort
-                )
-            }
+        // Knowledge-based reset only. Face ID / iCloud-account checks
+        // were both removable by a child with physical access to the
+        // parent's signed-in phone ("can you unlock this for me?" or
+        // just being in the same room). The security question is the
+        // only barrier the child can't trivially bypass — and is now
+        // mandatory at PIN setup time, so every active PIN has one.
+        sheet.addAction(UIAlertAction(title: "Answer Security Question", style: .default) { [weak self] _ in
+            self?.presentSecurityAnswerPrompt(store: store,
+                                              onAbort: onAbort,
+                                              onReset: onReset)
         })
-        if store.hasSecurityQuestion {
-            sheet.addAction(UIAlertAction(title: "Answer Security Question", style: .default) { [weak self] _ in
-                self?.presentSecurityAnswerPrompt(store: store,
-                                                  onAbort: onAbort,
-                                                  onReset: onReset)
-            })
-        }
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
             onAbort?()
         })
@@ -465,38 +421,54 @@ final class PINPromptCoordinator {
         return lines.joined(separator: "\n")
     }
 
-    /// Production set-PIN flow: PIN-and-confirm cycle followed by an
-    /// optional security-question step. Skipping the question is the
-    /// cheapest path; saving one enables Forgot-PIN reset via answer
-    /// when iCloud isn't available. Cancel at the PIN step reverts
-    /// pin_enabled (via runEnablePINFlow); Skip/Save at the question
-    /// step always completes(true) — the PIN itself was already saved.
+    /// Production set-PIN flow: PIN-and-confirm cycle followed by a
+    /// MANDATORY security-question step. The security question is the
+    /// only Forgot-PIN recovery path now — Face ID / iCloud-signed-in
+    /// resets were removable by a child with physical access to the
+    /// parent's phone. Cancel at the PIN step reverts pin_enabled (via
+    /// runEnablePINFlow); the question step has no Cancel — the user
+    /// must enter both fields to complete. Behavior is "no question,
+    /// no PIN" — if they really want to back out they cancel at the
+    /// PIN step.
     func runEnablePINFlowWithSecurityQuestion(onComplete: @escaping (Bool) -> Void) {
         runEnablePINFlow { [weak self] pinSet in
             guard let self = self, pinSet else {
                 onComplete(false)
                 return
             }
-            self.runSecurityQuestionPrompt(onComplete: onComplete)
+            self.runSecurityQuestionPrompt(prefillQuestion: "",
+                                           prefillAnswer: "",
+                                           errorMessage: nil,
+                                           onComplete: onComplete)
         }
     }
 
-    private func runSecurityQuestionPrompt(onComplete: @escaping (Bool) -> Void) {
+    private func runSecurityQuestionPrompt(prefillQuestion: String,
+                                           prefillAnswer: String,
+                                           errorMessage: String?,
+                                           onComplete: @escaping (Bool) -> Void) {
+        var lines = [
+            "Required. This is the only way to reset your PIN if you forget it.",
+            "Pick a question only you would know the answer to (case- and whitespace-insensitive on reset)."
+        ]
+        if let err = errorMessage {
+            lines.insert(err, at: 0)
+            lines.insert("", at: 1)
+        }
         let config = PINAlertConfig(
-            title: "Add a Security Question",
-            message: "Optional. Lets you reset your PIN if you forget it. Skip to rely on your iCloud account for reset.",
+            title: "Set a Security Question",
+            message: lines.joined(separator: "\n"),
             fields: [
                 .init(placeholder: "Question (e.g. Mother's maiden name)",
-                      prefilledText: "",
+                      prefilledText: prefillQuestion,
                       isSecureEntry: false,
                       attachShowToggle: false),
                 .init(placeholder: "Answer",
-                      prefilledText: "",
+                      prefilledText: prefillAnswer,
                       isSecureEntry: false,
                       attachShowToggle: false),
             ],
             buttons: [
-                .init(title: "Skip", style: .cancel),
                 .init(title: "Save", style: .default),
             ]
         )
@@ -505,17 +477,19 @@ final class PINPromptCoordinator {
             switch result {
             case .forgotPIN:
                 return  // not exposed in this flow
-            case .buttonTapped(let buttonIndex, let values):
-                if buttonIndex == 0 {
-                    // Skip — leave question/answer cleared. PIN is
-                    // already saved from the prior step.
-                    onComplete(true)
+            case .buttonTapped(_, let values):
+                let q = (values.indices.contains(0) ? values[0] : "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let a = (values.indices.contains(1) ? values[1] : "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if q.isEmpty || a.isEmpty {
+                    // Cycle on empty input — user must fill both.
+                    self.runSecurityQuestionPrompt(prefillQuestion: q,
+                                                   prefillAnswer: a,
+                                                   errorMessage: "Both Question and Answer are required.",
+                                                   onComplete: onComplete)
                     return
                 }
-                let q = values.indices.contains(0) ? values[0] : ""
-                let a = values.indices.contains(1) ? values[1] : ""
-                // setSecurityQuestion enforces both-or-neither; empty
-                // either side silently treats this as Skip.
                 self.store.setSecurityQuestion(q, answer: a)
                 onComplete(true)
             }

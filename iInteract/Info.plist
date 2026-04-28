@@ -64,7 +64,5 @@
 	<string>iInteract needs access to the camera so you can take a new picture for a panel you create. Photos stay on your device.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>iInteract needs access to the microphone so you can record the boy and girl voices for the panels you create. Recordings stay on your device.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>iInteract uses Face ID to verify it's you when resetting a forgotten PIN.</string>
 </dict>
 </plist>

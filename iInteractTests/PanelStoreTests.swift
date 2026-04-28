@@ -1715,29 +1715,13 @@ final class PINEnableSecurityQuestionTests: XCTestCase {
         super.tearDown()
     }
 
-    func testRunEnablePINWithQuestion_SkipQuestion_PINSaved_NoQuestion() {
-        var completion: Bool?
-        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
-
-        // Step 1: PIN + confirm.
+    func testRunEnablePINWithQuestion_QuestionIsMandatory_OnlySaveButton() {
+        coordinator.runEnablePINFlowWithSecurityQuestion { _ in }
         presenter.tap(1, values: ["abcd", "abcd"])
-        // PIN is saved immediately so a crash between steps doesn't
-        // leave the user with no PIN even though they typed one.
-        XCTAssertTrue(store.hasPIN)
-        XCTAssertTrue(store.verifyPIN("abcd"))
-        XCTAssertNil(completion, "completion fires after the question step")
-
-        // Step 2: question prompt should be the second presentation.
-        XCTAssertEqual(presenter.presentations.count, 2)
         let q = presenter.presentations[1].config
-        XCTAssertEqual(q.title, "Add a Security Question")
-        XCTAssertEqual(q.buttons.map(\.title), ["Skip", "Save"])
-
-        // User taps Skip.
-        presenter.tap(0, values: [])
-        XCTAssertEqual(completion, true)
-        XCTAssertFalse(store.hasSecurityQuestion,
-                       "Skip leaves no question stored")
+        XCTAssertEqual(q.title, "Set a Security Question")
+        XCTAssertEqual(q.buttons.map(\.title), ["Save"],
+                       "no Skip — security question is mandatory now (the only Forgot PIN recovery)")
     }
 
     func testRunEnablePINWithQuestion_SaveQuestion_QuestionStored() {
@@ -1745,20 +1729,34 @@ final class PINEnableSecurityQuestionTests: XCTestCase {
         coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
         presenter.tap(1, values: ["abcd", "abcd"])
         // Save with both fields filled.
-        presenter.tap(1, values: ["First pet?", "Fido"])
+        presenter.tap(0, values: ["First pet?", "Fido"])
         XCTAssertEqual(completion, true)
         XCTAssertTrue(store.hasSecurityQuestion)
         XCTAssertEqual(store.securityQuestion, "First pet?")
     }
 
-    func testRunEnablePINWithQuestion_SaveOneEmpty_TreatedAsSkip() {
+    func testRunEnablePINWithQuestion_OneEmpty_CyclesWithError() {
         var completion: Bool?
         coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
         presenter.tap(1, values: ["abcd", "abcd"])
-        // Save with answer empty — silently treated as Skip per the
-        // both-or-neither rule.
-        presenter.tap(1, values: ["First pet?", ""])
-        XCTAssertEqual(completion, true)
+        // Save with answer empty — must cycle, not silently complete.
+        presenter.tap(0, values: ["First pet?", ""])
+        XCTAssertNil(completion, "empty answer must cycle, not complete")
+        XCTAssertEqual(presenter.presentations.count, 3,
+                       "question step re-presents on missing field")
+        XCTAssertTrue(presenter.presentations[2].config.message.lowercased().contains("required"),
+                      "retry message must say both are required")
+        XCTAssertEqual(presenter.presentations[2].config.fields[0].prefilledText, "First pet?",
+                       "user-entered Question must be prefilled on retry")
+    }
+
+    func testRunEnablePINWithQuestion_BothEmpty_CyclesWithError() {
+        var completion: Bool?
+        coordinator.runEnablePINFlowWithSecurityQuestion { completion = $0 }
+        presenter.tap(1, values: ["abcd", "abcd"])
+        presenter.tap(0, values: ["", ""])
+        XCTAssertNil(completion)
+        XCTAssertEqual(presenter.presentations.count, 3)
         XCTAssertFalse(store.hasSecurityQuestion)
     }
 
