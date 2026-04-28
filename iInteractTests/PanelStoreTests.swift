@@ -1926,12 +1926,42 @@ final class SettingsBundleKeyContractTests: XCTestCase {
                        "coalesce: don't stack timers when one is already pending")
     }
 
-    func testPendingActions_ModalUp_RetriesExhausted_Skips() {
+    func testPendingActions_ModalUp_RetriesExhausted_FiresAnyway() {
+        // After retries exhaust we MUST fire anyway. Returning .skip
+        // would silently drop the user's pending iOS-Settings change
+        // when a long-lived modal (like the splash-screen voice-style
+        // picker) is up — the splash never re-triggers reconcile when
+        // it dismisses, so Enable PIN would never surface. UIKit
+        // supports presenting an alert on top of another alert via
+        // topmostPresenter, so the layering works.
         XCTAssertEqual(PendingActionsDecision.decide(modalIsUp: true,
                                                       pendingRetryScheduled: false,
                                                       retriesRemaining: 0),
-                       .skip,
-                       "give up after maxRetries to avoid spinning forever")
+                       .fire)
+    }
+
+    /// User-facing invariant the previous .skip behavior violated:
+    /// every (modalIsUp, pendingRetryScheduled, retriesRemaining)
+    /// state must EVENTUALLY produce a .fire — never .skip indefinitely.
+    /// The only legitimate .skip is "another retry is already pending
+    /// (it'll fire shortly)". This guard test catches a future regression
+    /// where someone reintroduces .skip on retries-exhausted.
+    func testPendingActions_NeverSilentlyDrops_PendingActions() {
+        // For every state where pendingRetryScheduled is false (no retry
+        // in flight), the decision must be .fire OR .scheduleRetry —
+        // never .skip. .skip is only legal when another retry is
+        // already pending.
+        for retries in 0...10 {
+            for modal in [true, false] {
+                let outcome = PendingActionsDecision.decide(
+                    modalIsUp: modal,
+                    pendingRetryScheduled: false,
+                    retriesRemaining: retries
+                )
+                XCTAssertNotEqual(outcome, .skip,
+                                  "Decision must not silently skip when no retry is pending (modal=\(modal), retries=\(retries))")
+            }
+        }
     }
 
     func testSettingsBundleKeys_UsedByCode() throws {

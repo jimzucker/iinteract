@@ -39,7 +39,11 @@ enum PendingActionsDecision: Equatable {
                        retriesRemaining: Int) -> PendingActionsDecision {
         if !modalIsUp { return .fire }
         if pendingRetryScheduled { return .skip }
-        if retriesRemaining <= 0 { return .skip }
+        // After retries exhaust, fire anyway so we don't silently drop
+        // the user's pending iOS-Settings change. The presentation
+        // layers on top of whatever modal is up via topmostPresenter
+        // (UIAlertController-on-UIAlertController is supported).
+        if retriesRemaining <= 0 { return .fire }
         return .scheduleRetry
     }
 }
