@@ -1550,6 +1550,74 @@ final class ForgotPINResetAbortTests: XCTestCase {
     // exercised by manual testing.
 }
 
+// MARK: - Settings.bundle key contract
+
+/// Snapshot of the iOS-Settings keys the app reads. If `Settings.bundle/
+/// Root.plist` ever drifts (key renamed, new key added, etc.) without
+/// updating code that reads from `UserDefaults.standard`, this test
+/// fails — preventing the silent class of bug where the iOS Settings
+/// toggle no longer affects app behavior.
+final class SettingsBundleKeyContractTests: XCTestCase {
+
+    /// All `Key` values declared in PreferenceSpecifiers, in plist order.
+    private func bundleKeys() throws -> [String] {
+        let plistURL = Bundle(for: PanelStore.self)
+            .bundleURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("Settings.bundle")
+            .appendingPathComponent("Root.plist")
+        // Settings.bundle isn't always copied into the test host; fall
+        // back to the source path under the project root so this test
+        // remains useful regardless of bundling.
+        let url: URL
+        if FileManager.default.fileExists(atPath: plistURL.path) {
+            url = plistURL
+        } else {
+            // Test runner cwd is unreliable; locate via this file's path.
+            let thisFile = URL(fileURLWithPath: #filePath)
+            url = thisFile
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .appendingPathComponent("Settings.bundle/Root.plist")
+        }
+        let data = try Data(contentsOf: url)
+        let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
+        guard let root = plist as? [String: Any],
+              let specs = root["PreferenceSpecifiers"] as? [[String: Any]] else {
+            XCTFail("malformed Root.plist"); return []
+        }
+        return specs.compactMap { $0["Key"] as? String }
+    }
+
+    func testSettingsBundleKeys_MatchExpectedSet() throws {
+        // Order matches the Phase 6 most-important-first layout:
+        // Mode → Voice → Security → Privacy.
+        let expected = [
+            "configuration_mode",
+            "voice_enabled",
+            "voice_style",
+            "pin_enabled",
+            "change_pin",
+            "hide_config",
+            "pending_clear_all",
+        ]
+        let actual = try bundleKeys()
+        XCTAssertEqual(actual, expected,
+                       "Settings.bundle keys drifted from the code contract — update both in lockstep")
+    }
+
+    func testSettingsBundleKeys_UsedByCode() throws {
+        // The reconciler reads pin_enabled / change_pin / pending_clear_all.
+        // The VC reads voice_enabled / voice_style / hide_config.
+        // ConfigurationMode reads configuration_mode.
+        // If any of these constants drift, the corresponding bundle entry
+        // becomes a no-op.
+        let actual = try bundleKeys()
+        XCTAssertTrue(actual.contains(ConfigurationMode.userDefaultsKey),
+                      "ConfigurationMode.userDefaultsKey must match Settings.bundle")
+    }
+}
+
 // MARK: - runEnablePINFlowWithSecurityQuestion (A3)
 
 /// Re-housed from PINPromptCoordinatorEnableTests (which the disable +
