@@ -348,16 +348,21 @@ final class TrashViewController: UITableViewController {
 
     private func confirmPurge(_ item: PanelStore.TrashedItem,
                               done: ((Bool) -> Void)? = nil) {
-        confirmDestructiveWithPIN(
+        // Single-item Delete Forever is no longer PIN-gated. The threat
+        // (a curious child) recovers from a single accidental purge by
+        // re-creating one panel/recording — annoying but not catastrophic.
+        // Mass actions (Empty Trash, Clear All My Data) still require
+        // the PIN.
+        let alert = UIAlertController(
             title: "Delete Forever?",
             message: "This permanently removes \"\(displayName(for: item))\" and its files. It cannot be undone.",
-            destructiveTitle: "Delete Forever",
-            store: store,
-            onCancel: { done?(false) }
-        ) { [weak self] in
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in done?(false) })
+        alert.addAction(UIAlertAction(title: "Delete Forever", style: .destructive) { [weak self] _ in
             self?.store.purgeTrash(trashID: item.trashID)
             self?.reload(); done?(true)
-        }
+        })
+        present(alert, animated: true)
     }
 
     @objc private func confirmEmpty() {

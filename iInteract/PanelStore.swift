@@ -410,7 +410,11 @@ final class PanelStore {
     }
 
     func setPIN(_ pin: String, securityQuestion: String? = nil, securityAnswer: String? = nil) {
-        kvs.set(Self.hash(pin), forKey: Self.pinHashKey)
+        // Case-insensitive: store the lowercased hash so "Abc1" and "abc1"
+        // are equivalent on verify. Eliminates a class of "I can't unlock,
+        // I swear it's the right PIN" lockouts caused by Caps Lock or
+        // accidental shift on a single character.
+        kvs.set(Self.hash(pin.lowercased()), forKey: Self.pinHashKey)
         if let q = securityQuestion?.trimmingCharacters(in: .whitespacesAndNewlines),
            let a = securityAnswer?.trimmingCharacters(in: .whitespacesAndNewlines),
            !q.isEmpty, !a.isEmpty {
@@ -450,7 +454,18 @@ final class PanelStore {
 
     func verifyPIN(_ pin: String) -> Bool {
         guard let stored = kvs.string(forKey: Self.pinHashKey) else { return false }
-        return Self.hash(pin) == stored
+        // Primary path: PINs set under the case-insensitive policy.
+        if Self.hash(pin.lowercased()) == stored { return true }
+        // Migration: PIN was set under a prior build that hashed the
+        // original case. Match against the original; if it matches,
+        // re-store as the lowercased hash so subsequent verifies hit
+        // the primary path. One-shot, no user interaction required.
+        if Self.hash(pin) == stored {
+            kvs.set(Self.hash(pin.lowercased()), forKey: Self.pinHashKey)
+            kvs.synchronize()
+            return true
+        }
+        return false
     }
 
     /// Reset path 1: user is signed into iCloud (proof of account ownership).
@@ -741,6 +756,18 @@ final class PanelStore {
     private static func hash(_ string: String) -> String {
         let digest = SHA256.hash(data: Data(string.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Test-only: writes a PIN hash computed from `rawPIN` *without*
+    /// the lowercase normalization `setPIN` applies, to simulate the
+    /// on-disk state of an app installed before case-insensitive PINs
+    /// shipped. Lets tests exercise the migration branch in `verifyPIN`.
+    /// Underscore prefix + suffix mark this as not-for-production-use;
+    /// it's `internal` rather than `private` so `@testable import` can
+    /// reach it.
+    func _setLegacyPINHash_forTesting(_ rawPIN: String) {
+        kvs.set(Self.hash(rawPIN), forKey: Self.pinHashKey)
+        kvs.synchronize()
     }
 
     // MARK: - iCloud KVS change observation

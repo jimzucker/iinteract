@@ -1241,7 +1241,10 @@ final class PINPolicyTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         store.setPIN("Pin12345")  // 8 chars
         XCTAssertTrue(store.verifyPIN("Pin12345"))
-        XCTAssertFalse(store.verifyPIN("pin12345"))   // case sensitive
+        XCTAssertTrue(store.verifyPIN("pin12345"),
+                      "PIN is case-insensitive — Caps Lock / shift typos must not lock the parent out")
+        XCTAssertTrue(store.verifyPIN("PIN12345"),
+                      "PIN is case-insensitive — fully uppercase must also verify")
         XCTAssertFalse(store.verifyPIN("Pin1234"))    // shorter
         XCTAssertFalse(store.verifyPIN("Pin123456"))  // longer
     }
@@ -1253,6 +1256,66 @@ final class PINPolicyTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         store.setPIN("Pin999")  // 6 chars
         XCTAssertTrue(store.verifyPIN("Pin999"))
+    }
+
+    // MARK: - PIN case-insensitivity
+
+    func testStore_VerifyPIN_CaseInsensitive_RoundTrip() {
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("Abc1")
+        XCTAssertTrue(store.verifyPIN("Abc1"))
+        XCTAssertTrue(store.verifyPIN("abc1"))
+        XCTAssertTrue(store.verifyPIN("ABC1"))
+        XCTAssertTrue(store.verifyPIN("aBc1"))
+        XCTAssertFalse(store.verifyPIN("abc2"),
+                       "case-insensitive does NOT mean character-insensitive")
+    }
+
+    func testStore_VerifyPIN_PurelyNumeric_StillVerifies() {
+        // Lowercasing digits is a no-op; numeric PINs must still work.
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store.setPIN("1234")
+        XCTAssertTrue(store.verifyPIN("1234"))
+        XCTAssertFalse(store.verifyPIN("4321"))
+    }
+
+    func testStore_VerifyPIN_LegacyCaseSensitiveHash_MigratesOnFirstVerify() {
+        // Simulate a PIN saved by an old build that hashed the literal
+        // mixed-case string. The first verify with the original case must
+        // succeed AND silently re-hash to the lowercased form so future
+        // verifies hit the case-insensitive primary path.
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store._setLegacyPINHash_forTesting("Abc1")
+        XCTAssertTrue(store.hasPIN)
+
+        // Original-case verify succeeds via the migration branch.
+        XCTAssertTrue(store.verifyPIN("Abc1"),
+                      "legacy mixed-case hash must still verify on first try")
+        // After migration, lowercased verify now succeeds via the
+        // primary path (no further migration needed).
+        XCTAssertTrue(store.verifyPIN("abc1"),
+                      "after migration, lowercased verify works without re-saving")
+        XCTAssertTrue(store.verifyPIN("ABC1"),
+                      "uppercased verify also works post-migration")
+    }
+
+    func testStore_VerifyPIN_LegacyHash_WrongPIN_StillRejects() {
+        // Migration branch must not accidentally accept a wrong PIN that
+        // happens to hash close to something — verify with a clearly
+        // wrong value before the migration happens, and after.
+        let (store, dir) = makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        store._setLegacyPINHash_forTesting("Abc1")
+        XCTAssertFalse(store.verifyPIN("XYZ9"),
+                       "wrong PIN must not be accepted by the legacy migration branch")
+        // Then complete the migration with a correct verify, and
+        // re-check rejection on the migrated hash too.
+        XCTAssertTrue(store.verifyPIN("Abc1"))
+        XCTAssertFalse(store.verifyPIN("XYZ9"),
+                       "wrong PIN must still be rejected post-migration")
     }
 
     // MARK: - B2 — property-based generators

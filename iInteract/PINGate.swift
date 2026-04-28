@@ -429,7 +429,9 @@ final class PINPromptCoordinator {
                                           prefillConfirm: confirm,
                                           errorMessage: PINPolicy.invalidMessage,
                                           onResult: onResult)
-                } else if pin != confirm {
+                } else if pin.lowercased() != confirm.lowercased() {
+                    // Case-insensitive: matches setPIN/verifyPIN policy
+                    // so a parent who typed "Abc1" / "abc1" succeeds.
                     self.runEnablePINBare(prefillPIN: pin,
                                           prefillConfirm: confirm,
                                           errorMessage: "PINs didn't match. Try again.",
@@ -655,7 +657,7 @@ final class PINPromptCoordinator {
                                       prefillConfirm: confirm,
                                       errorMessage: PINPolicy.invalidMessage,
                                       onComplete: onComplete)
-                } else if pin != confirm {
+                } else if pin.lowercased() != confirm.lowercased() {
                     self.runChangePIN(prefillPIN: pin,
                                       prefillConfirm: confirm,
                                       errorMessage: "PINs didn't match. Try again.",
