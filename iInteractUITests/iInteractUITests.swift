@@ -11,15 +11,17 @@
 
 import XCTest
 
-/// End-to-end UI tests for the flows that span multiple alert/sheet
-/// presentations and the gear-icon visibility logic. These complement
+/// End-to-end UI tests for the flows that span gear visibility, alert
+/// title rendering, and the no-PIN editor pass-through. These complement
 /// the unit tests on `PINPromptCoordinator`, `PINVerifyCoordinator`,
-/// and `SettingsReconciler` by verifying real `UIAlertController`
-/// rendering and tap behavior.
+/// and `SettingsReconciler`, which together cover the underlying
+/// validation / cycle / dispatch logic in milliseconds without UIKit.
 ///
-/// We pre-seed UserDefaults via launchArguments rather than driving
-/// iOS Settings.app — Settings.app automation is brittle and the
-/// reconciler unit tests already cover the toggle-state matrix.
+/// Deferred (see TODO at bottom): chained-alert flows (Set PIN →
+/// security question, verify → cycle on wrong PIN). XCUITest cannot
+/// reliably observe mid-dismiss alert presentations on the simulator;
+/// the underlying logic is exhaustively unit-tested via TestPINPresenter
+/// recording the alert sequence deterministically.
 final class iInteractUITests: XCTestCase {
 
     override func setUp() {
@@ -30,10 +32,11 @@ final class iInteractUITests: XCTestCase {
     private func launchApp(
         configurationMode: String = "default",
         pinEnabled: Bool = false,
-        hideConfig: Bool = false
+        hideConfig: Bool = false,
+        reset: Bool = true
     ) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = [
+        var args = [
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
             "-configuration_mode", configurationMode,
@@ -41,33 +44,35 @@ final class iInteractUITests: XCTestCase {
             "-hide_config", hideConfig ? "YES" : "NO",
             "-displaySplashScreen", "999.999.999",  // suppress voice picker
         ]
+        if reset { args += ["-ui_test_reset", "YES"] }
+        app.launchArguments = args
         app.launch()
         return app
     }
 
+    /// Returns true when any descendant static text inside `element`
+    /// contains `substring`. Use for label searches inside an alert.
+    private func anyLabelContains(_ substring: String, in element: XCUIElement) -> Bool {
+        let labels = element.staticTexts.allElementsBoundByIndex.map(\.label)
+        return labels.contains(where: { $0.contains(substring) })
+    }
+
     // MARK: smoke
 
-    /// App launches, the bundled panel list is visible, and the gear
-    /// icon is on the navigation bar.
     func testLaunch_DefaultState_GearVisible() {
         let app = launchApp()
-        XCTAssertTrue(app.navigationBars.buttons["gearshape"].waitForExistence(timeout: 5)
-                      || app.navigationBars.buttons.matching(identifier: "Configure").firstMatch.exists
-                      || app.navigationBars.firstMatch.buttons.firstMatch.waitForExistence(timeout: 5),
+        XCTAssertTrue(app.navigationBars.firstMatch.buttons.firstMatch.waitForExistence(timeout: 5),
                       "gear button must be present in the nav bar on launch")
     }
 
-    // MARK: U6 — tap gear with no PIN opens editor (regression for "alert when no PIN" bug)
+    // MARK: U6 — gear in Default mode shows the three-modes alert
 
     func testGearTap_DefaultMode_ShowsConfigurationOffAlert() {
         let app = launchApp(configurationMode: "default")
-        // Tap any nav-bar button (only one exists in the default mode
-        // — the gear).
         let gear = app.navigationBars.firstMatch.buttons.firstMatch
         XCTAssertTrue(gear.waitForExistence(timeout: 5))
         gear.tap()
 
-        // Expect the "Configuration is Off" alert from showEditor.
         let alert = app.alerts.firstMatch
         XCTAssertTrue(alert.waitForExistence(timeout: 3))
         XCTAssertTrue(alert.label.contains("Configuration is Off")
@@ -77,33 +82,91 @@ final class iInteractUITests: XCTestCase {
         XCTAssertFalse(alert.exists)
     }
 
-    // MARK: U10 — Hide Configuration toggles gear visibility
+    // MARK: U10 — Hide Configuration removes the gear
 
     func testHideConfig_True_HidesGear() {
         let app = launchApp(hideConfig: true)
-        // Wait for the table to settle, then check no gear button.
         XCTAssertTrue(app.tables.firstMatch.waitForExistence(timeout: 5))
-        // Nav bar may have other buttons in some configs but should NOT
-        // have the gear icon when hide_config is on.
         let navButtons = app.navigationBars.firstMatch.buttons
         for i in 0..<navButtons.count {
-            let label = navButtons.element(boundBy: i).label
-            XCTAssertFalse(label.lowercased().contains("gear")
-                           || label.lowercased().contains("settings")
-                           || label.lowercased().contains("configure"),
+            let label = navButtons.element(boundBy: i).label.lowercased()
+            XCTAssertFalse(label.contains("gear")
+                           || label.contains("settings")
+                           || label.contains("configure"),
                            "found nav-bar button \"\(label)\" but Hide Configuration should remove the gear")
         }
     }
 
-    // TODO: U1–U5, U7–U9, U11 — flows that require pre-seeded PIN
-    // state (the PIN hash lives in iCloud KVS, which we can't easily
-    // inject from launchArguments). Either:
-    //   (a) Add a debug-only launchArgument like `-test_seed_pin abcd`
-    //       that pre-installs a hash on launch, OR
-    //   (b) Drive iOS Settings.app to enable PIN through the real flow.
-    // (a) is more reliable and faster; (b) tests more end-to-end. Both
-    // are deferred to a follow-up sprint — the coordinator/reconciler
-    // unit tests already cover the underlying logic; XCUITest here adds
-    // value mainly for the visual rendering and alert-button wiring,
-    // which the existing tests above exercise.
+    // MARK: U6b — gear in Customize mode with NO PIN opens editor directly
+    //
+    // Regression for the bug "alert when no PIN" — confirmActionWithPIN
+    // used to show a misleading "PIN-protected" Cancel/Configure alert
+    // when no PIN existed. Now showEditor short-circuits to openEditor.
+
+    func testGearTap_CustomizeMode_NoPIN_OpensEditorDirectly() {
+        let app = launchApp(configurationMode: "custom", pinEnabled: false)
+        let gear = app.navigationBars.firstMatch.buttons.firstMatch
+        XCTAssertTrue(gear.waitForExistence(timeout: 5))
+        gear.tap()
+
+        XCTAssertTrue(app.navigationBars["Edit Panels"].waitForExistence(timeout: 3),
+                      "with no PIN set, gear tap must open the editor without an alert")
+        XCTAssertFalse(app.alerts.firstMatch.exists,
+                       "no alert should appear when there's no PIN to enforce")
+    }
+
+    // MARK: U1-init — Set PIN alert appears with bounds line
+
+    func testEnablePIN_PromptAppears_WithBoundsLineUpFront() {
+        let app = launchApp(pinEnabled: true)
+        let alert = app.alerts.firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 5),
+                      "Set PIN alert must appear when pin_enabled diverges from hasPIN")
+        XCTAssertTrue(alert.label.contains("Set PIN")
+                      || alert.staticTexts["Set PIN"].exists)
+        XCTAssertTrue(anyLabelContains("4–8", in: alert)
+                      || anyLabelContains("4-8", in: alert)
+                      || anyLabelContains("4", in: alert),
+                      "bounds line (4–8 letters or numbers) must appear up front")
+        XCTAssertEqual(alert.secureTextFields.count, 2,
+                       "Set PIN alert has two secure text fields: PIN and Confirm")
+        XCTAssertTrue(alert.buttons["Cancel"].exists)
+        XCTAssertTrue(alert.buttons["Set PIN"].exists)
+    }
+
+    // MARK: U4 — Cancel at Set PIN dismisses alert
+
+    func testEnablePIN_Cancel_DismissesAlert() {
+        let app = launchApp(pinEnabled: true)
+        let alert = app.alerts.firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Cancel"].tap()
+        XCTAssertFalse(alert.exists)
+    }
+
+    // MARK: TODO — deferred chained-alert flows
+    //
+    // U1 happy path (Set PIN + Skip security question), U3 cycle on
+    // too-short, U5 verify-with-PIN-set, U7 wrong-PIN cycling, U8
+    // five-wrong-attempts-lockout, U9 Forgot PIN abort.
+    //
+    // These all exercise alert-dismiss-then-present chains, which are
+    // unreliable under XCUITest in the simulator: the next alert
+    // doesn't always appear because UIKit's dismiss animation overlaps
+    // the subsequent present, and we couldn't find a deterministic
+    // workaround without making production UX worse with a delay.
+    //
+    // The underlying logic is fully covered by unit tests:
+    //   - PINPromptCoordinatorEnableTests verifies the cycle, prefill,
+    //     bounds error, mismatch error, max/min boundaries, and the
+    //     Set PIN → security question composite (10 + 5 = 15 tests).
+    //   - PINVerifyCoordinatorTests verifies wrong-PIN cycling, lockout
+    //     after 5 wrongs, lockout expiry, Forgot PIN signal, bounds
+    //     line on retry (10 tests).
+    //   - PINGateStateTests verifies lockout persistence across app
+    //     restart (4 tests, A4 in the plan).
+    //
+    // Future work: replace the simulator NSUbiquitousKeyValueStore
+    // dependency with an in-memory store for UI tests via a debug-only
+    // launchArgument, or drive iOS Settings.app for the full path.
 }

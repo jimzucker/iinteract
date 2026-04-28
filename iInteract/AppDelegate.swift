@@ -17,6 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         defaultSettings()
+        applyUITestSeedIfPresent()
         // First-launch only: a brand-new device with iCloud signed in adopts
         // the mode another device set. After that, UserDefaults is the source
         // of intent — runtime reconcile (in FeelingTableViewController) pushes
@@ -24,6 +25,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         PanelStore.shared.adoptCloudConfigurationModeIfFirstLaunch()
         WatchSync.shared.start()
         return true
+    }
+
+    /// Debug-only hook for XCUITest to pre-seed PIN state at launch.
+    /// Recognized launch arguments (pass via `app.launchArguments`):
+    /// - `-ui_test_reset YES` — wipes the PIN hash and any persisted
+    ///   lockout state (`pin_attempts`, `pin_locked_until_epoch`) so
+    ///   each test starts clean.
+    /// - `-ui_test_pin <pin>` — installs the given PIN after reset.
+    /// Both gated by `#if DEBUG` so they cannot ship in release.
+    private func applyUITestSeedIfPresent() {
+        #if DEBUG
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "ui_test_reset") {
+            PanelStore.shared.clearAllUserData()
+            defaults.removeObject(forKey: "panelstore.pin_attempts")
+            defaults.removeObject(forKey: "panelstore.pin_locked_until_epoch")
+        }
+        if let pin = defaults.string(forKey: "ui_test_pin"), !pin.isEmpty {
+            PanelStore.shared.setPIN(pin)
+        }
+        #endif
     }
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
