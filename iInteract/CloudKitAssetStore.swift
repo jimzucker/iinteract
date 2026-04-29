@@ -67,6 +67,14 @@ final class CloudKitAssetStore: AssetStore {
         pushQueue.enqueue(.uploadAsset(kind: kind, id: id))
     }
 
+    /// v3.1.2b apply path — write to the local cache, do NOT enqueue.
+    /// `CloudKitChangeApplier` calls this when downloading bytes from
+    /// a pulled `CKAsset`; pushing them back up would create a
+    /// pull→push feedback loop.
+    func applyRemoteWrite(_ data: Data, kind: AssetKind, id: UUID) throws {
+        try cache.write(data, kind: kind, id: id)
+    }
+
     func didExternallyWrite(_ kind: AssetKind, id: UUID) {
         // Caller (typically AVAudioRecorder finish handler) wrote
         // directly to `url(for:id:)` — file is already in the local

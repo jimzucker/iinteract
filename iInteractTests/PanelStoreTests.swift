@@ -4224,3 +4224,240 @@ final class FileChangeTokenStoreTests: XCTestCase {
         FileChangeTokenStore(url: tokenURL).clear()
     }
 }
+
+// MARK: - CloudKitChangeApplier (v3.1.2b-ii)
+
+/// Applies pulled CloudKit changes to a local PanelStore without
+/// re-pushing them. Tests use a CloudKitAssetStore wired to a
+/// MockCloudKitDatabase — the applier should NEVER cause records to
+/// land in `mockDB.savedRecords` because that would mean it triggered
+/// a push (the pull→push feedback loop we're explicitly preventing).
+final class CloudKitChangeApplierTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var assetStore: CloudKitAssetStore!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+    var applier: CloudKitChangeApplier!
+    let zoneID = LiveCloudKitDatabase.iInteractZoneID
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Applier-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        assetStore = CloudKitAssetStore(parentDirectory: tempDir, database: mockDB)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: kvs,
+                           assetStore: assetStore)
+        applier = CloudKitChangeApplier(store: store, assetStore: assetStore)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: helpers
+
+    private func userPanelRecord(id: UUID, title: String, color: UIColor) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "UserPanel", recordID: recordID)
+        record["panelID"] = id.uuidString as CKRecordValue
+        record["title"] = title as CKRecordValue
+        // Encode the color using the same scheme Panel.colorRGBABytes does.
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        var floats: [Float32] = [Float32(r), Float32(g), Float32(b), Float32(a)]
+        record["colorRGBA"] = Data(bytes: &floats, count: 16) as CKRecordValue
+        return record
+    }
+
+    private func interactionRecord(id: UUID, parentID: UUID,
+                                    name: String, order: Int = 0) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "Interaction", recordID: recordID)
+        record["interactionID"] = id.uuidString as CKRecordValue
+        let parentRecordID = CKRecord.ID(recordName: parentID.uuidString, zoneID: zoneID)
+        record["panelRef"] = CKRecord.Reference(recordID: parentRecordID, action: .deleteSelf)
+        record["displayName"] = name as CKRecordValue
+        record["order"] = Int64(order) as CKRecordValue
+        return record
+    }
+
+    // MARK: - Apply: panel records
+
+    func testApplyPanel_NewPanel_LandsInStore() {
+        let id = UUID()
+        let record = userPanelRecord(id: id, title: "Wants", color: .systemBlue)
+        applier.apply(CloudKitChanges(updatedRecords: [record]))
+        let panel = store.userPanels().first(where: { $0.id == id })
+        XCTAssertNotNil(panel)
+        XCTAssertEqual(panel?.title, "Wants")
+    }
+
+    func testApplyPanel_UpdatesExisting_PreservesInteractions() throws {
+        let parentID = UUID()
+        let interactionID = UUID()
+        let interaction = Interaction(id: interactionID, name: "play")
+        let original = Panel(id: parentID, title: "Original",
+                             color: .red, interactions: [interaction], isBuiltIn: false)
+        try store.savePanel(original)
+
+        let updated = userPanelRecord(id: parentID, title: "Updated", color: .green)
+        applier.apply(CloudKitChanges(updatedRecords: [updated]))
+        let panel = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(panel?.title, "Updated")
+        XCTAssertEqual(panel?.interactions.count, 1,
+                       "applying a panel record must NOT clobber its existing interactions — those arrive in their own records")
+        XCTAssertEqual(panel?.interactions.first?.id, interactionID)
+    }
+
+    // MARK: - Apply: interaction records
+
+    func testApplyInteraction_AppendsToExistingPanel() throws {
+        let parentID = UUID()
+        let panel = Panel(id: parentID, title: "Wants", color: .red,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+
+        let interactionID = UUID()
+        let record = interactionRecord(id: interactionID, parentID: parentID,
+                                        name: "drink", order: 0)
+        applier.apply(CloudKitChanges(updatedRecords: [record]))
+
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(stored?.interactions.count, 1)
+        XCTAssertEqual(stored?.interactions.first?.name, "drink")
+        XCTAssertEqual(stored?.interactions.first?.id, interactionID)
+    }
+
+    func testApplyInteraction_OrderedInsert() throws {
+        let parentID = UUID()
+        let existing = Interaction(id: UUID(), name: "first")
+        let panel = Panel(id: parentID, title: "P", color: .red,
+                          interactions: [existing], isBuiltIn: false)
+        try store.savePanel(panel)
+
+        let newID = UUID()
+        let record = interactionRecord(id: newID, parentID: parentID,
+                                        name: "inserted", order: 0)
+        applier.apply(CloudKitChanges(updatedRecords: [record]))
+
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(stored?.interactions.count, 2)
+        XCTAssertEqual(stored?.interactions[0].name, "inserted",
+                       "order=0 inserts at the front")
+        XCTAssertEqual(stored?.interactions[1].name, "first")
+    }
+
+    func testApplyInteraction_ParentMissing_DefersAndDoesNotCrash() {
+        // No parent panel in the store. Applier logs and skips.
+        let record = interactionRecord(id: UUID(), parentID: UUID(),
+                                        name: "orphan", order: 0)
+        XCTAssertNoThrow(applier.apply(CloudKitChanges(updatedRecords: [record])))
+        XCTAssertTrue(store.userPanels().isEmpty,
+                      "no orphan panels created from interaction-only records")
+    }
+
+    // MARK: - Apply: ordering within a batch (panels before interactions)
+
+    func testApply_PanelsBeforeInteractions_WithinSingleBatch() {
+        let parentID = UUID()
+        let interactionID = UUID()
+        // Order in updatedRecords is INTERACTION FIRST — applier must
+        // still process the panel before the interaction so the
+        // parent exists.
+        let interactionRec = interactionRecord(id: interactionID,
+                                                 parentID: parentID,
+                                                 name: "tv", order: 0)
+        let panelRec = userPanelRecord(id: parentID, title: "Wants",
+                                        color: .yellow)
+        applier.apply(CloudKitChanges(updatedRecords: [interactionRec, panelRec]))
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertNotNil(stored, "panel applied even though it was second in the array")
+        XCTAssertEqual(stored?.interactions.first?.id, interactionID,
+                       "interaction also applied — applier sorted within the batch")
+    }
+
+    // MARK: - Apply: deletions
+
+    func testApplyDeletion_Panel_RemovesFromStore() throws {
+        let id = UUID()
+        let panel = Panel(id: id, title: "Doomed", color: .red,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+        XCTAssertEqual(store.userPanels().count, 1)
+
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "UserPanel")
+        applier.apply(CloudKitChanges(deletedRecords: [deletion]))
+        XCTAssertEqual(store.userPanels().count, 0)
+    }
+
+    func testApplyDeletion_Interaction_RemovesFromParent() throws {
+        let parentID = UUID()
+        let interactionID = UUID()
+        let interaction = Interaction(id: interactionID, name: "x")
+        let panel = Panel(id: parentID, title: "P", color: .red,
+                          interactions: [interaction], isBuiltIn: false)
+        try store.savePanel(panel)
+
+        let recordID = CKRecord.ID(recordName: interactionID.uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "Interaction")
+        applier.apply(CloudKitChanges(deletedRecords: [deletion]))
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(stored?.interactions.count, 0)
+    }
+
+    func testApplyDeletion_UnknownRecordType_NoCrash() {
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "Mystery")
+        XCTAssertNoThrow(applier.apply(CloudKitChanges(deletedRecords: [deletion])))
+    }
+
+    // MARK: - Feedback-loop guard (THE KEY GUARANTEE)
+
+    func testApply_DoesNotEnqueuePushOps() {
+        let panelID = UUID()
+        let interactionID = UUID()
+        let panelRec = userPanelRecord(id: panelID, title: "Pulled", color: .blue)
+        let interactionRec = interactionRecord(id: interactionID,
+                                                 parentID: panelID,
+                                                 name: "pulled-i", order: 0)
+        applier.apply(CloudKitChanges(updatedRecords: [panelRec, interactionRec]))
+
+        XCTAssertEqual(assetStore.pushQueue.entries.count, 0,
+                       "applying a pulled change must NOT enqueue a push — that would be a pull→push feedback loop")
+    }
+
+    func testApplyDeletion_DoesNotEnqueuePushOps() throws {
+        let id = UUID()
+        let panel = Panel(id: id, title: "Doomed", color: .red,
+                          interactions: [], isBuiltIn: false)
+        // Use the apply path so the savePanel itself doesn't enqueue.
+        try store.applyRemotelySavedPanel(panel)
+        XCTAssertEqual(assetStore.pushQueue.entries.count, 0)
+
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "UserPanel")
+        applier.apply(CloudKitChanges(deletedRecords: [deletion]))
+
+        XCTAssertEqual(assetStore.pushQueue.entries.count, 0,
+                       "applying a remote deletion must NOT enqueue a deletePanel push back to the server")
+    }
+
+    // MARK: - Malformed records
+
+    func testApply_MalformedRecord_SkippedWithoutCrash() {
+        // recordType is right but required fields are missing.
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID)
+        let bad = CKRecord(recordType: "UserPanel", recordID: recordID)
+        // No panelID, title, or colorRGBA.
+        XCTAssertNoThrow(applier.apply(CloudKitChanges(updatedRecords: [bad])))
+        XCTAssertTrue(store.userPanels().isEmpty)
+    }
+}

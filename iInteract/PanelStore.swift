@@ -300,8 +300,23 @@ final class PanelStore {
     /// panels are replaced in place so reorder/visibility maps still match.
     /// Validates uniqueness (excluding self) and the 6-interaction cap.
     func savePanel(_ panel: Panel) throws {
+        try savePanelInternal(panel, enqueuePush: true)
+    }
+
+    /// Variant for v3.1.2b-ii apply path — writes the panel locally
+    /// without enqueueing a CloudKit push. Skips uniqueness validation
+    /// too: when a remote change collides with a local name, last-writer-
+    /// wins is the intended outcome (matches CloudKit's record-change-tag
+    /// behavior). Only call this from `CloudKitChangeApplier`.
+    func applyRemotelySavedPanel(_ panel: Panel) throws {
+        try savePanelInternal(panel, enqueuePush: false, validateName: false)
+    }
+
+    private func savePanelInternal(_ panel: Panel,
+                                   enqueuePush: Bool,
+                                   validateName: Bool = true) throws {
         guard !panel.isBuiltIn else { return }
-        guard isNameAvailable(panel.title, excluding: panel.id) else {
+        if validateName, !isNameAvailable(panel.title, excluding: panel.id) {
             throw StoreError.nameNotUnique
         }
         guard panel.interactions.count <= Self.maxInteractionsPerUserPanel else {
@@ -314,17 +329,32 @@ final class PanelStore {
             panels.append(panel)
         }
         try saveUserPanels(panels)
-        enqueueRecordPushForPanelSave(panel)
+        if enqueuePush {
+            enqueueRecordPushForPanelSave(panel)
+        }
     }
 
     func deletePanel(id: UUID) throws {
+        try deletePanelInternal(id: id, enqueuePush: true)
+    }
+
+    /// Apply-path delete that doesn't enqueue a CloudKit push — used
+    /// when the deletion came FROM CloudKit (server-side delete in a
+    /// pull) and re-pushing it would create a feedback loop.
+    func applyRemotelyDeletedPanel(id: UUID) throws {
+        try deletePanelInternal(id: id, enqueuePush: false)
+    }
+
+    private func deletePanelInternal(id: UUID, enqueuePush: Bool) throws {
         let childIDs = userPanels().first(where: { $0.id == id })?.interactions
             .filter { !$0.isBuiltIn }
             .map { $0.id } ?? []
         var panels = userPanels()
         panels.removeAll { $0.id == id }
         try saveUserPanels(panels)
-        enqueueRecordPushForPanelDelete(panelID: id, childIDs: childIDs)
+        if enqueuePush {
+            enqueueRecordPushForPanelDelete(panelID: id, childIDs: childIDs)
+        }
     }
 
     // MARK: - Layout (visibility + order, applies to built-ins AND user panels)
@@ -814,11 +844,15 @@ final class PanelStore {
     }
 
     /// Call once at app launch (after `PanelStore.shared` is
-    /// materialized) to start the CloudKit push drainer. No-op when
-    /// the asset store isn't CloudKit-backed (iCloud signed out).
-    /// Idempotent — safe to call multiple times. Also runs the
-    /// one-shot initial sync that seeds the push queue with all
-    /// existing user panels + interactions on first CloudKit launch.
+    /// materialized) to start CloudKit sync. No-op when the asset
+    /// store isn't CloudKit-backed (iCloud signed out). Idempotent —
+    /// safe to call multiple times. Does three things:
+    /// 1. Seeds the push queue with existing user panels on first
+    ///    CloudKit launch (so v3.1.1 push uploads pre-existing data).
+    /// 2. Starts the push drainer (v3.1.1c).
+    /// 3. Kicks off a one-shot pull (v3.1.2b-ii) — fetches changes
+    ///    since the last stored token, applies them locally without
+    ///    re-pushing.
     func startCloudKitSyncIfNeeded() {
         guard let cloudStore = assetStore as? CloudKitAssetStore else { return }
         runInitialSyncIfNeeded(queue: cloudStore.pushQueue)
@@ -832,6 +866,42 @@ final class PanelStore {
             drainer.start()
             cloudKitDrainer = drainer
         }
+        kickOffOneShotPull(database: cloudStore.database, assetStore: cloudStore)
+    }
+
+    /// Token store + applier for the pull side. Lifetime-pinned so
+    /// the persisted token survives across `pull` calls and the
+    /// applier holds its dependencies.
+    private var cloudKitTokenStore: CloudKitChangeTokenStore?
+    private var cloudKitApplier: CloudKitChangeApplier?
+
+    private func kickOffOneShotPull(database: CloudKitDatabase, assetStore: AssetStore) {
+        if cloudKitTokenStore == nil {
+            cloudKitTokenStore = FileChangeTokenStore(
+                url: directory.appendingPathComponent("cloudkit_change_token"))
+        }
+        if cloudKitApplier == nil {
+            cloudKitApplier = CloudKitChangeApplier(store: self, assetStore: assetStore)
+        }
+        let coordinator = CloudKitPullCoordinator(database: database,
+                                                   tokenStore: cloudKitTokenStore!)
+        let applier = cloudKitApplier!
+        Task.detached { [coordinator, applier] in
+            do {
+                let changes = try await coordinator.pull()
+                await MainActor.run {
+                    applier.apply(changes)
+                    NotificationCenter.default.post(name: PanelStore.didChangeNotification,
+                                                    object: nil)
+                }
+            } catch {
+                NSLog("CloudKit pull failed: \(error)")
+                // Token store unchanged — next launch retries from
+                // the same point. Drainer's continued pushes still
+                // work; only remote-originated changes are missed
+                // until the next successful pull.
+            }
+        }
     }
 
     /// Stops the drainer. Used by tests; production usually lets it
@@ -839,6 +909,17 @@ final class PanelStore {
     func stopCloudKitSync() {
         cloudKitDrainer?.stop()
         cloudKitDrainer = nil
+    }
+
+    /// Test-only hook: applies changes synchronously without going
+    /// through the live pull. Bypasses Task.detached so XCTest can
+    /// assert on the post-apply state without async waits.
+    func applyCloudKitChanges_forTesting(_ changes: CloudKitChanges) {
+        let assetStore = self.assetStore
+        let applier = cloudKitApplier
+            ?? CloudKitChangeApplier(store: self, assetStore: assetStore)
+        cloudKitApplier = applier
+        applier.apply(changes)
     }
 
     /// Path to the local sentinel that marks the initial-sync done.
