@@ -3,10 +3,11 @@
 # iPhone (iOS), iPad (iPadOS), and Mac Catalyst.
 #
 # Usage:
-#   ./scripts/test-matrix.sh                # all 3 destinations, sequentially
+#   ./scripts/test-matrix.sh                # all destinations
 #   ./scripts/test-matrix.sh iphone         # iPhone only
 #   ./scripts/test-matrix.sh ipad           # iPad only
-#   ./scripts/test-matrix.sh catalyst       # Mac Catalyst only
+#   ./scripts/test-matrix.sh catalyst       # Mac Catalyst only (build-only)
+#   ./scripts/test-matrix.sh watch          # watchOS only (logic-only tests)
 #   ./scripts/test-matrix.sh fast           # iPhone only (alias for the local-dev inner loop)
 #
 # Local dev: use `fast`. CI: run with no args.
@@ -24,6 +25,7 @@
 set -euo pipefail
 
 SCHEME="iInteract"
+WATCH_SCHEME="iInteractWatch"
 
 # Pick destination variants Jim's machine has handy. Adjust the OS pin
 # if you upgrade Xcode and the simulators move. `xcodebuild -showdestinations
@@ -31,6 +33,7 @@ SCHEME="iInteract"
 IPHONE_DEST='platform=iOS Simulator,name=iPhone 16,OS=18.2'
 IPAD_DEST='platform=iOS Simulator,name=iPad (10th generation),OS=18.2'
 CATALYST_DEST='platform=macOS,variant=Mac Catalyst'
+WATCH_DEST='platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)'
 
 run_dest() {
     local label="$1"
@@ -73,10 +76,24 @@ case "${1:-all}" in
     catalyst|mac)
         build_dest "Mac Catalyst" "$CATALYST_DEST"
         ;;
+    watch)
+        echo
+        echo "=== Testing on watchOS Simulator ==="
+        echo "    destination: $WATCH_DEST"
+        xcodebuild -scheme "$WATCH_SCHEME" -destination "$WATCH_DEST" test \
+            | grep -E "Test Suite|Executed.*tests|TEST (SUCCEEDED|FAILED)|error:|FAILED" \
+            | tail -20
+        ;;
     all|"")
         run_dest "iPhone simulator" "$IPHONE_DEST"
         run_dest "iPad simulator"   "$IPAD_DEST"
         build_dest "Mac Catalyst"   "$CATALYST_DEST"
+        echo
+        echo "=== Testing on watchOS Simulator ==="
+        echo "    destination: $WATCH_DEST"
+        xcodebuild -scheme "$WATCH_SCHEME" -destination "$WATCH_DEST" test \
+            | grep -E "Test Suite|Executed.*tests|TEST (SUCCEEDED|FAILED)|error:|FAILED" \
+            | tail -20
         ;;
     *)
         echo "Unknown target: $1" >&2

@@ -11,6 +11,7 @@
 		1442F91FC1BA9FFD144C6C92 /* InteractionPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */; };
 		43CBAE10D633CF4A7C5982DE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDE697A3ED2572C2CA06A310 /* Foundation.framework */; };
 		43F76A893A22B38EDED6E419 /* PanelListEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */; };
+		52301DD7FB854C8BFD1214C4 /* EventTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB178082486BE0933CA3850 /* EventTests.swift */; };
 		53D8A3939C85368B3CBB4765 /* CloudKitAssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7270F46B20B1095307F938F3 /* CloudKitAssetStore.swift */; };
 		552288CB68696415D0F02249 /* PanelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154AFF6CFD19463B4E90DA45 /* PanelStore.swift */; };
 		5C9EA15278EC9EA8115DE8B4 /* InteractionEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B70393D00E813E93AD6591C /* InteractionEditorViewController.swift */; };
@@ -49,8 +50,10 @@
 		931E861BDAC2582EB1F53663 /* PushQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D83D254B32B5F181B1F0C0 /* PushQueue.swift */; };
 		9DDF76F1E4611F1E0EEFD47C /* CloudKitDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6C5DF71309AB72CF8DC1D2E /* CloudKitDatabase.swift */; };
 		A31BA1116ED59568679E500D /* PanelStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0089B9790338601ADA2628 /* PanelStoreTests.swift */; };
+		A9BB4479780F6D2972579977 /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDBF9CB1C125BC30094C150 /* Event.swift */; };
 		AC476E8474E21D444F8D2219 /* PanelLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D688FAA1636C6707018308F /* PanelLoader.swift */; };
 		DB88F1A4E16B06812FC73CE2 /* CloudKitRecordConversions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4FD0B327E62E9D587F4CDEA /* CloudKitRecordConversions.swift */; };
+		DC6BBC863F22467DBB1099B2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A3469CB843E09A111BEC04 /* Foundation.framework */; };
 		E366C6CA702E99AFB19C2E54 /* PINGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3FBE4ABFF95A8A93243304 /* PINGate.swift */; };
 		E387399ECC7BBE8934F2C3BD /* PanelEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71249E12D37A531DD6FFF690 /* PanelEditorViewController.swift */; };
 		E409F84B90774C306773919D /* TrashViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948C3F6D42C555364F9C25FA /* TrashViewController.swift */; };
@@ -62,6 +65,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		1424A24D67F282EEE3B62579 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6D0D7D671BFBE3C1002B9090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6DDF8DE41C1207B100A156E5;
+			remoteInfo = iInteractWatch;
+		};
 		4EF930242C41C7846969E3AD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 6D0D7D671BFBE3C1002B9090 /* Project object */;
@@ -103,8 +113,11 @@
 		067D93228E4B979FFE0ED22F /* PINGateStateTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PINGateStateTests.swift; sourceTree = "<group>"; };
 		1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InteractionPlayer.swift; sourceTree = "<group>"; };
 		154AFF6CFD19463B4E90DA45 /* PanelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStore.swift; sourceTree = "<group>"; };
+		16A3469CB843E09A111BEC04 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		28E4633EED6B838FD6B63CCB /* iInteractUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = iInteractUITests.swift; sourceTree = "<group>"; };
 		2DD3B51CACC0DBA9B48C8A8C /* iInteractUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iInteractUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3A9BE4FB80B5FFA7D3610682 /* iInteractWatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iInteractWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CB178082486BE0933CA3850 /* EventTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EventTests.swift; sourceTree = "<group>"; };
 		3F76A89D7F9825DE3A86F06A /* AssetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssetStore.swift; sourceTree = "<group>"; };
 		5B762FE707B08EE2007F675B /* PanelListEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelListEditorViewController.swift; sourceTree = "<group>"; };
 		6D0D7D6F1BFBE3C1002B9090 /* iInteract.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iInteract.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -155,6 +168,7 @@
 		F0D83D254B32B5F181B1F0C0 /* PushQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PushQueue.swift; sourceTree = "<group>"; };
 		F253757A749E8FD593465BF6 /* ConfigurationMode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConfigurationMode.swift; sourceTree = "<group>"; };
 		F6C5DF71309AB72CF8DC1D2E /* CloudKitDatabase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudKitDatabase.swift; sourceTree = "<group>"; };
+		F8E334F239ADB4B4DB9454F9 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FD0089B9790338601ADA2628 /* PanelStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -188,9 +202,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B33D930B5027DB764874B5AC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC6BBC863F22467DBB1099B2 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		04ECE9294CA515C4E0A61471 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				16A3469CB843E09A111BEC04 /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
 		1AA5F3F85544A9B3FF25D1B1 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -217,6 +247,7 @@
 				6D0D7D701BFBE3C1002B9090 /* Products */,
 				9B614405938AAA4304E5F199 /* Frameworks */,
 				454F16D57DB7A077D38E32E9 /* iInteractUITests */,
+				6D74D4F6FB3F36BEE733AA18 /* iInteractWatchTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -227,6 +258,7 @@
 				6D0D7D831BFBE3C1002B9090 /* iInteractTests.xctest */,
 				6DDF8DE51C1207B100A156E5 /* iInteractWatch.app */,
 				2DD3B51CACC0DBA9B48C8A8C /* iInteractUITests.xctest */,
+				3A9BE4FB80B5FFA7D3610682 /* iInteractWatchTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -284,6 +316,16 @@
 			path = iInteractTests;
 			sourceTree = "<group>";
 		};
+		6D74D4F6FB3F36BEE733AA18 /* iInteractWatchTests */ = {
+			isa = PBXGroup;
+			children = (
+				3CB178082486BE0933CA3850 /* EventTests.swift */,
+				F8E334F239ADB4B4DB9454F9 /* Info.plist */,
+			);
+			name = iInteractWatchTests;
+			path = iInteractWatchTests;
+			sourceTree = "<group>";
+		};
 		6DDF8DE61C1207B100A156E5 /* iInteractWatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -321,6 +363,7 @@
 			isa = PBXGroup;
 			children = (
 				1AA5F3F85544A9B3FF25D1B1 /* iOS */,
+				04ECE9294CA515C4E0A61471 /* watchOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -328,6 +371,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		25C0A469689383B99BA83F45 /* iInteractWatchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 83C753D824977B6705706E0B /* Build configuration list for PBXNativeTarget "iInteractWatchTests" */;
+			buildPhases = (
+				54C5C4EE6F94EABE183CA854 /* Sources */,
+				B33D930B5027DB764874B5AC /* Frameworks */,
+				13F687F46A96BD18B1E7C466 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iInteractWatchTests;
+			productName = iInteractWatchTests;
+			productReference = 3A9BE4FB80B5FFA7D3610682 /* iInteractWatchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		6D0D7D6E1BFBE3C1002B9090 /* iInteract */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6D0D7D8C1BFBE3C1002B9090 /* Build configuration list for PBXNativeTarget "iInteract" */;
@@ -448,11 +508,19 @@
 				6D0D7D821BFBE3C1002B9090 /* iInteractTests */,
 				6DDF8DE41C1207B100A156E5 /* iInteractWatch */,
 				7D293D5F2B9DF5C421F1FC20 /* iInteractUITests */,
+				25C0A469689383B99BA83F45 /* iInteractWatchTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		13F687F46A96BD18B1E7C466 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6D0D7D6D1BFBE3C1002B9090 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -502,6 +570,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				FA69869249842A76B5EC8C54 /* iInteractUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		54C5C4EE6F94EABE183CA854 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				52301DD7FB854C8BFD1214C4 /* EventTests.swift in Sources */,
+				A9BB4479780F6D2972579977 /* Event.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -612,6 +689,26 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		343A4B6647044D2649A0686D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				INFOPLIST_FILE = iInteractWatchTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteractWatchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
 		56A498D75329F8B7F7E77D0F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -918,6 +1015,27 @@
 			};
 			name = Release;
 		};
+		CEEBBAB146633EA0640DA885 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				INFOPLIST_FILE = iInteractWatchTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteractWatchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -962,6 +1080,15 @@
 			buildConfigurations = (
 				6DDF8E081C1207B100A156E5 /* Debug */,
 				6DDF8E091C1207B100A156E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		83C753D824977B6705706E0B /* Build configuration list for PBXNativeTarget "iInteractWatchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CEEBBAB146633EA0640DA885 /* Release */,
+				343A4B6647044D2649A0686D /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

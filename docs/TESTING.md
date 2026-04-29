@@ -42,7 +42,7 @@ push.
 | iPhone simulator | Unit tests + UI tests |
 | iPad simulator | Same unit tests as iPhone (UI tests too, but layouts not validated) |
 | Mac Catalyst | **Build-only.** No tests run. The unit test code is platform-portable Swift exercised by the iPhone + iPad runs; Catalyst-specific issues (UIKit-vs-AppKit drift, deployment-target floors, entitlement mismatches) all show up at build/link time, not test-runtime. Catalyst test runs would also need a dev team for `iInteractUITests` and CloudKit entitlements that survive ad-hoc signing — fragile setup for duplicate coverage. |
-| watchOS | **Not covered.** `iInteractWatch` has no test target. |
+| watchOS | Logic-only unit tests via `iInteractWatchTests` target (`Event` model parsing). No host app needed — tests are a pure XCTest bundle. UI controllers (`InterfaceController`, `PanelController`, `InteractionInterfaceController`) remain manual-smoke-test territory. |
 
 The unit tests target shared logic (`PanelStore`, `PINGate`,
 `PushQueue`, `CloudKitAssetStore`, the various coordinators) that
@@ -52,21 +52,22 @@ issues, and any sneaky `#if` branches. They do *not* exercise iPad
 popover layouts, Mac Catalyst-specific UI paths, or anything in the
 watch extension.
 
-## When to add a watch test target
+## Watch test scope
 
-Manual smoke testing on a watch simulator is the right
-cost-benefit-ratio today — the watch code is a thin shell over
-`events.plist` and `Event` model parsing. Add an `iInteractWatchTests`
-target when:
+`iInteractWatchTests` covers the `Event` model — the dictionary→Event
+init contract (required-field validation, optional fields, malformed
+input) and `loadAll`'s plist-reader contract. The test bundle is
+**logic-only**: no `TEST_HOST`, no installed app, just XCTest
+loading the bundle directly on the watchOS simulator. `Event.swift`
+is compiled directly into the test target so the tests don't need to
+@testable-import the watch app's module.
 
-- The watch sync logic in `WatchSync` and `iInteractWatch/InterfaceController`
-  grows beyond simple panel-order display.
-- A watch-side bug ships and slips past manual testing.
-- You start sharing model code between iOS and watchOS that needs
-  per-platform regression coverage.
-
-Until one of those is true, a separate watch test bundle is
-infrastructure overhead without payoff.
+UI controllers (`InterfaceController`, `PanelController`,
+`InteractionInterfaceController`) remain manual-smoke-test territory.
+They depend on WatchKit's interface-controller lifecycle, which is
+hard to exercise in XCTest without elaborate mocking. If a watch-side
+UI regression ships, that's the signal to extend coverage with a
+host-based test bundle.
 
 ## Updating destinations
 
