@@ -54,10 +54,21 @@ final class PanelStore {
     static let didChangeNotification = Notification.Name("PanelStore.didChange")
 
     /// Production singleton — Application Support + iCloud KVS.
+    /// Picks `CloudKitAssetStore` when iCloud is signed in so user
+    /// recordings + pictures sync to the user's private CloudKit
+    /// database; otherwise falls back to the local-only
+    /// `LocalFSAssetStore`. Choice is sticky for this launch — if the
+    /// user signs into iCloud after launch, restart picks it up.
     static let shared: PanelStore = {
-        let s = PanelStore(directory: PanelStore.defaultDirectory(),
+        let dir = PanelStore.defaultDirectory()
+        let useCloudKit = FileManager.default.ubiquityIdentityToken != nil
+        let assetStore: AssetStore = useCloudKit
+            ? CloudKitAssetStore(parentDirectory: dir)
+            : LocalFSAssetStore(parentDirectory: dir)
+        let s = PanelStore(directory: dir,
                            keyValueStore: NSUbiquitousKeyValueStore.default,
-                           iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil })
+                           iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil },
+                           assetStore: assetStore)
         s.startObservingICloudChanges()
         NSUbiquitousKeyValueStore.default.synchronize()
         return s
@@ -152,6 +163,26 @@ final class PanelStore {
     /// Removes all asset files for an interaction. Safe if files don't exist.
     func deleteInteractionAssets(id: UUID) {
         assetStore.deleteAll(id: id)
+    }
+
+    /// Removes a single asset (picture, boy audio, or girl audio) for
+    /// an interaction. Used by the editor when the user clears one
+    /// voice without affecting the other. Routes through the asset
+    /// store so CloudKit-backed deployments enqueue the corresponding
+    /// push.
+    func deleteInteractionAsset(kind: AssetKind, id: UUID) {
+        assetStore.delete(kind, id: id)
+    }
+
+    /// Notifies the asset store that the caller wrote (or copied) a
+    /// file directly to the URL returned by `assetURL(for:kind:)`,
+    /// bypassing `saveInteractionPicture`. Typically called by
+    /// `InteractionEditorViewController` after copying a recorded
+    /// audio file from the temp directory into the final asset path.
+    /// Local-FS asset stores no-op; CloudKit-backed stores enqueue
+    /// an upload.
+    func didExternallyWriteAsset(kind: AssetKind, id: UUID) {
+        assetStore.didExternallyWrite(kind, id: id)
     }
 
     // MARK: - KVS keys for synced metadata
@@ -283,12 +314,17 @@ final class PanelStore {
             panels.append(panel)
         }
         try saveUserPanels(panels)
+        enqueueRecordPushForPanelSave(panel)
     }
 
     func deletePanel(id: UUID) throws {
+        let childIDs = userPanels().first(where: { $0.id == id })?.interactions
+            .filter { !$0.isBuiltIn }
+            .map { $0.id } ?? []
         var panels = userPanels()
         panels.removeAll { $0.id == id }
         try saveUserPanels(panels)
+        enqueueRecordPushForPanelDelete(panelID: id, childIDs: childIDs)
     }
 
     // MARK: - Layout (visibility + order, applies to built-ins AND user panels)
@@ -591,6 +627,11 @@ final class PanelStore {
                                  parentPanelID: panelID,
                                  snapshot: snapshot))
         try saveTrashIndex(items)
+        // Trash is local-only state; mirror to CloudKit as a delete.
+        // If the user restores within 30 days, the savePanel inside
+        // restoreInteraction re-enqueues the save and the record
+        // reappears on other devices.
+        cloudKitPushQueue?.enqueue(.deleteInteraction(id: interaction.id))
     }
 
     /// Moves a trashed panel back into active panels (and its blobs back
@@ -730,6 +771,99 @@ final class PanelStore {
         kvs.removeObject(forKey: Self.kvsLayoutKey)
         kvs.removeObject(forKey: Self.kvsModeKey)
         kvs.synchronize()
+    }
+
+    // MARK: - CloudKit sync (v3.1.1c)
+
+    /// Lifetime-pinned drainer for the CloudKit push queue. nil when
+    /// `assetStore` isn't `CloudKitAssetStore` (i.e. iCloud signed
+    /// out at launch).
+    private var cloudKitDrainer: CloudKitPushDrainer?
+
+    /// Convenience accessor — nil for `LocalFSAssetStore`. Used by
+    /// the mutation methods (savePanel, deletePanel, trashInteraction)
+    /// to enqueue record-level pushes only when CloudKit is wired.
+    private var cloudKitPushQueue: PushQueue? {
+        (assetStore as? CloudKitAssetStore)?.pushQueue
+    }
+
+    /// Enqueues savePanel + saveInteraction(child) for each non-builtin
+    /// child. Drainer pushes the latest panel/interaction state at
+    /// execute time, so it doesn't matter that the snapshot here is
+    /// stale by the time the network call happens.
+    private func enqueueRecordPushForPanelSave(_ panel: Panel) {
+        guard let q = cloudKitPushQueue else { return }
+        q.enqueue(.savePanel(id: panel.id))
+        for interaction in panel.interactions where !interaction.isBuiltIn {
+            q.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+        }
+    }
+
+    /// Enqueues deleteInteraction for each child first (their
+    /// supersession drops pending uploadAsset/deleteAsset for that
+    /// interaction), then deletePanel. CKRecord cascade delete via
+    /// `panelRef.deleteSelf` makes the per-child deletes redundant
+    /// server-side, but enqueuing them explicitly keeps the queue
+    /// dedupe semantics clean.
+    private func enqueueRecordPushForPanelDelete(panelID: UUID, childIDs: [UUID]) {
+        guard let q = cloudKitPushQueue else { return }
+        for childID in childIDs {
+            q.enqueue(.deleteInteraction(id: childID))
+        }
+        q.enqueue(.deletePanel(id: panelID))
+    }
+
+    /// Call once at app launch (after `PanelStore.shared` is
+    /// materialized) to start the CloudKit push drainer. No-op when
+    /// the asset store isn't CloudKit-backed (iCloud signed out).
+    /// Idempotent — safe to call multiple times. Also runs the
+    /// one-shot initial sync that seeds the push queue with all
+    /// existing user panels + interactions on first CloudKit launch.
+    func startCloudKitSyncIfNeeded() {
+        guard let cloudStore = assetStore as? CloudKitAssetStore else { return }
+        runInitialSyncIfNeeded(queue: cloudStore.pushQueue)
+        if cloudKitDrainer == nil {
+            let drainer = CloudKitPushDrainer(queue: cloudStore.pushQueue,
+                                               database: cloudStore.database,
+                                               assetStore: cloudStore,
+                                               panelLookup: { [weak self] in
+                                                   self?.userPanels() ?? []
+                                               })
+            drainer.start()
+            cloudKitDrainer = drainer
+        }
+    }
+
+    /// Stops the drainer. Used by tests; production usually lets it
+    /// run for the app lifetime.
+    func stopCloudKitSync() {
+        cloudKitDrainer?.stop()
+        cloudKitDrainer = nil
+    }
+
+    /// Path to the local sentinel that marks the initial-sync done.
+    /// Idempotent file existence check — no parsing, no migration.
+    private var cloudKitInitialSyncFlag: URL {
+        directory.appendingPathComponent("cloudkit_initial_sync_v1.done")
+    }
+
+    /// Seeds the push queue with `savePanel` + `saveInteraction` ops
+    /// for every existing user panel on first CloudKit launch. Without
+    /// this, a user with custom panels created under a pre-CloudKit
+    /// build wouldn't see anything sync until their next edit.
+    /// PushQueue's dedupe handles the case where the user makes an
+    /// edit before the initial sync runs.
+    private func runInitialSyncIfNeeded(queue: PushQueue) {
+        guard !FileManager.default.fileExists(atPath: cloudKitInitialSyncFlag.path) else {
+            return
+        }
+        for panel in userPanels() {
+            queue.enqueue(.savePanel(id: panel.id))
+            for interaction in panel.interactions where !interaction.isBuiltIn {
+                queue.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+            }
+        }
+        try? Data().write(to: cloudKitInitialSyncFlag)
     }
 
     // MARK: - Helpers

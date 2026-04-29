@@ -203,7 +203,10 @@ final class InteractionEditorViewController: UITableViewController,
             // keep existing. New interactions must have a picture (validation
             // should have prevented Save being enabled otherwise).
             if clearedPicture && tempPictureURL == nil {
-                try? FileManager.default.removeItem(at: store.assetURL(for: workingID, kind: .picture))
+                // Route through the AssetStore so CloudKit-backed
+                // deployments enqueue a deleteAsset push (LocalFS just
+                // removes the file, same as before).
+                store.deleteInteractionAsset(kind: .picture, id: workingID)
             }
             if let picURL = tempPictureURL,
                let image = UIImage(contentsOfFile: picURL.path) {
@@ -233,12 +236,18 @@ final class InteractionEditorViewController: UITableViewController,
     private func writeOrClearAudio(_ voice: PanelStore.Voice, temp: URL?, cleared: Bool) throws {
         let dest = store.assetURL(for: workingID, kind: voice.assetKind)
         if cleared && temp == nil {
-            try? FileManager.default.removeItem(at: dest)
+            // Route through the AssetStore so CloudKit deployments
+            // enqueue a deleteAsset push.
+            store.deleteInteractionAsset(kind: voice.assetKind, id: workingID)
             return
         }
         if let temp = temp {
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.copyItem(at: temp, to: dest)
+            // FileManager.copyItem bypasses the AssetStore, so notify
+            // it explicitly. CloudKit-backed stores enqueue an upload;
+            // local-FS stores no-op.
+            store.didExternallyWriteAsset(kind: voice.assetKind, id: workingID)
         }
         // else: untouched — keep existing
     }

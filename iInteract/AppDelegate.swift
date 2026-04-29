@@ -23,6 +23,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // of intent — runtime reconcile (in FeelingTableViewController) pushes
         // local changes from iOS Settings up to KVS.
         PanelStore.shared.adoptCloudConfigurationModeIfFirstLaunch()
+        // Kick off the CloudKit push drainer when iCloud is signed in
+        // and the AssetStore is CloudKit-backed (see PanelStore.shared
+        // factory). No-op when running on an iCloud-signed-out device.
+        // Also seeds the queue with all existing user panels +
+        // interactions on the first CloudKit launch.
+        PanelStore.shared.startCloudKitSyncIfNeeded()
         WatchSync.shared.start()
         return true
     }

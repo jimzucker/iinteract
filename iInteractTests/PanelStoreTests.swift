@@ -3737,3 +3737,214 @@ final class CloudKitPushDrainerTests: XCTestCase {
                        "drainOnce does nothing while entry is in backoff window")
     }
 }
+
+// MARK: - PanelStore record-push enqueueing (v3.1.1c-ii)
+
+/// Integration tests that wire a PanelStore to a CloudKitAssetStore
+/// (with MockCloudKitDatabase under the hood) and verify the right
+/// PushOperations show up after each mutation. The drainer is NOT
+/// started — we just inspect the queue. v3.1.1c-i covers the drainer
+/// side already.
+final class PanelStoreCloudKitMirrorTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var assetStore: CloudKitAssetStore!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MirrorTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        assetStore = CloudKitAssetStore(parentDirectory: tempDir, database: mockDB)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: kvs,
+                           assetStore: assetStore)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private var queueEntries: [PushEntry] { assetStore.pushQueue.entries }
+
+    // MARK: savePanel
+
+    func testSavePanel_Enqueues_SavePanelAndChildren() throws {
+        let i1 = Interaction(name: "happy")
+        let i2 = Interaction(name: "sad")
+        let panel = Panel(title: "Feelings", color: .systemBlue,
+                          interactions: [i1, i2], isBuiltIn: false)
+        try store.savePanel(panel)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.savePanel(id: panel.id)))
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i1.id, parentID: panel.id)))
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i2.id, parentID: panel.id)))
+    }
+
+    func testSavePanel_BuiltInsSkipped_OnlyUserPanelEnqueued() throws {
+        // Built-in panels can't be saved via savePanel (it returns early),
+        // so this isn't a real production case, but the guard belt-and-suspenders.
+        let builtIn = Interaction(interactionName: "happy")  // built-in
+        let user = Interaction(name: "custom-greet")
+        let panel = Panel(title: "Mixed", color: .green,
+                          interactions: [builtIn, user], isBuiltIn: false)
+        try store.savePanel(panel)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.saveInteraction(id: user.id, parentID: panel.id)))
+        XCTAssertFalse(ops.contains(.saveInteraction(id: builtIn.id, parentID: panel.id)),
+                       "built-in interactions never sync — they're bundled with the app")
+    }
+
+    // MARK: deletePanel
+
+    func testDeletePanel_Enqueues_ChildDeletesThenPanelDelete() throws {
+        let i = Interaction(name: "want")
+        let panel = Panel(title: "Wants", color: .orange,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.deletePanel(id: panel.id)
+        let ops = queueEntries.map { $0.op }
+        // After delete, the original saves are wiped via supersession,
+        // and explicit deletes for the panel + child remain.
+        XCTAssertTrue(ops.contains(.deletePanel(id: panel.id)),
+                      "explicit panel delete enqueued (cascade is server-side; this is for queue dedupe semantics)")
+        XCTAssertTrue(ops.contains(.deleteInteraction(id: i.id)))
+        XCTAssertFalse(ops.contains(.savePanel(id: panel.id)),
+                       "delete supersedes the prior save")
+    }
+
+    // MARK: trashInteraction
+
+    func testTrashInteraction_Enqueues_DeleteInteraction() throws {
+        let i = Interaction(name: "playground")
+        let panel = Panel(title: "Outside", color: .yellow,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashInteraction(i, fromPanelID: panel.id)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.deleteInteraction(id: i.id)),
+                      "trashing mirrors as server-side delete; restore re-enqueues a save inside savePanel(panel) within restoreInteraction")
+    }
+
+    // MARK: restorePanel — savePanel cascade re-enqueues
+
+    func testRestorePanel_AfterTrash_ReEnqueuesSaves() throws {
+        let i = Interaction(name: "tv")
+        let panel = Panel(title: "Wants", color: .orange,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashPanel(panel)
+        // After trash, the save ops are gone, replaced by deletes.
+        XCTAssertFalse(queueEntries.map { $0.op }.contains(.savePanel(id: panel.id)))
+        try store.restorePanel(trashID: store.trashedItems().first!.trashID)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.savePanel(id: panel.id)),
+                      "restore re-creates the record on iCloud — savePanel inside restorePanel is the trigger")
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i.id, parentID: panel.id)))
+    }
+
+    // MARK: deleteInteractionAsset / didExternallyWriteAsset
+
+    func testDeleteInteractionAsset_RoutesThroughAssetStore_Enqueues() {
+        let id = UUID()
+        store.deleteInteractionAsset(kind: .picture, id: id)
+        XCTAssertEqual(queueEntries.map { $0.op },
+                       [.deleteAsset(kind: .picture, id: id)])
+    }
+
+    func testDidExternallyWriteAsset_Enqueues_UploadAsset() {
+        let id = UUID()
+        store.didExternallyWriteAsset(kind: .boyAudio, id: id)
+        XCTAssertEqual(queueEntries.map { $0.op },
+                       [.uploadAsset(kind: .boyAudio, id: id)])
+    }
+
+    // MARK: Initial sync
+
+    func testStartCloudKitSyncIfNeeded_SeedsExistingPanels_OnFirstRun() throws {
+        // Pre-existing user panel from before CloudKit was wired.
+        let i = Interaction(name: "drink")
+        let panel = Panel(title: "Need", color: .cyan,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        // Drain the queue manually to clear the savePanel/saveInteraction
+        // ops the savePanel call already enqueued — simulate "panel created
+        // before CloudKit was wired in this branch."
+        for entry in assetStore.pushQueue.entries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+        XCTAssertEqual(queueEntries, [])
+
+        // First call: seeds + starts the drainer.
+        store.startCloudKitSyncIfNeeded()
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.savePanel(id: panel.id)),
+                      "initial sync enqueues savePanel for every existing user panel")
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i.id, parentID: panel.id)))
+
+        // Important: stop the drainer before tearDown so its background
+        // Task doesn't outlive the test and grab the temp dir we're
+        // about to delete.
+        store.stopCloudKitSync()
+    }
+
+    func testStartCloudKitSyncIfNeeded_Idempotent_DoesNotReSeed() throws {
+        let panel = Panel(title: "X", color: .red,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+        for entry in assetStore.pushQueue.entries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+
+        store.startCloudKitSyncIfNeeded()
+        XCTAssertEqual(queueEntries.count, 1, "first call seeds")
+        // Drain again, simulating the drainer succeeded.
+        for entry in queueEntries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+
+        // Second call: no re-seeding even though the queue is empty.
+        store.stopCloudKitSync()
+        store.startCloudKitSyncIfNeeded()
+        XCTAssertEqual(queueEntries, [],
+                       "initial sync flag prevents re-seeding on subsequent launches")
+        store.stopCloudKitSync()
+    }
+
+    func testStartCloudKitSyncIfNeeded_NoOp_WhenAssetStoreIsNotCloudKit() throws {
+        // Local-FS asset store → no drainer, no seeding, no enqueues.
+        let localStore = PanelStore(directory: tempDir.appendingPathComponent("local-only"),
+                                     keyValueStore: MemoryKeyValueStore(),
+                                     assetStore: LocalFSAssetStore(parentDirectory:
+                                        tempDir.appendingPathComponent("local-only")))
+        let panel = Panel(title: "Y", color: .green,
+                          interactions: [], isBuiltIn: false)
+        try localStore.savePanel(panel)
+        // No queue to inspect, but the call must not crash.
+        XCTAssertNoThrow(localStore.startCloudKitSyncIfNeeded())
+        localStore.stopCloudKitSync()
+    }
+
+    // MARK: clearAllUserData is local-only
+
+    func testClearAllUserData_DoesNotEnqueue_AnyServerOps() throws {
+        let i = Interaction(name: "hi")
+        let panel = Panel(title: "Greet", color: .purple,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        for entry in queueEntries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+
+        store.clearAllUserData()
+
+        XCTAssertEqual(queueEntries, [],
+                       "Clear All My Data is documented as local-only — does NOT enqueue iCloud deletes for v3.1.1")
+    }
+}
