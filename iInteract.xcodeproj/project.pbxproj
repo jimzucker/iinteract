@@ -40,7 +40,6 @@
 		6DDBF9D21C125E580094C150 /* events.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6DDBF9D11C125E580094C150 /* events.plist */; };
 		6DDF8DE91C1207B100A156E5 /* Interface.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6DDF8DE71C1207B100A156E5 /* Interface.storyboard */; };
 		6DDF8DEB1C1207B100A156E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6DDF8DEA1C1207B100A156E5 /* Assets.xcassets */; };
-		6DDF8DF21C1207B100A156E5 /* iInteractWatch Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6DDF8DF11C1207B100A156E5 /* iInteractWatch Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6DDF8DF91C1207B100A156E5 /* InterfaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8DF81C1207B100A156E5 /* InterfaceController.swift */; };
 		6DDF8DFB1C1207B100A156E5 /* ExtensionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */; };
 		6DDF8E031C1207B100A156E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6DDF8E021C1207B100A156E5 /* Assets.xcassets */; };
@@ -77,13 +76,6 @@
 			remoteGlobalIDString = 6D0D7D6E1BFBE3C1002B9090;
 			remoteInfo = iInteract;
 		};
-		6DDF8DF31C1207B100A156E5 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 6D0D7D671BFBE3C1002B9090 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6DDF8DF01C1207B100A156E5;
-			remoteInfo = "iInteractWatch Extension";
-		};
 		6DDF8E051C1207B100A156E5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 6D0D7D671BFBE3C1002B9090 /* Project object */;
@@ -94,17 +86,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		6DDF8E0D1C1207B100A156E5 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				6DDF8DF21C1207B100A156E5 /* iInteractWatch Extension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		6DDF8E0F1C1207B100A156E5 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -153,7 +134,6 @@
 		6DDF8DE81C1207B100A156E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Interface.storyboard; sourceTree = "<group>"; };
 		6DDF8DEA1C1207B100A156E5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6DDF8DEC1C1207B100A156E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		6DDF8DF11C1207B100A156E5 /* iInteractWatch Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "iInteractWatch Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6DDF8DF71C1207B100A156E5 /* PushNotificationPayload.apns */ = {isa = PBXFileReference; lastKnownFileType = text; path = PushNotificationPayload.apns; sourceTree = "<group>"; };
 		6DDF8DF81C1207B100A156E5 /* InterfaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceController.swift; sourceTree = "<group>"; };
 		6DDF8DFA1C1207B100A156E5 /* ExtensionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionDelegate.swift; sourceTree = "<group>"; };
@@ -224,7 +204,6 @@
 			children = (
 				28E4633EED6B838FD6B63CCB /* iInteractUITests.swift */,
 			);
-			name = iInteractUITests;
 			path = iInteractUITests;
 			sourceTree = "<group>";
 		};
@@ -247,7 +226,6 @@
 				6D0D7D6F1BFBE3C1002B9090 /* iInteract.app */,
 				6D0D7D831BFBE3C1002B9090 /* iInteractTests.xctest */,
 				6DDF8DE51C1207B100A156E5 /* iInteractWatch.app */,
-				6DDF8DF11C1207B100A156E5 /* iInteractWatch Extension.appex */,
 				2DD3B51CACC0DBA9B48C8A8C /* iInteractUITests.xctest */,
 			);
 			name = Products;
@@ -392,34 +370,17 @@
 			buildConfigurationList = 6DDF8E0E1C1207B100A156E5 /* Build configuration list for PBXNativeTarget "iInteractWatch" */;
 			buildPhases = (
 				6DDF8DE31C1207B100A156E5 /* Resources */,
-				6DDF8E0D1C1207B100A156E5 /* Embed Foundation Extensions */,
+				6DDF8DED1C1207B100A156E5 /* Sources */,
+				6DDF8DEE1C1207B100A156E5 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				6DDF8DF41C1207B100A156E5 /* PBXTargetDependency */,
 			);
 			name = iInteractWatch;
 			productName = iInteractWatch;
 			productReference = 6DDF8DE51C1207B100A156E5 /* iInteractWatch.app */;
-			productType = "com.apple.product-type.application.watchapp2";
-		};
-		6DDF8DF01C1207B100A156E5 /* iInteractWatch Extension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 6DDF8E0C1C1207B100A156E5 /* Build configuration list for PBXNativeTarget "iInteractWatch Extension" */;
-			buildPhases = (
-				6DDF8DED1C1207B100A156E5 /* Sources */,
-				6DDF8DEE1C1207B100A156E5 /* Frameworks */,
-				6DDF8DEF1C1207B100A156E5 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "iInteractWatch Extension";
-			productName = "iInteractWatch Extension";
-			productReference = 6DDF8DF11C1207B100A156E5 /* iInteractWatch Extension.appex */;
-			productType = "com.apple.product-type.watchkit2-extension";
+			productType = "com.apple.product-type.application";
 		};
 		7D293D5F2B9DF5C421F1FC20 /* iInteractUITests */ = {
 			isa = PBXNativeTarget;
@@ -447,7 +408,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 0710;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 2640;
 				ORGANIZATIONNAME = "James A Zucker";
 				TargetAttributes = {
 					6D0D7D6E1BFBE3C1002B9090 = {
@@ -468,12 +429,6 @@
 						LastSwiftMigration = 0800;
 						ProvisioningStyle = Automatic;
 					};
-					6DDF8DF01C1207B100A156E5 = {
-						CreatedOnToolsVersion = 7.1.1;
-						DevelopmentTeam = 583XUQ99J6;
-						LastSwiftMigration = 1200;
-						ProvisioningStyle = Automatic;
-					};
 				};
 			};
 			buildConfigurationList = 6D0D7D6A1BFBE3C1002B9090 /* Build configuration list for PBXProject "iInteract" */;
@@ -492,7 +447,6 @@
 				6D0D7D6E1BFBE3C1002B9090 /* iInteract */,
 				6D0D7D821BFBE3C1002B9090 /* iInteractTests */,
 				6DDF8DE41C1207B100A156E5 /* iInteractWatch */,
-				6DDF8DF01C1207B100A156E5 /* iInteractWatch Extension */,
 				7D293D5F2B9DF5C421F1FC20 /* iInteractUITests */,
 			);
 		};
@@ -525,17 +479,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				6DDF8DEB1C1207B100A156E5 /* Assets.xcassets in Resources */,
-				6DDF8DE91C1207B100A156E5 /* Interface.storyboard in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		6DDF8DEF1C1207B100A156E5 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 				6DDF8E031C1207B100A156E5 /* Assets.xcassets in Resources */,
-				6D8DD4271C161B24009C7AFB /* Assets.xcassets in Resources */,
 				6D8DD4321C162F9D009C7AFB /* panels.plist in Resources */,
+				6D8DD4271C161B24009C7AFB /* Assets.xcassets in Resources */,
+				6DDF8DE91C1207B100A156E5 /* Interface.storyboard in Resources */,
 				6DDBF9D21C125E580094C150 /* events.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -628,11 +575,6 @@
 			isa = PBXTargetDependency;
 			target = 6D0D7D6E1BFBE3C1002B9090 /* iInteract */;
 			targetProxy = 6D0D7D841BFBE3C1002B9090 /* PBXContainerItemProxy */;
-		};
-		6DDF8DF41C1207B100A156E5 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6DDF8DF01C1207B100A156E5 /* iInteractWatch Extension */;
-			targetProxy = 6DDF8DF31C1207B100A156E5 /* PBXContainerItemProxy */;
 		};
 		6DDF8E061C1207B100A156E5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -767,6 +709,7 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -821,6 +764,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -841,7 +785,7 @@
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteract/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 11.0;
+				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -868,7 +812,7 @@
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteract/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 11.0;
+				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -927,14 +871,16 @@
 		6DDF8E081C1207B100A156E5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
-				IBSC_MODULE = iInteractWatch_Extension;
 				INFOPLIST_FILE = iInteractWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
 				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -950,74 +896,22 @@
 		6DDF8E091C1207B100A156E5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
-				IBSC_MODULE = iInteractWatch_Extension;
 				INFOPLIST_FILE = iInteractWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
 				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.4;
-			};
-			name = Release;
-		};
-		6DDF8E0A1C1207B100A156E5 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_COMPLICATION_NAME = "";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = 583XUQ99J6;
-				INFOPLIST_FILE = "iInteractWatch Extension/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 3.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp.watchkitextension;
-				PRODUCT_NAME = "${TARGET_NAME}";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.4;
-			};
-			name = Debug;
-		};
-		6DDF8E0B1C1207B100A156E5 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_COMPLICATION_NAME = "";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = 583XUQ99J6;
-				INFOPLIST_FILE = "iInteractWatch Extension/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 3.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp.watchkitextension;
-				PRODUCT_NAME = "${TARGET_NAME}";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 11.4;
@@ -1059,15 +953,6 @@
 			buildConfigurations = (
 				6D0D7D901BFBE3C1002B9090 /* Debug */,
 				6D0D7D911BFBE3C1002B9090 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		6DDF8E0C1C1207B100A156E5 /* Build configuration list for PBXNativeTarget "iInteractWatch Extension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				6DDF8E0A1C1207B100A156E5 /* Debug */,
-				6DDF8E0B1C1207B100A156E5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
