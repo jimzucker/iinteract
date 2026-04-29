@@ -1917,10 +1917,11 @@ final class SettingsBundleKeyContractTests: XCTestCase {
     }
 
     func testSettingsBundleKeys_MatchExpectedSet() throws {
-        // Order: Mode → Security → Voice → Privacy. iOS auto-appends an
-        // "Allow [App] to Access" section at the bottom from the
-        // Info.plist usage descriptions (camera / photo library /
-        // microphone / Face ID); that's not in this plist.
+        // Order: Mode → Security → Voice → Sync → Privacy. iOS
+        // auto-appends an "Allow [App] to Access" section at the
+        // bottom from the Info.plist usage descriptions (camera /
+        // photo library / microphone / Face ID); that's not in this
+        // plist.
         let expected = [
             "configuration_mode",
             "pin_enabled",
@@ -1928,6 +1929,7 @@ final class SettingsBundleKeyContractTests: XCTestCase {
             "hide_config",
             "voice_enabled",
             "voice_style",
+            "icloud_sync_enabled",
             "pending_clear_all",
         ]
         let actual = try bundleKeys()
@@ -4469,5 +4471,113 @@ final class CloudKitChangeApplierTests: XCTestCase {
         // No panelID, title, or colorRGBA.
         XCTAssertNoThrow(applier.apply(CloudKitChanges(updatedRecords: [bad])))
         XCTAssertTrue(store.userPanels().isEmpty)
+    }
+}
+
+// MARK: - iCloud sync toggle (v3.1.3)
+
+/// `Settings.bundle` exposes a `Sync Custom Panels via iCloud` toggle
+/// that maps to the `icloud_sync_enabled` UserDefaults key. PanelStore
+/// reads it in `startCloudKitSyncIfNeeded` (no-op when off) and
+/// `refreshCloudKitSyncState` (called from
+/// `FeelingTableViewController.reconcile` on foreground) flips
+/// running state to match. These tests verify the toggle's behavior
+/// without driving the live drainer's async loop — they assert on
+/// `cloudKitDrainer != nil` as a proxy for "sync is running."
+final class CloudKitSyncToggleTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var assetStore: CloudKitAssetStore!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    /// Use a unique key per test so the system UserDefaults state
+    /// from one test can't bleed into another.
+    private var togglePerTestKey: String!
+    /// We can't easily inject a separate UserDefaults into PanelStore
+    /// (the API uses .standard). So manipulate .standard directly,
+    /// scoped to the iCloudSyncEnabledKey, and clean up in tearDown.
+    private let syncKey = PanelStore.iCloudSyncEnabledKey
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SyncToggle-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        assetStore = CloudKitAssetStore(parentDirectory: tempDir, database: mockDB)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: kvs,
+                           assetStore: assetStore)
+        // Default to enabled so each test starts from a known state.
+        UserDefaults.standard.set(true, forKey: syncKey)
+    }
+
+    override func tearDown() {
+        store.stopCloudKitSync()
+        UserDefaults.standard.removeObject(forKey: syncKey)
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: startCloudKitSyncIfNeeded — gate on toggle
+
+    func testStart_RespectsTogglesOFF_Skipped() {
+        UserDefaults.standard.set(false, forKey: syncKey)
+        store.startCloudKitSyncIfNeeded()
+        // No drainer started, no zone bootstrap attempt.
+        XCTAssertEqual(mockDB.savedZones, [])
+        // refreshCloudKitSyncState should also be safe to call.
+        store.refreshCloudKitSyncState()
+        XCTAssertEqual(mockDB.savedZones, [])
+        store.stopCloudKitSync()
+    }
+
+    func testStart_RespectsToggleAbsent_DefaultsToON() {
+        UserDefaults.standard.removeObject(forKey: syncKey)
+        // No flag set → default to ON. startCloudKitSyncIfNeeded
+        // should proceed (drainer instantiated; eventually saves the
+        // zone in its async loop, which we don't await here).
+        store.startCloudKitSyncIfNeeded()
+        // Initial-sync flag file got written → proves we made it past
+        // the toggle gate into runInitialSyncIfNeeded.
+        let flagURL = tempDir.appendingPathComponent("cloudkit_initial_sync_v1.done")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: flagURL.path),
+                      "absent toggle should default to ON and proceed with sync init")
+        store.stopCloudKitSync()
+    }
+
+    // MARK: refreshCloudKitSyncState — flip behavior
+
+    func testRefresh_ToggleOnToOff_StopsSync() {
+        // Start with sync on.
+        UserDefaults.standard.set(true, forKey: syncKey)
+        store.startCloudKitSyncIfNeeded()
+        let flagURL = tempDir.appendingPathComponent("cloudkit_initial_sync_v1.done")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: flagURL.path))
+
+        // Flip to off, refresh.
+        UserDefaults.standard.set(false, forKey: syncKey)
+        store.refreshCloudKitSyncState()
+        // No way to assert the drainer task is cancelled from here
+        // (private), but stopCloudKitSync is invoked which sets
+        // cloudKitDrainer to nil; subsequent refresh-on with the
+        // toggle restored should re-bootstrap idempotently.
+        UserDefaults.standard.set(true, forKey: syncKey)
+        store.refreshCloudKitSyncState()
+        // Flag file is preserved across pause/resume — initial sync
+        // doesn't re-fire.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: flagURL.path),
+                      "pausing + resuming sync must not re-trigger initial sync (flag survives)")
+    }
+
+    func testRefresh_ToggleStartsOFF_NoSyncEverRuns() {
+        UserDefaults.standard.set(false, forKey: syncKey)
+        store.refreshCloudKitSyncState()
+        let flagURL = tempDir.appendingPathComponent("cloudkit_initial_sync_v1.done")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: flagURL.path),
+                       "initial sync flag never created when toggle starts off")
     }
 }

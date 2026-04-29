@@ -844,10 +844,30 @@ final class PanelStore {
         q.enqueue(.deletePanel(id: panelID))
     }
 
+    /// UserDefaults key for the user-facing "Sync Custom Panels via
+    /// iCloud" toggle in iOS Settings. Reading via UserDefaults so
+    /// Settings.bundle bindings work; tests can manipulate via the
+    /// same key.
+    static let iCloudSyncEnabledKey = "icloud_sync_enabled"
+
+    /// Reads the user-toggled iCloud sync preference. Treats absent
+    /// as ON so a fresh install behaves the same as it did before
+    /// v3.1.3. AppDelegate.registerDefaults provides the same default
+    /// as a backstop.
+    private var isCloudKitSyncDesiredEnabled: Bool {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Self.iCloudSyncEnabledKey) == nil {
+            return true
+        }
+        return defaults.bool(forKey: Self.iCloudSyncEnabledKey)
+    }
+
     /// Call once at app launch (after `PanelStore.shared` is
     /// materialized) to start CloudKit sync. No-op when the asset
-    /// store isn't CloudKit-backed (iCloud signed out). Idempotent —
-    /// safe to call multiple times. Does three things:
+    /// store isn't CloudKit-backed (iCloud signed out) or the user
+    /// has turned off the Settings.bundle "Sync Custom Panels via
+    /// iCloud" toggle. Idempotent — safe to call multiple times.
+    /// Does three things when enabled:
     /// 1. Seeds the push queue with existing user panels on first
     ///    CloudKit launch (so v3.1.1 push uploads pre-existing data).
     /// 2. Starts the push drainer (v3.1.1c).
@@ -856,6 +876,7 @@ final class PanelStore {
     ///    re-pushing.
     func startCloudKitSyncIfNeeded() {
         guard let cloudStore = assetStore as? CloudKitAssetStore else { return }
+        guard isCloudKitSyncDesiredEnabled else { return }
         runInitialSyncIfNeeded(queue: cloudStore.pushQueue)
         if cloudKitDrainer == nil {
             let drainer = CloudKitPushDrainer(queue: cloudStore.pushQueue,
@@ -868,6 +889,26 @@ final class PanelStore {
             cloudKitDrainer = drainer
         }
         kickOffOneShotPull(database: cloudStore.database, assetStore: cloudStore)
+    }
+
+    /// Re-evaluates the iCloud sync toggle and adjusts running state.
+    /// Called from `FeelingTableViewController.reconcile` so a flip in
+    /// iOS Settings → iInteract → Sync Custom Panels via iCloud takes
+    /// effect on the next foreground.
+    /// - Toggle ON → idempotently start sync (push drainer + pull).
+    ///   If pushes accumulated locally while paused, they drain now.
+    ///   A fresh pull picks up any remote changes that arrived while
+    ///   paused.
+    /// - Toggle OFF → stop the drainer. Local writes still happen and
+    ///   accumulate in the push queue; no records reach CloudKit and
+    ///   no remote records are applied. iCloud copy stays as-is so
+    ///   re-enabling resumes from where it left off.
+    func refreshCloudKitSyncState() {
+        if isCloudKitSyncDesiredEnabled {
+            startCloudKitSyncIfNeeded()
+        } else {
+            stopCloudKitSync()
+        }
     }
 
     /// Token store + applier for the pull side. Lifetime-pinned so

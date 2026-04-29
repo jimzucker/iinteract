@@ -137,6 +137,24 @@ Hide Configuration removes the gear icon from the main screen so children can't 
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
+			<string>Sync</string>
+			<key>FooterText</key>
+			<string>When off, your custom panels and recordings stay on this device only. Data already in iCloud is preserved — turning sync back on resumes where it left off and pulls anything you changed on other devices in the meantime.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Sync Custom Panels via iCloud</string>
+			<key>Key</key>
+			<string>icloud_sync_enabled</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
 			<string>Privacy</string>
 			<key>FooterText</key>
 			<string>When this is on and you return to iInteract, the app asks you to confirm and then permanently removes every custom panel, picture, recording, trashed item, and PIN. Bundled panels are not affected.</string>

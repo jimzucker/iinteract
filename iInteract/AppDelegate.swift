@@ -106,7 +106,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "voice_enabled": "YES",
             "voice_style": "girl",
             ConfigurationMode.userDefaultsKey: ConfigurationMode.default.rawValue,
-            "displaySplashScreen": "0.0"
+            "displaySplashScreen": "0.0",
+            // Default the iCloud sync toggle to ON so it matches the
+            // pre-v3.1.3 behavior. Settings.bundle has the same
+            // DefaultValue, but registering here covers the gap
+            // before the user has ever opened iOS Settings → iInteract.
+            PanelStore.iCloudSyncEnabledKey: true,
         ])
     }
 }

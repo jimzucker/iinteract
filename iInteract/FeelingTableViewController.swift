@@ -133,6 +133,11 @@ class FeelingTableViewController: UITableViewController {
             case .clearAllData:            confirmAndClearAllData()
             }
         }
+        // Re-evaluate the iCloud sync toggle from Settings.bundle —
+        // the user may have flipped it while we were backgrounded.
+        // Idempotent: starts sync if it's on and not already running,
+        // stops if it's off and was running.
+        PanelStore.shared.refreshCloudKitSyncState()
     }
 
     private var pendingRetryScheduled: Bool {
