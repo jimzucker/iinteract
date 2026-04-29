@@ -10,6 +10,7 @@
 //
 
 import XCTest
+import CloudKit
 @testable import iInteract
 
 // MARK: - In-memory KVS for tests
@@ -3120,5 +3121,380 @@ final class PushQueueTests: XCTestCase {
         XCTAssertEqual(q2.entries.first?.nextEligibleAt,
                        now.addingTimeInterval(PushQueue.backoff[0]),
                        "nextEligibleAt must survive reload — otherwise we'd retry too aggressively after a relaunch")
+    }
+}
+
+// MARK: - CloudKit error classification (v3.1.1b)
+
+final class CloudKitErrorClassificationTests: XCTestCase {
+
+    private func ckError(_ code: CKError.Code) -> CKError {
+        CKError(_nsError: NSError(domain: CKErrorDomain, code: code.rawValue))
+    }
+
+    func testTransientErrors_AreRetryable() {
+        let transient: [CKError.Code] = [
+            .networkUnavailable, .networkFailure, .requestRateLimited,
+            .serviceUnavailable, .zoneBusy, .notAuthenticated,
+        ]
+        for code in transient {
+            XCTAssertEqual(classifyCloudKitError(ckError(code)), .retry,
+                           "\(code) should be retryable — backoff and try later")
+        }
+    }
+
+    func testPermanentErrors_AreDropped() {
+        let permanent: [CKError.Code] = [
+            .quotaExceeded, .unknownItem, .serverRejectedRequest,
+            .permissionFailure, .badContainer, .badDatabase,
+            .invalidArguments, .incompatibleVersion,
+            .constraintViolation, .changeTokenExpired,
+            .batchRequestFailed, .managedAccountRestricted,
+            .userDeletedZone,
+        ]
+        for code in permanent {
+            XCTAssertEqual(classifyCloudKitError(ckError(code)), .drop,
+                           "\(code) should be dropped — no point retrying")
+        }
+    }
+
+    func testUnknownCKErrorCode_DefaultsToRetry() {
+        // .internalError (or any code we didn't enumerate) — fall through.
+        XCTAssertEqual(classifyCloudKitError(ckError(.internalError)), .retry,
+                       "unknown codes default to retry; PushQueue's 10-attempt cap limits damage if it's actually permanent")
+    }
+
+    func testNonCKError_DefaultsToRetry() {
+        // URLSession / Foundation errors usually mean transient I/O.
+        let urlErr = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        XCTAssertEqual(classifyCloudKitError(urlErr), .retry,
+                       "Foundation/URL errors are typically transient I/O — retry")
+    }
+}
+
+// MARK: - Panel/Interaction → CKRecord encoding (v3.1.1b)
+
+final class CloudKitRecordEncodingTests: XCTestCase {
+
+    private let zoneID = CKRecordZone.ID(zoneName: "iInteractZone",
+                                          ownerName: CKCurrentUserDefaultName)
+
+    // MARK: Panel
+
+    func testPanelEncoding_RecordTypeAndRecordName() {
+        let panel = Panel(title: "School",
+                          color: .systemRed,
+                          interactions: [],
+                          isBuiltIn: false)
+        let record = panel.toCKRecord(in: zoneID)
+        XCTAssertEqual(record.recordType, "UserPanel")
+        XCTAssertEqual(record.recordID.recordName, panel.id.uuidString,
+                       "recordName must equal panel UUID — deterministic so retries are idempotent")
+        XCTAssertEqual(record.recordID.zoneID, zoneID)
+    }
+
+    func testPanelEncoding_FieldsRoundTrip() {
+        let panel = Panel(title: "Fun",
+                          color: UIColor(red: 0.25, green: 0.5, blue: 0.75, alpha: 1.0),
+                          interactions: [],
+                          isBuiltIn: false)
+        let record = panel.toCKRecord(in: zoneID)
+        XCTAssertEqual(record["panelID"] as? String, panel.id.uuidString)
+        XCTAssertEqual(record["title"] as? String, "Fun")
+        let bytes = record["colorRGBA"] as? Data
+        XCTAssertEqual(bytes?.count, 16, "RGBA = 4 Float32s = 16 bytes")
+    }
+
+    func testPanelEncoding_ColorRGBABytes_DecodableAsFloats() {
+        let panel = Panel(title: "Colors",
+                          color: UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0),
+                          interactions: [],
+                          isBuiltIn: false)
+        let bytes = panel.colorRGBABytes()
+        XCTAssertEqual(bytes.count, 16)
+        let floats = bytes.withUnsafeBytes { ptr -> [Float32] in
+            Array(ptr.bindMemory(to: Float32.self))
+        }
+        XCTAssertEqual(floats[0], 0.1, accuracy: 0.001)
+        XCTAssertEqual(floats[1], 0.2, accuracy: 0.001)
+        XCTAssertEqual(floats[2], 0.3, accuracy: 0.001)
+        XCTAssertEqual(floats[3], 1.0, accuracy: 0.001)
+    }
+
+    func testPanelEncoding_ClampsOutOfRangeColorComponents() {
+        // Some dynamic UIColors return extended-sRGB values outside [0,1]
+        // when resolved against the current trait collection. The bytes
+        // encoding must clamp so cross-device decode lands in-range.
+        let outOfRange = UIColor(red: -0.5, green: 1.5, blue: 0.5, alpha: 2.0)
+        let panel = Panel(title: "OOR", color: outOfRange,
+                          interactions: [], isBuiltIn: false)
+        let bytes = panel.colorRGBABytes()
+        let floats = bytes.withUnsafeBytes { ptr -> [Float32] in
+            Array(ptr.bindMemory(to: Float32.self))
+        }
+        XCTAssertGreaterThanOrEqual(floats[0], 0)
+        XCTAssertLessThanOrEqual(floats[0], 1)
+        XCTAssertGreaterThanOrEqual(floats[1], 0)
+        XCTAssertLessThanOrEqual(floats[1], 1)
+        XCTAssertEqual(floats[3], 1.0, "alpha clamped to 1")
+    }
+
+    // MARK: Interaction
+
+    func testInteractionEncoding_RecordTypeAndPanelRef() {
+        let parentID = UUID()
+        let interaction = Interaction(name: "happy")
+        let record = interaction.toCKRecord(parentPanelID: parentID,
+                                             order: 0,
+                                             assetURLs: (nil, nil, nil),
+                                             in: zoneID)
+        XCTAssertEqual(record.recordType, "Interaction")
+        XCTAssertEqual(record.recordID.recordName, interaction.id.uuidString)
+        let ref = record["panelRef"] as? CKRecord.Reference
+        XCTAssertEqual(ref?.recordID.recordName, parentID.uuidString,
+                       "panelRef points at the parent panel by recordName")
+        XCTAssertEqual(ref?.action, .deleteSelf,
+                       "cascade-delete: removing the parent purges children server-side")
+    }
+
+    func testInteractionEncoding_ScalarFieldsAndOrder() {
+        let interaction = Interaction(name: "playground")
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 3,
+                                             assetURLs: (nil, nil, nil),
+                                             in: zoneID)
+        XCTAssertEqual(record["interactionID"] as? String, interaction.id.uuidString)
+        XCTAssertEqual(record["displayName"] as? String, "playground")
+        XCTAssertEqual(record["order"] as? Int64, 3)
+        XCTAssertNil(record["imageAsset"])
+        XCTAssertNil(record["audioBoyAsset"])
+        XCTAssertNil(record["audioGirlAsset"])
+    }
+
+    func testInteractionEncoding_AssetsAttached_WhenFilesExist() throws {
+        // Create three real files on disk so CKAsset(fileURL:) gets a
+        // valid path. The encoder filters by FileManager.fileExists, so
+        // a missing file leaves the field nil rather than crashing.
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CKEnc-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let imageURL = tempDir.appendingPathComponent("img.jpg")
+        let boyURL = tempDir.appendingPathComponent("boy.m4a")
+        let girlURL = tempDir.appendingPathComponent("girl.m4a")
+        try Data([0xFF, 0xD8]).write(to: imageURL)
+        try Data([0x01]).write(to: boyURL)
+        try Data([0x02]).write(to: girlURL)
+
+        let interaction = Interaction(name: "drink")
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 0,
+                                             assetURLs: (imageURL, boyURL, girlURL),
+                                             in: zoneID)
+        XCTAssertNotNil(record["imageAsset"] as? CKAsset)
+        XCTAssertNotNil(record["audioBoyAsset"] as? CKAsset)
+        XCTAssertNotNil(record["audioGirlAsset"] as? CKAsset)
+    }
+
+    func testInteractionEncoding_NilNameEncodesAsEmpty() {
+        // Defensive — Interaction.name is optional. Don't pass nil to
+        // CKRecord (it'd be ambiguous with field-not-present).
+        let interaction = Interaction(id: UUID(), name: "")
+        interaction.name = nil
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 0,
+                                             assetURLs: (nil, nil, nil),
+                                             in: zoneID)
+        XCTAssertEqual(record["displayName"] as? String, "",
+                       "nil Swift name encodes as empty string for unambiguous CKRecord field")
+    }
+
+    func testInteractionEncoding_OnlyFieldWithRealFile_GetsAsset() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CKEnc-mixed-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let realImage = tempDir.appendingPathComponent("img.jpg")
+        try Data([0xFF, 0xD8]).write(to: realImage)
+        let missingAudio = tempDir.appendingPathComponent("missing.m4a")  // not on disk
+
+        let interaction = Interaction(name: "want")
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 0,
+                                             assetURLs: (realImage, missingAudio, nil),
+                                             in: zoneID)
+        XCTAssertNotNil(record["imageAsset"] as? CKAsset,
+                        "real file → asset attached")
+        XCTAssertNil(record["audioBoyAsset"],
+                     "URL given but file missing → field nil rather than CKAsset over a missing path")
+        XCTAssertNil(record["audioGirlAsset"],
+                     "no URL → no asset")
+    }
+}
+
+// MARK: - CloudKitAssetStore (v3.1.1b — push enqueueing)
+
+/// Records what CloudKitDatabase methods got called. Used by tests to
+/// verify the AssetStore's push-on-write contract without touching
+/// real CloudKit. v3.1.1b uses this for AssetStore-side coverage; the
+/// drainer (v3.1.1c) will use the same type for end-to-end push tests.
+final class MockCloudKitDatabase: CloudKitDatabase {
+    private(set) var savedRecords: [CKRecord] = []
+    private(set) var deletedRecordIDs: [CKRecord.ID] = []
+    var nextSaveError: Error?
+    var nextDeleteError: Error?
+
+    func save(_ record: CKRecord) async throws -> CKRecord {
+        if let err = nextSaveError {
+            nextSaveError = nil
+            throw err
+        }
+        savedRecords.append(record)
+        return record
+    }
+
+    func deleteRecord(withID recordID: CKRecord.ID) async throws {
+        if let err = nextDeleteError {
+            nextDeleteError = nil
+            throw err
+        }
+        deletedRecordIDs.append(recordID)
+    }
+}
+
+final class CloudKitAssetStoreTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var store: CloudKitAssetStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitAssetStore-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        store = CloudKitAssetStore(parentDirectory: tempDir,
+                                    database: mockDB)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: Reads pass through to the local cache
+
+    func testRootDirectory_MatchesLocalCache() {
+        XCTAssertEqual(store.rootDirectory.lastPathComponent, "UserAssets")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.rootDirectory.path))
+    }
+
+    func testRead_NeverHitsTheDatabase() throws {
+        let id = UUID()
+        try store.write(Data([0xFF]), kind: .picture, id: id)
+        // Many reads — none should trigger any CloudKit traffic since
+        // the mock would record it.
+        for _ in 0..<5 {
+            _ = store.url(for: .picture, id: id)
+            _ = store.exists(.picture, id: id)
+        }
+        XCTAssertEqual(mockDB.savedRecords, [],
+                       "AssetStore reads must hit the local cache only, never the database directly")
+    }
+
+    // MARK: Writes enqueue + cache (but don't drain — that's v3.1.1c)
+
+    func testWrite_Enqueues_UploadAsset() throws {
+        let id = UUID()
+        try store.write(Data([0x01, 0x02]), kind: .picture, id: id)
+        XCTAssertTrue(store.exists(.picture, id: id),
+                      "local cache write happens immediately")
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .uploadAsset(kind: .picture, id: id))
+    }
+
+    func testDidExternallyWrite_Enqueues_UploadAsset() {
+        // Caller wrote to url(for:id:) outside the store (e.g. AVAudioRecorder).
+        let id = UUID()
+        store.didExternallyWrite(.boyAudio, id: id)
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .uploadAsset(kind: .boyAudio, id: id))
+    }
+
+    func testDelete_Enqueues_DeleteAsset() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        store.delete(.picture, id: id)
+        XCTAssertFalse(store.exists(.picture, id: id),
+                       "local cache delete happens immediately")
+        // After write+delete, supersession in PushQueue collapses them
+        // — the only meaningful op left is the delete.
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .deleteAsset(kind: .picture, id: id))
+    }
+
+    func testDeleteAll_Enqueues_DeleteInteraction_Once() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        try store.write(Data([0x02]), kind: .boyAudio, id: id)
+        try store.write(Data([0x03]), kind: .girlAudio, id: id)
+        store.deleteAll(id: id)
+        XCTAssertFalse(store.exists(.picture, id: id))
+        XCTAssertFalse(store.exists(.boyAudio, id: id))
+        XCTAssertFalse(store.exists(.girlAudio, id: id))
+        // Cross-target supersession: deleteInteraction supersedes the
+        // three pending uploads. Net queue = one deleteInteraction.
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .deleteInteraction(id: id))
+    }
+
+    // MARK: deleteEverything is local-only — does NOT enqueue
+
+    func testDeleteEverything_DoesNotEnqueue_AnyServerOps() throws {
+        try store.write(Data([0x01]), kind: .picture, id: UUID())
+        try store.write(Data([0x02]), kind: .picture, id: UUID())
+        // Drain the queue manually to set up: simulate the v3.1.1c
+        // drainer having already pushed those uploads.
+        store.pushQueue.entries.forEach { store.pushQueue.markSuccess($0) }
+
+        store.deleteEverything()
+
+        XCTAssertEqual(store.pushQueue.entries, [],
+                       "Clear All My Data is documented as local-only — does NOT delete iCloud copies")
+    }
+
+    // MARK: Database is never called from the AssetStore alone
+
+    func testWritesAndDeletes_DoNotInvokeTheDatabase_InV3_1_1b() throws {
+        // v3.1.1b enqueues only — the drainer that calls database.save
+        // / .deleteRecord is added in v3.1.1c. Until then the queue
+        // accumulates; nothing reaches CloudKit.
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        store.delete(.picture, id: id)
+        store.didExternallyWrite(.boyAudio, id: id)
+        store.deleteAll(id: id)
+        XCTAssertEqual(mockDB.savedRecords, [])
+        XCTAssertEqual(mockDB.deletedRecordIDs, [])
+    }
+
+    // MARK: PushQueue persistence works through the AssetStore
+
+    func testPushQueue_PersistsAcrossAssetStoreInstances() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+
+        let store2 = CloudKitAssetStore(parentDirectory: tempDir,
+                                        database: mockDB)
+        XCTAssertEqual(store2.pushQueue.entries.count, 1,
+                       "queue entries written by one CloudKitAssetStore must reload in another rooted at the same directory — survives app relaunch")
     }
 }

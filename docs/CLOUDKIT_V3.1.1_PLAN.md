@@ -7,7 +7,7 @@ See `docs/CLOUDKIT_MIGRATION.md` for the higher-level design.
 ## Manual setup (you do; ~30 min)
 
 1. **Apple Developer portal** → Identifiers → CloudKit Containers →
-   **+ New**. Container ID: `iCloud.com.ijaz.iInteract` (matches
+   **+ New**. Container ID: `iCloud.com.ijaz.iinteract` (matches
    the existing KVS entitlement pattern of `iCloud.<bundle id>`).
 2. **Xcode** → iInteract target → Signing & Capabilities → **+
    Capability** → iCloud → check **CloudKit** → add the new container.
@@ -16,7 +16,7 @@ See `docs/CLOUDKIT_MIGRATION.md` for the higher-level design.
    ```xml
    <key>com.apple.developer.icloud-container-identifiers</key>
    <array>
-       <string>iCloud.com.ijaz.iInteract</string>
+       <string>iCloud.com.ijaz.iinteract</string>
    </array>
    <key>com.apple.developer.icloud-services</key>
    <array>
@@ -151,7 +151,7 @@ protocol CloudKitDatabase {
 }
 
 struct LiveCloudKitDatabase: CloudKitDatabase {
-    let database = CKContainer(identifier: "iCloud.com.ijaz.iInteract")
+    let database = CKContainer(identifier: "iCloud.com.ijaz.iinteract")
         .privateCloudDatabase
     // Wrap CKModifyRecordsOperation in async/await wrappers.
 }
