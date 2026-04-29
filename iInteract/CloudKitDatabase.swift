@@ -15,13 +15,13 @@ import CloudKit
 /// Injection seam for `CloudKitAssetStore` and the v3.1.1c drainer.
 /// Production wraps a real `CKDatabase`; tests inject a mock that
 /// records what was called and returns canned responses.
-///
-/// Only the operations needed for v3.1.1 push-only sync are here:
-/// single-record save + delete. v3.1.2 will add fetch + change-token
-/// + subscription methods when pull lands.
 protocol CloudKitDatabase {
     func save(_ record: CKRecord) async throws -> CKRecord
     func deleteRecord(withID recordID: CKRecord.ID) async throws
+    /// Idempotent — succeeds whether the zone existed or not.
+    /// Required before any record save in a custom zone, and required
+    /// for `CKFetchRecordZoneChangesOperation` (v3.1.2b) to work.
+    func saveZone(_ zone: CKRecordZone) async throws
 }
 
 /// Production implementation. Constructed against the iInteract
@@ -36,6 +36,14 @@ struct LiveCloudKitDatabase: CloudKitDatabase {
     /// the entitlement matches. CloudKit IDs are case-sensitive.
     static let defaultContainerID = "iCloud.com.ijaz.iinteract"
 
+    /// Custom zone for iInteract records. Custom zones are required
+    /// for `CKFetchRecordZoneChangesOperation` + change-token-based
+    /// pulls (v3.1.2b) — the default zone doesn't support them. We
+    /// move all UserPanel/Interaction records here from the start so
+    /// future pull work doesn't need a migration.
+    static let iInteractZoneID = CKRecordZone.ID(zoneName: "iInteractZone",
+                                                 ownerName: CKCurrentUserDefaultName)
+
     let database: CKDatabase
 
     init(containerID: String = Self.defaultContainerID) {
@@ -48,6 +56,13 @@ struct LiveCloudKitDatabase: CloudKitDatabase {
 
     func deleteRecord(withID recordID: CKRecord.ID) async throws {
         _ = try await database.deleteRecord(withID: recordID)
+    }
+
+    func saveZone(_ zone: CKRecordZone) async throws {
+        // CKDatabase.save(_:) on a CKRecordZone is idempotent — succeeds
+        // whether the zone exists or not. Bootstrapping logic in the
+        // drainer relies on this.
+        _ = try await database.save(zone)
     }
 }
 

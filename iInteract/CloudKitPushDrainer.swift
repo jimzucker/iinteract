@@ -60,7 +60,7 @@ final class CloudKitPushDrainer {
          database: CloudKitDatabase,
          assetStore: AssetStore,
          panelLookup: @escaping () -> [Panel],
-         zoneID: CKRecordZone.ID = CKRecordZone.default().zoneID,
+         zoneID: CKRecordZone.ID = LiveCloudKitDatabase.iInteractZoneID,
          idleSleep: TimeInterval = 60) {
         self.queue = queue
         self.database = database
@@ -69,6 +69,12 @@ final class CloudKitPushDrainer {
         self.zoneID = zoneID
         self.idleSleep = idleSleep
     }
+
+    /// Tracks whether `saveZone` has succeeded once for the zone we
+    /// push records to. Until that happens, `CKDatabase.save` for any
+    /// record in the zone fails with `unknownItem`. We retry until it
+    /// succeeds or the process ends.
+    private var zoneEnsured = false
 
     /// Idempotent — safe to call multiple times. Subsequent calls are
     /// no-ops while the existing task is alive.
@@ -87,9 +93,34 @@ final class CloudKitPushDrainer {
     /// Drains a single eligible entry if one is due. Used by tests
     /// that want deterministic stepping rather than the full async
     /// loop. Production code calls `start()` instead.
+    /// Ensures the custom zone exists before draining — first record
+    /// save would fail otherwise (the zone has to exist server-side
+    /// before any record can land in it). If the zone bootstrap
+    /// fails (transient network), the record save is skipped entirely
+    /// this iteration so the entry doesn't burn a retry slot on a
+    /// condition that affects the whole device, not just that record.
     func drainOnce() async {
+        guard await ensureZoneIfNeeded() else { return }
         guard let entry = queue.nextDue() else { return }
         await execute(entry)
+    }
+
+    /// Idempotent zone bootstrap. `saveZone` succeeds whether the zone
+    /// existed or not, so failure means a transient condition (no
+    /// network, not authenticated, etc.). Returns true once the zone
+    /// is established for this process; false if bootstrap failed and
+    /// the caller should skip its work this iteration.
+    @discardableResult
+    private func ensureZoneIfNeeded() async -> Bool {
+        if zoneEnsured { return true }
+        let zone = CKRecordZone(zoneID: zoneID)
+        do {
+            try await database.saveZone(zone)
+            zoneEnsured = true
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func run() async {

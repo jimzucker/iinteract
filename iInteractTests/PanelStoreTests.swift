@@ -3343,8 +3343,10 @@ final class CloudKitRecordEncodingTests: XCTestCase {
 final class MockCloudKitDatabase: CloudKitDatabase {
     private(set) var savedRecords: [CKRecord] = []
     private(set) var deletedRecordIDs: [CKRecord.ID] = []
+    private(set) var savedZones: [CKRecordZone] = []
     var nextSaveError: Error?
     var nextDeleteError: Error?
+    var nextSaveZoneError: Error?
 
     func save(_ record: CKRecord) async throws -> CKRecord {
         if let err = nextSaveError {
@@ -3361,6 +3363,14 @@ final class MockCloudKitDatabase: CloudKitDatabase {
             throw err
         }
         deletedRecordIDs.append(recordID)
+    }
+
+    func saveZone(_ zone: CKRecordZone) async throws {
+        if let err = nextSaveZoneError {
+            nextSaveZoneError = nil
+            throw err
+        }
+        savedZones.append(zone)
     }
 }
 
@@ -3735,6 +3745,58 @@ final class CloudKitPushDrainerTests: XCTestCase {
         await drainer.drainOnce()
         XCTAssertEqual(database.savedRecords, [],
                        "drainOnce does nothing while entry is in backoff window")
+    }
+
+    // MARK: Zone bootstrap (v3.1.2a)
+
+    func testDrainOnce_BootstrapsZone_OnFirstCall() async {
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedZones.count, 1,
+                       "first drainOnce ensures the custom zone exists before any record save")
+        XCTAssertEqual(database.savedZones.first?.zoneID, zoneID)
+    }
+
+    func testDrainOnce_DoesNotReBootstrapZone_OnceEstablished() async {
+        let panel1 = Panel(title: "a", color: .red, interactions: [], isBuiltIn: false)
+        let panel2 = Panel(title: "b", color: .red, interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel1.id))
+        queue.enqueue(.savePanel(id: panel2.id))
+
+        let drainer = makeDrainer(panels: [panel1, panel2])
+        await drainer.drainOnce()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedZones.count, 1,
+                       "zone bootstrap is idempotent — only one saveZone call, even across multiple drains")
+    }
+
+    func testDrainOnce_ZoneBootstrapFailure_SkipsRecordSave_AndRetries() async {
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        let entry = queue.enqueue(.savePanel(id: panel.id))
+
+        // First drain: zone save throws → record save not even attempted,
+        // entry stays in the queue with retryCount unchanged.
+        database.nextSaveZoneError = CKError(_nsError: NSError(
+            domain: CKErrorDomain, code: CKError.Code.networkUnavailable.rawValue))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [],
+                       "record save skipped when zone bootstrap fails (transient device-level condition)")
+        XCTAssertEqual(queue.entries.count, 1,
+                       "entry is preserved — not burned on a zone-bootstrap failure")
+        XCTAssertEqual(queue.entries.first?.retryCount, 0,
+                       "no retry slot was consumed on the entry")
+        XCTAssertEqual(queue.entries.first?.id, entry.id)
+
+        // Second drain: zone save now succeeds → record save proceeds
+        // and the queue entry drains.
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedZones.count, 1,
+                       "zone bootstrap retried and succeeded")
+        XCTAssertEqual(database.savedRecords.count, 1,
+                       "with zone established, the record save now goes through")
+        XCTAssertEqual(queue.entries, [],
+                       "entry drained successfully on the second iteration")
     }
 }
 
