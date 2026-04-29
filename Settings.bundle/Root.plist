@@ -120,6 +120,11 @@ Hide Configuration removes the gear icon from the main screen so children can't 
 				<string>Girl</string>
 				<string>Boy</string>
 			</array>
+			<key>ShortTitles</key>
+			<array>
+				<string>Girl</string>
+				<string>Boy</string>
+			</array>
 			<key>DefaultValue</key>
 			<string>girl</string>
 			<key>Values</key>
