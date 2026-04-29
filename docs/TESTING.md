@@ -41,7 +41,7 @@ push.
 |---|---|
 | iPhone simulator | Unit tests + UI tests |
 | iPad simulator | Same unit tests as iPhone (UI tests too, but layouts not validated) |
-| Mac Catalyst | **Build-only.** No tests run. The unit test code is platform-portable Swift exercised by the iPhone + iPad runs; Catalyst-specific issues (UIKit-vs-AppKit drift, deployment-target floors, entitlement mismatches) all show up at build/link time, not test-runtime. Catalyst test runs would also need a dev team for `iInteractUITests` and CloudKit entitlements that survive ad-hoc signing — fragile setup for duplicate coverage. |
+| Mac Catalyst | Unit suite (294 tests). UI tests skipped via `-only-testing:iInteractTests` — they would just verify "iPhone-shaped UI renders in a Mac window," and the `iInteractUITests` bundle ID `com.zucker.iInteract.UITests` doesn't have a Mac provisioning profile in the Apple Developer portal. The unit suite runs cleanly on Catalyst because `DEVELOPMENT_TEAM` is now set on `iInteractUITests` (so the prevalidation build signs even though we don't run those tests). |
 | watchOS | Logic-only unit tests via `iInteractWatchTests` target (`Event` model parsing). No host app needed — tests are a pure XCTest bundle. UI controllers (`InterfaceController`, `PanelController`, `InteractionInterfaceController`) remain manual-smoke-test territory. |
 
 The unit tests target shared logic (`PanelStore`, `PINGate`,

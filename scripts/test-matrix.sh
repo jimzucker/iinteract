@@ -46,24 +46,24 @@ run_dest() {
         | tail -30
 }
 
-# Mac Catalyst gets a build-only check rather than a full test run.
-# The unit-test code is platform-portable Swift; iPhone + iPad runs
-# already exercise the logic. Catalyst-specific issues live at the
-# build/link layer (UIKit-vs-AppKit drift, deployment-target floors,
-# entitlement mismatches) — a successful build catches all of them.
-# Running tests on Catalyst would also require a dev team configured
-# for iInteractUITests (it can't sign without one), and CloudKit
-# entitlements that survive ad-hoc signing — neither is worth the
-# setup for coverage we already have via the simulator runs.
-build_dest() {
+# Mac Catalyst runs the unit suite only — UI tests would need a Mac
+# variant of the iInteractUITests provisioning profile (the bundle
+# identifier `com.zucker.iInteract.UITests` only has iOS), and
+# Catalyst UI tests would just verify "iPhone-shaped UI renders in a
+# Mac window" which Apple's runtime already does. `-only-testing` on
+# the Catalyst run skips the UI test bundle's Run phase. The UI test
+# target still builds (Xcode prevalidates the whole scheme) — it
+# signs cleanly because we've set DEVELOPMENT_TEAM on it.
+run_dest_unit_only() {
     local label="$1"
     local destination="$2"
     echo
-    echo "=== Building on $label (build-only, see comment in script) ==="
+    echo "=== Testing on $label (unit suite only) ==="
     echo "    destination: $destination"
-    xcodebuild -scheme "$SCHEME" -destination "$destination" build \
-        | grep -E "error:|warning: Using the first|BUILD (SUCCEEDED|FAILED)" \
-        | tail -10
+    xcodebuild -scheme "$SCHEME" -destination "$destination" \
+        -only-testing:iInteractTests test \
+        | grep -E "Test Suite|Executed.*tests|TEST (SUCCEEDED|FAILED)|error:|FAILED" \
+        | tail -30
 }
 
 case "${1:-all}" in
@@ -74,7 +74,7 @@ case "${1:-all}" in
         run_dest "iPad simulator" "$IPAD_DEST"
         ;;
     catalyst|mac)
-        build_dest "Mac Catalyst" "$CATALYST_DEST"
+        run_dest_unit_only "Mac Catalyst" "$CATALYST_DEST"
         ;;
     watch)
         echo
@@ -87,7 +87,7 @@ case "${1:-all}" in
     all|"")
         run_dest "iPhone simulator" "$IPHONE_DEST"
         run_dest "iPad simulator"   "$IPAD_DEST"
-        build_dest "Mac Catalyst"   "$CATALYST_DEST"
+        run_dest_unit_only "Mac Catalyst" "$CATALYST_DEST"
         echo
         echo "=== Testing on watchOS Simulator ==="
         echo "    destination: $WATCH_DEST"
