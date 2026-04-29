@@ -59,6 +59,7 @@
 		E8238E4F6B2868DAE2439170 /* PlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */; };
 		EE4537F6E0A217A1FCC32146 /* AssetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F76A89D7F9825DE3A86F06A /* AssetStore.swift */; };
 		FA69869249842A76B5EC8C54 /* iInteractUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E4633EED6B838FD6B63CCB /* iInteractUITests.swift */; };
+		FACAC551C65BE9171D548CEC /* CloudKitPushDrainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE588B35B043E2E2412FABC1 /* CloudKitPushDrainer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -165,6 +166,7 @@
 		948C3F6D42C555364F9C25FA /* TrashViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrashViewController.swift; sourceTree = "<group>"; };
 		9C2EE76EC3CF464605173BCE /* PINGateViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PINGateViewController.swift; sourceTree = "<group>"; };
 		A4FD0B327E62E9D587F4CDEA /* CloudKitRecordConversions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudKitRecordConversions.swift; sourceTree = "<group>"; };
+		AE588B35B043E2E2412FABC1 /* CloudKitPushDrainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudKitPushDrainer.swift; sourceTree = "<group>"; };
 		CDE697A3ED2572C2CA06A310 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		D6FEDFCEA4D5BFB657A3936B /* PlaybackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlaybackTests.swift; sourceTree = "<group>"; };
 		DFB7D8F1EB6BAA4A96A6C425 /* CustomPanelViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomPanelViewController.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 				F6C5DF71309AB72CF8DC1D2E /* CloudKitDatabase.swift */,
 				A4FD0B327E62E9D587F4CDEA /* CloudKitRecordConversions.swift */,
 				7270F46B20B1095307F938F3 /* CloudKitAssetStore.swift */,
+				AE588B35B043E2E2412FABC1 /* CloudKitPushDrainer.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -582,6 +585,7 @@
 				9DDF76F1E4611F1E0EEFD47C /* CloudKitDatabase.swift in Sources */,
 				DB88F1A4E16B06812FC73CE2 /* CloudKitRecordConversions.swift in Sources */,
 				53D8A3939C85368B3CBB4765 /* CloudKitAssetStore.swift in Sources */,
+				FACAC551C65BE9171D548CEC /* CloudKitPushDrainer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

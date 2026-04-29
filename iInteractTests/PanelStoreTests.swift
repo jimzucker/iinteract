@@ -3498,3 +3498,242 @@ final class CloudKitAssetStoreTests: XCTestCase {
                        "queue entries written by one CloudKitAssetStore must reload in another rooted at the same directory — survives app relaunch")
     }
 }
+
+// MARK: - CloudKitPushDrainer (v3.1.1c-i)
+
+/// Drains the push queue against a CloudKitDatabase. Tests use
+/// `drainOnce()` for deterministic stepping rather than the full async
+/// loop; the loop's correctness is straightforward (just a sleep +
+/// retry around `drainOnce`).
+final class CloudKitPushDrainerTests: XCTestCase {
+
+    var tempDir: URL!
+    var assetStore: LocalFSAssetStore!
+    var queue: PushQueue!
+    var database: MockCloudKitDatabase!
+
+    let zoneID = CKRecordZone.ID(zoneName: "TestZone",
+                                  ownerName: CKCurrentUserDefaultName)
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CKDrainer-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        assetStore = LocalFSAssetStore(parentDirectory: tempDir)
+        queue = PushQueue(persistedAt: tempDir.appendingPathComponent("q.json"))
+        database = MockCloudKitDatabase()
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private func makeDrainer(panels: [Panel] = []) -> CloudKitPushDrainer {
+        CloudKitPushDrainer(queue: queue,
+                            database: database,
+                            assetStore: assetStore,
+                            panelLookup: { panels },
+                            zoneID: zoneID)
+    }
+
+    // MARK: savePanel / deletePanel
+
+    func testDrain_SavePanel_PushesUserPanelRecord() async {
+        let panel = Panel(title: "School", color: .systemBlue,
+                          interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords.count, 1)
+        XCTAssertEqual(database.savedRecords.first?.recordType, "UserPanel")
+        XCTAssertEqual(database.savedRecords.first?.recordID.recordName,
+                       panel.id.uuidString)
+        XCTAssertEqual(queue.entries, [],
+                       "successful push removes the entry")
+    }
+
+    func testDrain_SavePanel_BuiltInIsFiltered_DropsAsUnknownItem() async {
+        // Built-ins should never reach the queue, but if one did, the
+        // drainer treats it as a disappeared item (drop, not infinite
+        // retry).
+        let builtIn = Panel(title: "I feel", color: .red,
+                            interactions: [], isBuiltIn: true)
+        queue.enqueue(.savePanel(id: builtIn.id))
+        let drainer = makeDrainer(panels: [builtIn])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [],
+                       "drained as drop — built-in filter is treated like unknownItem")
+    }
+
+    func testDrain_SavePanel_PanelDisappeared_Drops() async {
+        queue.enqueue(.savePanel(id: UUID()))
+        let drainer = makeDrainer(panels: [])  // no matching panel
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [],
+                       "panel disappeared between enqueue and drain → drop the stale push")
+    }
+
+    func testDrain_DeletePanel_CallsDeleteRecord() async {
+        let id = UUID()
+        queue.enqueue(.deletePanel(id: id))
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.deletedRecordIDs.count, 1)
+        XCTAssertEqual(database.deletedRecordIDs.first?.recordName, id.uuidString)
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    // MARK: saveInteraction
+
+    func testDrain_SaveInteraction_PushesInteractionRecordWithRef() async {
+        let interaction = Interaction(name: "drink")
+        let panel = Panel(title: "I Want", color: .systemPink,
+                          interactions: [interaction], isBuiltIn: false)
+        queue.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(database.savedRecords.count, 1)
+        let record = database.savedRecords.first!
+        XCTAssertEqual(record.recordType, "Interaction")
+        XCTAssertEqual(record["displayName"] as? String, "drink")
+        XCTAssertEqual(record["order"] as? Int64, 0)
+        let ref = record["panelRef"] as? CKRecord.Reference
+        XCTAssertEqual(ref?.recordID.recordName, panel.id.uuidString)
+    }
+
+    func testDrain_SaveInteraction_AttachesAssetsThatExistOnDisk() async throws {
+        let interaction = Interaction(name: "happy")
+        let panel = Panel(title: "I feel", color: .green,
+                          interactions: [interaction], isBuiltIn: false)
+        try Data([0xFF, 0xD8]).write(to: assetStore.url(for: .picture, id: interaction.id))
+        try Data([0x01]).write(to: assetStore.url(for: .boyAudio, id: interaction.id))
+        // No girl audio.
+
+        queue.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        let record = database.savedRecords.first!
+        XCTAssertNotNil(record["imageAsset"] as? CKAsset)
+        XCTAssertNotNil(record["audioBoyAsset"] as? CKAsset)
+        XCTAssertNil(record["audioGirlAsset"], "no file on disk → field nil")
+    }
+
+    func testDrain_SaveInteraction_ParentDisappeared_Drops() async {
+        let interactionID = UUID()
+        queue.enqueue(.saveInteraction(id: interactionID, parentID: UUID()))
+        let drainer = makeDrainer(panels: [])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    func testDrain_DeleteInteraction_CallsDeleteRecord() async {
+        let id = UUID()
+        queue.enqueue(.deleteInteraction(id: id))
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.deletedRecordIDs.first?.recordName, id.uuidString)
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    // MARK: uploadAsset / deleteAsset translate to saveInteraction
+
+    func testDrain_UploadAsset_TranslatesTo_SaveInteractionRecord() async throws {
+        let interaction = Interaction(name: "tv")
+        let panel = Panel(title: "I want to", color: .yellow,
+                          interactions: [interaction], isBuiltIn: false)
+        try Data([0xFF]).write(to: assetStore.url(for: .picture, id: interaction.id))
+
+        queue.enqueue(.uploadAsset(kind: .picture, id: interaction.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(database.savedRecords.count, 1,
+                       "uploadAsset is translated to a full Interaction record save")
+        XCTAssertEqual(database.savedRecords.first?.recordType, "Interaction")
+        XCTAssertNotNil(database.savedRecords.first?["imageAsset"] as? CKAsset)
+    }
+
+    func testDrain_DeleteAsset_TranslatesTo_SaveInteractionWithFieldOmitted() async {
+        let interaction = Interaction(name: "headache")
+        let panel = Panel(title: "I feel", color: .red,
+                          interactions: [interaction], isBuiltIn: false)
+        // No assets on disk — encoder omits all three fields, which on
+        // CKRecord is equivalent to "remove this field server-side."
+
+        queue.enqueue(.deleteAsset(kind: .picture, id: interaction.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(database.savedRecords.count, 1,
+                       "deleteAsset translates to a save with the asset locally absent → CKRecord field nil")
+        XCTAssertNil(database.savedRecords.first?["imageAsset"])
+    }
+
+    func testDrain_AssetOp_ParentMissing_Drops() async {
+        queue.enqueue(.uploadAsset(kind: .picture, id: UUID()))
+        let drainer = makeDrainer(panels: [])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    // MARK: Errors — retryable vs permanent
+
+    func testDrain_RetryableError_KeepsEntry_AndAdvancesBackoff() async {
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel.id))
+        database.nextSaveError = CKError(_nsError: NSError(
+            domain: CKErrorDomain, code: CKError.Code.networkUnavailable.rawValue))
+
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(queue.entries.count, 1, "retryable failure keeps the entry")
+        XCTAssertEqual(queue.entries.first?.retryCount, 1)
+        XCTAssertGreaterThan(queue.entries.first!.nextEligibleAt.timeIntervalSinceNow, 0,
+                             "backoff scheduled into the future")
+    }
+
+    func testDrain_PermanentError_DropsEntry() async {
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel.id))
+        database.nextSaveError = CKError(_nsError: NSError(
+            domain: CKErrorDomain, code: CKError.Code.quotaExceeded.rawValue))
+
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(queue.entries, [],
+                       "permanent error drops the entry — retrying won't help")
+    }
+
+    // MARK: drainOnce contract — no-op on empty queue
+
+    func testDrainOnce_NoOpsOnEmptyQueue() async {
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(database.deletedRecordIDs, [])
+    }
+
+    func testDrainOnce_NoOpsWhenNoEntryDue() async {
+        // Enqueue an entry that's been failed enough that nextEligibleAt
+        // is in the future.
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        let entry = queue.enqueue(.savePanel(id: panel.id))
+        queue.markFailure(entry, retryable: true, now: Date())
+
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [],
+                       "drainOnce does nothing while entry is in backoff window")
+    }
+}
