@@ -3344,9 +3344,15 @@ final class MockCloudKitDatabase: CloudKitDatabase {
     private(set) var savedRecords: [CKRecord] = []
     private(set) var deletedRecordIDs: [CKRecord.ID] = []
     private(set) var savedZones: [CKRecordZone] = []
+    private(set) var fetchChangesCalls: [(zoneID: CKRecordZone.ID,
+                                          previousToken: CKServerChangeToken?)] = []
     var nextSaveError: Error?
     var nextDeleteError: Error?
     var nextSaveZoneError: Error?
+    /// Sequence of canned responses for successive `fetchChanges` calls.
+    /// Errors throw; success values return as-is. Tests use this to
+    /// drive multi-batch pulls via the moreComing flag.
+    var fetchChangesScript: [Result<CloudKitChanges, Error>] = []
 
     func save(_ record: CKRecord) async throws -> CKRecord {
         if let err = nextSaveError {
@@ -3372,6 +3378,27 @@ final class MockCloudKitDatabase: CloudKitDatabase {
         }
         savedZones.append(zone)
     }
+
+    func fetchChanges(in zoneID: CKRecordZone.ID,
+                      since previousToken: CKServerChangeToken?) async throws -> CloudKitChanges {
+        fetchChangesCalls.append((zoneID, previousToken))
+        guard !fetchChangesScript.isEmpty else {
+            // Default: empty response with a deterministic token so
+            // tests don't have to script trivial cases.
+            return CloudKitChanges()
+        }
+        let next = fetchChangesScript.removeFirst()
+        return try next.get()
+    }
+}
+
+/// In-memory `CloudKitChangeTokenStore` for tests. No file I/O.
+final class MemoryChangeTokenStore: CloudKitChangeTokenStore {
+    private(set) var token: CKServerChangeToken?
+
+    func read() -> CKServerChangeToken? { token }
+    func write(_ token: CKServerChangeToken) { self.token = token }
+    func clear() { token = nil }
 }
 
 final class CloudKitAssetStoreTests: XCTestCase {
@@ -4008,5 +4035,192 @@ final class PanelStoreCloudKitMirrorTests: XCTestCase {
 
         XCTAssertEqual(queueEntries, [],
                        "Clear All My Data is documented as local-only — does NOT enqueue iCloud deletes for v3.1.1")
+    }
+}
+
+// MARK: - CloudKitPullCoordinator (v3.1.2b-i)
+
+/// The pull half of CloudKit sync. v3.1.2b-i tests cover the protocol
+/// flow — read token → fetch (loop while moreComing) → persist new
+/// token → return aggregated CloudKitChanges. Apply-to-PanelStore
+/// logic lives in v3.1.2b-ii and is tested separately.
+///
+/// Note on token equality: tests use `nil` for the new change token in
+/// the canned `CloudKitChanges` responses because production
+/// `CKServerChangeToken` instances can only be constructed by Apple's
+/// CloudKit framework from real server responses, not from test code.
+/// That limits these tests to behavior verification (was tokenStore
+/// written? was the right `previousToken` passed?) rather than content
+/// roundtrip verification, which lives in the v3.1.2c integration
+/// tests against a live iCloud account.
+final class CloudKitPullCoordinatorTests: XCTestCase {
+
+    var database: MockCloudKitDatabase!
+    var tokenStore: MemoryChangeTokenStore!
+    let zoneID = LiveCloudKitDatabase.iInteractZoneID
+
+    override func setUp() {
+        super.setUp()
+        database = MockCloudKitDatabase()
+        tokenStore = MemoryChangeTokenStore()
+    }
+
+    private func makeCoordinator() -> CloudKitPullCoordinator {
+        CloudKitPullCoordinator(database: database,
+                                zoneID: zoneID,
+                                tokenStore: tokenStore)
+    }
+
+    // MARK: pull() basic flow
+
+    func testPull_EmptyStore_PassesNilPreviousToken() async throws {
+        database.fetchChangesScript = [.success(CloudKitChanges())]
+        _ = try await makeCoordinator().pull()
+        XCTAssertEqual(database.fetchChangesCalls.count, 1)
+        XCTAssertNil(database.fetchChangesCalls.first?.previousToken,
+                     "first-ever pull passes nil — fetches everything from the start")
+        XCTAssertEqual(database.fetchChangesCalls.first?.zoneID, zoneID)
+    }
+
+    func testPull_NoChanges_ReturnsEmptyAggregate() async throws {
+        database.fetchChangesScript = [.success(CloudKitChanges())]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(result.updatedRecords.count, 0)
+        XCTAssertEqual(result.deletedRecords, [])
+        XCTAssertFalse(result.moreComing)
+    }
+
+    func testPull_AggregatesUpdatedRecords_AcrossSingleBatch() async throws {
+        let recordA = CKRecord(recordType: "UserPanel",
+                                recordID: CKRecord.ID(recordName: "A", zoneID: zoneID))
+        let recordB = CKRecord(recordType: "UserPanel",
+                                recordID: CKRecord.ID(recordName: "B", zoneID: zoneID))
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(updatedRecords: [recordA, recordB]))
+        ]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(result.updatedRecords.count, 2)
+        XCTAssertEqual(Set(result.updatedRecords.map { $0.recordID.recordName }),
+                       ["A", "B"])
+    }
+
+    func testPull_AggregatesDeletions_AcrossSingleBatch() async throws {
+        let id = CKRecord.ID(recordName: "X", zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: id, recordType: "Interaction")
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(deletedRecords: [deletion]))
+        ]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(result.deletedRecords, [deletion])
+    }
+
+    // MARK: moreComing handling
+
+    func testPull_LoopsWhileMoreComing_AggregatesBothBatches() async throws {
+        let r1 = CKRecord(recordType: "UserPanel",
+                          recordID: CKRecord.ID(recordName: "P1", zoneID: zoneID))
+        let r2 = CKRecord(recordType: "Interaction",
+                          recordID: CKRecord.ID(recordName: "I1", zoneID: zoneID))
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(updatedRecords: [r1], moreComing: true)),
+            .success(CloudKitChanges(updatedRecords: [r2], moreComing: false)),
+        ]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(database.fetchChangesCalls.count, 2,
+                       "should fetch again when moreComing=true")
+        XCTAssertEqual(result.updatedRecords.count, 2,
+                       "aggregate spans both batches")
+        XCTAssertEqual(Set(result.updatedRecords.map { $0.recordID.recordName }),
+                       ["P1", "I1"])
+        XCTAssertFalse(result.moreComing,
+                       "final result reflects the last batch's moreComing=false")
+    }
+
+    func testPull_StopsWhenMoreComingFalse_EvenWithEmptyBatch() async throws {
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(moreComing: false)),
+        ]
+        _ = try await makeCoordinator().pull()
+        XCTAssertEqual(database.fetchChangesCalls.count, 1,
+                       "single fetch when moreComing=false")
+    }
+
+    // MARK: Errors
+
+    func testPull_RethrowsFetchError() async {
+        struct E: Error, Equatable {}
+        database.fetchChangesScript = [.failure(E())]
+        do {
+            _ = try await makeCoordinator().pull()
+            XCTFail("expected throw")
+        } catch let e as E {
+            XCTAssertEqual(e, E())
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
+    func testPull_FailureLeavesPreviousTokenUntouched() async {
+        // Token store starts empty.
+        database.fetchChangesScript = [.failure(NSError(domain: "test", code: 1))]
+        _ = try? await makeCoordinator().pull()
+        XCTAssertNil(tokenStore.token,
+                     "failed pull must not write a partial/garbage token — next call retries from the same point")
+    }
+}
+
+// MARK: - FileChangeTokenStore — bad-file recovery (v3.1.2b-i)
+
+/// Round-tripping a real `CKServerChangeToken` requires a value that
+/// only Apple's CloudKit framework hands out, so a content-roundtrip
+/// test belongs in the v3.1.2c integration suite. What we *can* test
+/// here without real iCloud is the bad-file recovery contract: a
+/// corrupted token file gets renamed aside and `read()` returns nil
+/// rather than crashing the app.
+final class FileChangeTokenStoreTests: XCTestCase {
+
+    var tempDir: URL!
+    var tokenURL: URL!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FileTokenStoreTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        tokenURL = tempDir.appendingPathComponent("token")
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    func testRead_NoFile_ReturnsNil() {
+        let store = FileChangeTokenStore(url: tokenURL)
+        XCTAssertNil(store.read())
+    }
+
+    func testRead_CorruptedFile_RenamedAside_ReturnsNil() throws {
+        try Data("not a valid keyed-archive token".utf8).write(to: tokenURL)
+        let store = FileChangeTokenStore(url: tokenURL)
+        XCTAssertNil(store.read(),
+                     "corrupted file must not crash — read returns nil")
+        let siblings = try FileManager.default.contentsOfDirectory(
+            at: tempDir, includingPropertiesForKeys: nil)
+        XCTAssertTrue(siblings.contains(where: { $0.lastPathComponent.contains(".bad-") }),
+                      "corrupted token file must be moved aside (.bad-<timestamp>) so we don't keep retrying the parse on every launch")
+    }
+
+    func testClear_RemovesFile() throws {
+        try Data("anything".utf8).write(to: tokenURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: tokenURL.path))
+        FileChangeTokenStore(url: tokenURL).clear()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: tokenURL.path))
+    }
+
+    func testClear_NoFile_DoesNotThrow() {
+        // Idempotent — clearing a non-existent file must not crash.
+        FileChangeTokenStore(url: tokenURL).clear()
     }
 }

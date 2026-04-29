@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		08D1A6BD4BC62C106EAD199A /* CloudKitPullCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98DC297F2C570004A31436BB /* CloudKitPullCoordinator.swift */; };
 		0E56F87F7661E486CEDBEABF /* PINGateStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067D93228E4B979FFE0ED22F /* PINGateStateTests.swift */; };
 		1442F91FC1BA9FFD144C6C92 /* InteractionPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1133ED5706E8A059CD0757B6 /* InteractionPlayer.swift */; };
 		43CBAE10D633CF4A7C5982DE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDE697A3ED2572C2CA06A310 /* Foundation.framework */; };
@@ -150,6 +151,7 @@
 		7B70393D00E813E93AD6591C /* InteractionEditorViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InteractionEditorViewController.swift; sourceTree = "<group>"; };
 		8D688FAA1636C6707018308F /* PanelLoader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PanelLoader.swift; sourceTree = "<group>"; };
 		948C3F6D42C555364F9C25FA /* TrashViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrashViewController.swift; sourceTree = "<group>"; };
+		98DC297F2C570004A31436BB /* CloudKitPullCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudKitPullCoordinator.swift; sourceTree = "<group>"; };
 		9C2EE76EC3CF464605173BCE /* PINGateViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PINGateViewController.swift; sourceTree = "<group>"; };
 		A4FD0B327E62E9D587F4CDEA /* CloudKitRecordConversions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudKitRecordConversions.swift; sourceTree = "<group>"; };
 		AE588B35B043E2E2412FABC1 /* CloudKitPushDrainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudKitPushDrainer.swift; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 				A4FD0B327E62E9D587F4CDEA /* CloudKitRecordConversions.swift */,
 				7270F46B20B1095307F938F3 /* CloudKitAssetStore.swift */,
 				AE588B35B043E2E2412FABC1 /* CloudKitPushDrainer.swift */,
+				98DC297F2C570004A31436BB /* CloudKitPullCoordinator.swift */,
 			);
 			path = iInteract;
 			sourceTree = "<group>";
@@ -603,6 +606,7 @@
 				DB88F1A4E16B06812FC73CE2 /* CloudKitRecordConversions.swift in Sources */,
 				53D8A3939C85368B3CBB4765 /* CloudKitAssetStore.swift in Sources */,
 				FACAC551C65BE9171D548CEC /* CloudKitPushDrainer.swift in Sources */,
+				08D1A6BD4BC62C106EAD199A /* CloudKitPullCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -709,7 +713,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -732,7 +736,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -799,7 +803,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -855,7 +859,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -878,8 +882,8 @@
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteract/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -905,8 +909,8 @@
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteract/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

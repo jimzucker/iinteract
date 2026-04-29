@@ -12,16 +12,44 @@
 import Foundation
 import CloudKit
 
-/// Injection seam for `CloudKitAssetStore` and the v3.1.1c drainer.
-/// Production wraps a real `CKDatabase`; tests inject a mock that
-/// records what was called and returns canned responses.
+/// One round of changes returned from a fetch — record updates, the
+/// IDs and types of deletions, the new server change token to persist
+/// for the next fetch, and a flag indicating whether more changes are
+/// available (caller should fetch again with the new token).
+struct CloudKitChanges: Equatable {
+    var updatedRecords: [CKRecord] = []
+    var deletedRecords: [DeletedRecord] = []
+    var newChangeToken: CKServerChangeToken? = nil
+    var moreComing: Bool = false
+}
+
+/// Tombstone returned from `fetchChanges`. We need both the recordID
+/// (to find the local row) and the record type (to know whether it
+/// was a UserPanel or Interaction) since `CKRecord.ID` alone doesn't
+/// carry that distinction.
+struct DeletedRecord: Equatable {
+    let recordID: CKRecord.ID
+    let recordType: String
+}
+
+/// Injection seam for `CloudKitAssetStore`, the v3.1.1c drainer, and
+/// the v3.1.2b pull coordinator. Production wraps a real `CKDatabase`;
+/// tests inject a mock that records what was called and returns
+/// canned responses.
 protocol CloudKitDatabase {
     func save(_ record: CKRecord) async throws -> CKRecord
     func deleteRecord(withID recordID: CKRecord.ID) async throws
     /// Idempotent — succeeds whether the zone existed or not.
     /// Required before any record save in a custom zone, and required
-    /// for `CKFetchRecordZoneChangesOperation` (v3.1.2b) to work.
+    /// for `CKFetchRecordZoneChangesOperation` to work.
     func saveZone(_ zone: CKRecordZone) async throws
+    /// Fetches changes in `zoneID` since the previous server change
+    /// token (`nil` for the first ever fetch from this device — pulls
+    /// everything from scratch). Returns a `CloudKitChanges` carrying
+    /// the new token to persist for the next call. v3.1.2b coordinator
+    /// loops while `moreComing == true` to pick up large change sets.
+    func fetchChanges(in zoneID: CKRecordZone.ID,
+                      since previousToken: CKServerChangeToken?) async throws -> CloudKitChanges
 }
 
 /// Production implementation. Constructed against the iInteract
@@ -63,6 +91,34 @@ struct LiveCloudKitDatabase: CloudKitDatabase {
         // whether the zone exists or not. Bootstrapping logic in the
         // drainer relies on this.
         _ = try await database.save(zone)
+    }
+
+    func fetchChanges(in zoneID: CKRecordZone.ID,
+                      since previousToken: CKServerChangeToken?) async throws -> CloudKitChanges {
+        // Apple's modern async API returns a multi-part tuple. We
+        // unpack into our own simpler `CloudKitChanges` so callers
+        // don't have to know the CKDatabase result shape.
+        let result = try await database.recordZoneChanges(
+            inZoneWith: zoneID,
+            since: previousToken
+        )
+        var updated: [CKRecord] = []
+        for (_, modificationResult) in result.modificationResultsByID {
+            // Per-record failures inside a successful fetch are rare
+            // (typically network mid-flight). Skip them; they'll come
+            // back in the next fetch.
+            if case .success(let modResult) = modificationResult {
+                updated.append(modResult.record)
+            }
+        }
+        let deletions = result.deletions.map { deletion in
+            DeletedRecord(recordID: deletion.recordID,
+                          recordType: deletion.recordType)
+        }
+        return CloudKitChanges(updatedRecords: updated,
+                               deletedRecords: deletions,
+                               newChangeToken: result.changeToken,
+                               moreComing: result.moreComing)
     }
 }
 
