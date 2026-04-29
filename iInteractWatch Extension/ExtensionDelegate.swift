@@ -13,7 +13,8 @@
 import WatchKit
 import WatchConnectivity
 
-class ExtensionDelegate: NSObject, WKExtensionDelegate, WCSessionDelegate {
+@main
+class ExtensionDelegate: NSObject, WKApplicationDelegate, WCSessionDelegate {
 
     static let payloadKey = "builtInPanelOrder"
     static let storageKey = "watchBuiltInPanelOrder"
