@@ -52,6 +52,16 @@ protocol AssetStore {
     /// to the URL returned by `url(for:id:)`).
     func write(_ data: Data, kind: AssetKind, id: UUID) throws
 
+    /// Called by the editor after a caller wrote to the URL returned by
+    /// `url(for:id:)` without going through `write(_:kind:id:)` — most
+    /// often AVAudioRecorder finishing a recording. Local-FS
+    /// implementations no-op; CloudKit-backed implementations
+    /// (v3.1.1+, see docs/CLOUDKIT_V3.1.1_PLAN.md) enqueue the file
+    /// for upload. Must be called from the recorder's stop completion
+    /// handler, not when the user taps "Stop," so the file is fully
+    /// flushed before the upload reads it.
+    func didExternallyWrite(_ kind: AssetKind, id: UUID)
+
     /// Removes a single asset file. No-op if missing.
     func delete(_ kind: AssetKind, id: UUID)
 
@@ -103,6 +113,10 @@ final class LocalFSAssetStore: AssetStore {
     func write(_ data: Data, kind: AssetKind, id: UUID) throws {
         try data.write(to: url(for: kind, id: id), options: .atomic)
     }
+
+    /// Local-FS no-op: there's nothing to enqueue, the file is already
+    /// at its final destination as soon as the caller finishes writing.
+    func didExternallyWrite(_ kind: AssetKind, id: UUID) {}
 
     func delete(_ kind: AssetKind, id: UUID) {
         try? FileManager.default.removeItem(at: url(for: kind, id: id))

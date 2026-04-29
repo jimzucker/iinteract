@@ -2854,4 +2854,271 @@ final class LocalFSAssetStoreTests: XCTestCase {
         XCTAssertEqual(store.url(for: .picture, id: id),
                        store.url(for: .picture, id: id))
     }
+
+    func testDidExternallyWrite_NoOps_ForLocalFS() {
+        // Contract: local-FS implementations no-op since the file is
+        // already at its final destination as soon as the caller wrote
+        // it. CloudKit-backed implementations enqueue an upload.
+        store.didExternallyWrite(.boyAudio, id: UUID())
+        // No observable side effect — pass if it doesn't crash.
+    }
+}
+
+// MARK: - PushQueue (v3.1.1a — pre-CloudKit plumbing)
+
+/// Persistence + dedupe + supersession + backoff for the queue that
+/// `CloudKitAssetStore` (v3.1.1b) and the record mirror (v3.1.1c) will
+/// drain to push local mutations into a CloudKit private database.
+/// See docs/CLOUDKIT_V3.1.1_PLAN.md.
+final class PushQueueTests: XCTestCase {
+
+    var tempDir: URL!
+    var queueURL: URL!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PushQueue-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        queueURL = tempDir.appendingPathComponent("queue.json")
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private func makeQueue() -> PushQueue { PushQueue(persistedAt: queueURL) }
+
+    // MARK: - Empty + persistence
+
+    func testEmptyQueue_OnFreshFile() {
+        let q = makeQueue()
+        XCTAssertEqual(q.entries, [])
+        XCTAssertNil(q.nextDue())
+    }
+
+    func testEnqueue_PersistsAcrossInstances() {
+        let id = UUID()
+        let q1 = makeQueue()
+        q1.enqueue(.savePanel(id: id), now: Date(timeIntervalSinceReferenceDate: 100))
+        let q2 = makeQueue()
+        XCTAssertEqual(q2.entries.count, 1)
+        XCTAssertEqual(q2.entries.first?.op, .savePanel(id: id))
+    }
+
+    func testCorruptedFile_RenamedAndQueueStartsEmpty() throws {
+        try Data("not valid json".utf8).write(to: queueURL)
+        let q = makeQueue()
+        XCTAssertEqual(q.entries, [],
+                       "queue must start empty when persisted file is corrupted")
+        let siblings = try FileManager.default.contentsOfDirectory(at: tempDir,
+                                                                    includingPropertiesForKeys: nil)
+        XCTAssertTrue(siblings.contains(where: { $0.lastPathComponent.contains(".bad-") }),
+                      "corrupted file must be moved aside (with .bad- suffix) so we don't keep retrying the parse")
+    }
+
+    // MARK: - Dedupe (same target → collapse)
+
+    func testEnqueue_TwoSavePanelSameID_CollapseToOne() {
+        let id = UUID()
+        let q = makeQueue()
+        q.enqueue(.savePanel(id: id))
+        q.enqueue(.savePanel(id: id))
+        XCTAssertEqual(q.entries.count, 1, "two saves of the same panel collapse to one (latest wins)")
+    }
+
+    func testEnqueue_DeletePanelAfterSave_DropsSave() {
+        let id = UUID()
+        let q = makeQueue()
+        q.enqueue(.savePanel(id: id))
+        q.enqueue(.deletePanel(id: id))
+        XCTAssertEqual(q.entries.count, 1)
+        XCTAssertEqual(q.entries.first?.op, .deletePanel(id: id),
+                       "delete supersedes save for the same panel — only the delete remains")
+    }
+
+    func testEnqueue_TwoUploadsSameAsset_CollapseToOne() {
+        let id = UUID()
+        let q = makeQueue()
+        q.enqueue(.uploadAsset(kind: .picture, id: id))
+        q.enqueue(.uploadAsset(kind: .picture, id: id))
+        XCTAssertEqual(q.entries.count, 1, "two uploads of the same asset collapse — latest content wins")
+    }
+
+    func testEnqueue_DifferentKindsSameInteraction_NoCollapse() {
+        let id = UUID()
+        let q = makeQueue()
+        q.enqueue(.uploadAsset(kind: .picture, id: id))
+        q.enqueue(.uploadAsset(kind: .boyAudio, id: id))
+        q.enqueue(.uploadAsset(kind: .girlAudio, id: id))
+        XCTAssertEqual(q.entries.count, 3, "different asset kinds do not collapse")
+    }
+
+    func testEnqueue_DifferentIDsSameKind_NoCollapse() {
+        let q = makeQueue()
+        q.enqueue(.uploadAsset(kind: .picture, id: UUID()))
+        q.enqueue(.uploadAsset(kind: .picture, id: UUID()))
+        XCTAssertEqual(q.entries.count, 2, "different interaction ids do not collapse")
+    }
+
+    // MARK: - Cross-target supersession
+
+    func testDeleteInteraction_SupersedesPendingAssetUploads() {
+        let id = UUID()
+        let q = makeQueue()
+        q.enqueue(.uploadAsset(kind: .picture, id: id))
+        q.enqueue(.uploadAsset(kind: .boyAudio, id: id))
+        q.enqueue(.saveInteraction(id: id, parentID: UUID()))
+        q.enqueue(.deleteInteraction(id: id))
+        XCTAssertEqual(q.entries.count, 1)
+        XCTAssertEqual(q.entries.first?.op, .deleteInteraction(id: id),
+                       "deleteInteraction cascades server-side; pre-emptively drop pending child pushes")
+    }
+
+    func testDeleteInteraction_PreservesUnrelatedEntries() {
+        let target = UUID()
+        let other = UUID()
+        let q = makeQueue()
+        q.enqueue(.uploadAsset(kind: .picture, id: target))
+        q.enqueue(.uploadAsset(kind: .picture, id: other))
+        q.enqueue(.deleteInteraction(id: target))
+        XCTAssertEqual(q.entries.count, 2,
+                       "supersession only drops ops for the deleted interaction")
+        XCTAssertTrue(q.entries.contains(where: { $0.op == .uploadAsset(kind: .picture, id: other) }))
+        XCTAssertTrue(q.entries.contains(where: { $0.op == .deleteInteraction(id: target) }))
+    }
+
+    func testDeletePanel_DropsPendingChildSaveInteraction() {
+        let panelID = UUID()
+        let interactionID = UUID()
+        let q = makeQueue()
+        q.enqueue(.saveInteraction(id: interactionID, parentID: panelID))
+        q.enqueue(.deletePanel(id: panelID))
+        XCTAssertEqual(q.entries.count, 1)
+        XCTAssertEqual(q.entries.first?.op, .deletePanel(id: panelID),
+                       "child saveInteraction is doomed by the parent delete cascade — drop it")
+    }
+
+    // MARK: - nextDue + FIFO ordering
+
+    func testNextDue_ReturnsFirstEligible_InFIFOOrder() {
+        let q = makeQueue()
+        let now = Date(timeIntervalSinceReferenceDate: 1000)
+        let first = q.enqueue(.savePanel(id: UUID()), now: now)
+        let _ = q.enqueue(.savePanel(id: UUID()), now: now.addingTimeInterval(1))
+        XCTAssertEqual(q.nextDue(now: now)?.id, first.id,
+                       "FIFO — earliest-enqueued eligible entry is returned first")
+    }
+
+    func testNextDue_ReturnsNilWhenNoneEligible() {
+        let q = makeQueue()
+        let entry = q.enqueue(.savePanel(id: UUID()),
+                              now: Date(timeIntervalSinceReferenceDate: 1000))
+        // Mark a failure to push nextEligibleAt into the future.
+        q.markFailure(entry, retryable: true,
+                      now: Date(timeIntervalSinceReferenceDate: 1000))
+        XCTAssertNil(q.nextDue(now: Date(timeIntervalSinceReferenceDate: 1000)))
+    }
+
+    // MARK: - markSuccess
+
+    func testMarkSuccess_RemovesEntry() {
+        let q = makeQueue()
+        let entry = q.enqueue(.savePanel(id: UUID()))
+        q.markSuccess(entry)
+        XCTAssertEqual(q.entries, [])
+    }
+
+    func testMarkSuccess_PersistsRemoval() {
+        let id = UUID()
+        let q1 = makeQueue()
+        let entry = q1.enqueue(.savePanel(id: id))
+        q1.markSuccess(entry)
+        let q2 = makeQueue()
+        XCTAssertEqual(q2.entries, [],
+                       "removal must hit disk so a relaunch doesn't replay the success")
+    }
+
+    // MARK: - markFailure: retry + backoff
+
+    func testMarkFailure_NotRetryable_DropsImmediately() {
+        let q = makeQueue()
+        let entry = q.enqueue(.savePanel(id: UUID()))
+        let kept = q.markFailure(entry, retryable: false)
+        XCTAssertFalse(kept)
+        XCTAssertEqual(q.entries, [])
+    }
+
+    func testMarkFailure_Retryable_AdvancesNextEligibleAt() {
+        let q = makeQueue()
+        let now = Date(timeIntervalSinceReferenceDate: 5000)
+        let entry = q.enqueue(.savePanel(id: UUID()), now: now)
+        XCTAssertTrue(q.markFailure(entry, retryable: true, now: now))
+        let updated = q.entries.first!
+        XCTAssertEqual(updated.retryCount, 1)
+        XCTAssertEqual(updated.nextEligibleAt, now.addingTimeInterval(PushQueue.backoff[0]),
+                       "first retry uses the first backoff bucket (30s)")
+    }
+
+    func testMarkFailure_BackoffSchedule_FollowsExpectedSequence() {
+        let q = makeQueue()
+        let baseTime = Date(timeIntervalSinceReferenceDate: 0)
+        var entry = q.enqueue(.savePanel(id: UUID()), now: baseTime)
+        for (step, expected) in PushQueue.backoff.enumerated() {
+            XCTAssertTrue(q.markFailure(entry, retryable: true, now: baseTime))
+            entry = q.entries.first!
+            XCTAssertEqual(entry.retryCount, step + 1,
+                           "retryCount increments by 1 per failure")
+            XCTAssertEqual(entry.nextEligibleAt, baseTime.addingTimeInterval(expected),
+                           "retry \(step + 1) backoff = \(expected)s")
+        }
+    }
+
+    func testMarkFailure_BackoffPlateausAtLastBucket() {
+        // After we exhaust the explicit schedule, subsequent retries use
+        // the last bucket value (12h) until maxRetries drops the entry.
+        let q = makeQueue()
+        let now = Date(timeIntervalSinceReferenceDate: 0)
+        var entry = q.enqueue(.savePanel(id: UUID()), now: now)
+        // Drive to retryCount = backoff.count, retryCount = backoff.count + 1
+        for _ in 0..<(PushQueue.backoff.count + 1) {
+            XCTAssertTrue(q.markFailure(entry, retryable: true, now: now))
+            entry = q.entries.first!
+        }
+        XCTAssertEqual(entry.nextEligibleAt,
+                       now.addingTimeInterval(PushQueue.backoff.last!),
+                       "after the schedule is exhausted, retries plateau at the last bucket")
+    }
+
+    func testMarkFailure_DropsAtMaxRetries() {
+        let q = makeQueue()
+        var entry = q.enqueue(.savePanel(id: UUID()))
+        // First N-1 failures keep the entry. The Nth drops it.
+        for _ in 0..<(PushQueue.maxRetries - 1) {
+            XCTAssertTrue(q.markFailure(entry, retryable: true))
+            entry = q.entries.first!
+        }
+        let kept = q.markFailure(entry, retryable: true)
+        XCTAssertFalse(kept, "entry dropped at maxRetries")
+        XCTAssertEqual(q.entries, [])
+    }
+
+    // MARK: - Persistence regression — backoff state survives reload
+
+    func testBackoffState_PersistsAcrossInstances() {
+        let q1 = makeQueue()
+        let now = Date(timeIntervalSinceReferenceDate: 100)
+        let entry = q1.enqueue(.savePanel(id: UUID()), now: now)
+        q1.markFailure(entry, retryable: true, now: now)
+
+        let q2 = makeQueue()
+        XCTAssertEqual(q2.entries.count, 1)
+        XCTAssertEqual(q2.entries.first?.retryCount, 1,
+                       "retryCount must survive reload")
+        XCTAssertEqual(q2.entries.first?.nextEligibleAt,
+                       now.addingTimeInterval(PushQueue.backoff[0]),
+                       "nextEligibleAt must survive reload — otherwise we'd retry too aggressively after a relaunch")
+    }
 }
