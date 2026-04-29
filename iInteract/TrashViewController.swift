@@ -174,35 +174,38 @@ final class TrashViewController: UITableViewController {
 
     private func performRestore(_ item: PanelStore.TrashedItem,
                                 done: ((Bool) -> Void)?) {
-        switch item.kind {
-        case .panel:
+        // Decision tree lives in TrashRestoreCoordinator (UIKit-free,
+        // unit-tested). VC just dispatches each case.
+        switch TrashRestoreCoordinator.plan(for: item, in: store) {
+        case .restorePanelDirectly:
             do {
                 _ = try store.restorePanel(trashID: item.trashID)
                 reload(); done?(true)
-            } catch PanelStore.StoreError.nameNotUnique {
-                promptRenameOnRestore(item, done: done)
             } catch {
                 presentError("Couldn't restore: \(error)"); done?(false)
             }
-        case .interaction:
-            // 1) Original parent still active and has room → restore.
-            if store.canRestoreInteractionToOriginalParent(trashID: item.trashID) {
-                do {
-                    _ = try store.restoreInteraction(trashID: item.trashID)
-                    reload(); done?(true)
-                } catch {
-                    presentError("Couldn't restore: \(error)"); done?(false)
-                }
+        case .needsRenameForPanel:
+            promptRenameOnRestore(item, done: done)
+        case .restoreInteractionDirectly:
+            do {
+                _ = try store.restoreInteraction(trashID: item.trashID)
+                reload(); done?(true)
+            } catch {
+                presentError("Couldn't restore: \(error)"); done?(false)
+            }
+        case .needsParentDecision(_, let parentTrashID, _):
+            // The parent's full TrashedItem is in `items` already loaded.
+            guard let parentItem = items.first(where: { $0.trashID == parentTrashID }) else {
+                // Parent vanished between plan() and dispatch — fall back.
+                offerAlternateDestination(for: item, reason: .parentGone, done: done)
                 return
             }
-            // 2) Parent is in the trash → ask to restore parent first.
-            if let parentTrashID = store.parentPanelTrashID(forInteractionTrashID: item.trashID),
-               let parentItem = items.first(where: { $0.trashID == parentTrashID }) {
-                offerRestoreParentFirst(interaction: item, parent: parentItem, done: done)
-                return
-            }
-            // 3) Parent gone or full → picker of active panels with room.
-            offerAlternateDestination(for: item, reason: .parentGone, done: done)
+            offerRestoreParentFirst(interaction: item, parent: parentItem, done: done)
+        case .needsAlternateDestination(_, let reason, _):
+            offerAlternateDestination(for: item, reason: reason, done: done)
+        case .noCandidatesAvailable(let reason):
+            presentError("\(reason.blurb) No active panel has room (each panel maxes out at 6). Make room first and try again.")
+            done?(false)
         }
     }
 
@@ -306,19 +309,8 @@ final class TrashViewController: UITableViewController {
         }
     }
 
-    private enum AlternateReason {
-        case parentGone, parentInTrash, parentFull
-        var blurb: String {
-            switch self {
-            case .parentGone:    return "The original panel has been deleted."
-            case .parentInTrash: return "The original panel is in Trash."
-            case .parentFull:    return "The original panel already has 6 interactions."
-            }
-        }
-    }
-
     private func offerAlternateDestination(for item: PanelStore.TrashedItem,
-                                           reason: AlternateReason,
+                                           reason: TrashAlternateReason,
                                            done: ((Bool) -> Void)? = nil) {
         let candidates = store.panelsAvailableToReceiveInteraction()
         guard !candidates.isEmpty else {
@@ -356,16 +348,21 @@ final class TrashViewController: UITableViewController {
 
     private func confirmPurge(_ item: PanelStore.TrashedItem,
                               done: ((Bool) -> Void)? = nil) {
-        confirmDestructiveWithPIN(
+        // Single-item Delete Forever is no longer PIN-gated. The threat
+        // (a curious child) recovers from a single accidental purge by
+        // re-creating one panel/recording — annoying but not catastrophic.
+        // Mass actions (Empty Trash, Clear All My Data) still require
+        // the PIN.
+        let alert = UIAlertController(
             title: "Delete Forever?",
             message: "This permanently removes \"\(displayName(for: item))\" and its files. It cannot be undone.",
-            destructiveTitle: "Delete Forever",
-            store: store,
-            onCancel: { done?(false) }
-        ) { [weak self] in
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in done?(false) })
+        alert.addAction(UIAlertAction(title: "Delete Forever", style: .destructive) { [weak self] _ in
             self?.store.purgeTrash(trashID: item.trashID)
             self?.reload(); done?(true)
-        }
+        })
+        present(alert, animated: true)
     }
 
     @objc private func confirmEmpty() {

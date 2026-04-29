@@ -87,10 +87,12 @@ class Panel: Codable {
         self.id = try c.decode(UUID.self, forKey: .id)
         self.title = try c.decode(String.self, forKey: .title)
         let rgba = try c.decode(ColorRGBA.self, forKey: .color)
-        self.color = UIColor(red: CGFloat(rgba.red),
-                             green: CGFloat(rgba.green),
-                             blue: CGFloat(rgba.blue),
-                             alpha: CGFloat(rgba.alpha))
+        // Clamp to [0,1] on decode too — older saves may have stored
+        // out-of-range extended-sRGB values from dynamic system colors.
+        self.color = UIColor(red:   CGFloat(min(max(rgba.red,   0), 1)),
+                             green: CGFloat(min(max(rgba.green, 0), 1)),
+                             blue:  CGFloat(min(max(rgba.blue,  0), 1)),
+                             alpha: CGFloat(min(max(rgba.alpha, 0), 1)))
         self.interactions = try c.decode([Interaction].self, forKey: .interactions)
         self.isBuiltIn = try c.decodeIfPresent(Bool.self, forKey: .isBuiltIn) ?? false
     }
@@ -100,8 +102,23 @@ class Panel: Codable {
         try c.encode(id, forKey: .id)
         try c.encode(title, forKey: .title)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        // Resolve dynamic colors against the current trait collection
+        // before extracting RGBA — `.systemBlue` etc. otherwise return
+        // extended-sRGB values that can fall outside [0,1] and trip
+        // "UIColor created with component values far outside the
+        // expected range" on round-trip. UITraitCollection is iOS-only
+        // (panel.color round-trip on watchOS uses plain getRed plus
+        // the clamp below).
+        #if !os(watchOS)
+        color.resolvedColor(with: UITraitCollection.current)
+            .getRed(&r, green: &g, blue: &b, alpha: &a)
+        #else
         color.getRed(&r, green: &g, blue: &b, alpha: &a)
-        try c.encode(ColorRGBA(red: Double(r), green: Double(g), blue: Double(b), alpha: Double(a)),
+        #endif
+        try c.encode(ColorRGBA(red:   Double(min(max(r, 0), 1)),
+                               green: Double(min(max(g, 0), 1)),
+                               blue:  Double(min(max(b, 0), 1)),
+                               alpha: Double(min(max(a, 0), 1))),
                      forKey: .color)
         try c.encode(interactions, forKey: .interactions)
         try c.encode(isBuiltIn, forKey: .isBuiltIn)

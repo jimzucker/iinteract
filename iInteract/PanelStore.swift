@@ -73,20 +73,6 @@ final class PanelStore {
         case assetWriteFailed
     }
 
-    enum AssetKind {
-        case picture
-        case boyAudio
-        case girlAudio
-
-        var fileSuffix: String {
-            switch self {
-            case .picture:   return ".jpg"
-            case .boyAudio:  return ".boy.m4a"
-            case .girlAudio: return ".girl.m4a"
-            }
-        }
-    }
-
     enum Voice {
         case boy, girl
         var assetKind: AssetKind { self == .boy ? .boyAudio : .girlAudio }
@@ -95,13 +81,16 @@ final class PanelStore {
     private let directory: URL
     private let kvs: KeyValueStorage
     private let iCloudAvailability: () -> Bool
+    private let assetStore: AssetStore
 
     init(directory: URL,
          keyValueStore: KeyValueStorage,
-         iCloudAvailability: @escaping () -> Bool = { false }) {
+         iCloudAvailability: @escaping () -> Bool = { false },
+         assetStore: AssetStore? = nil) {
         self.directory = directory
         self.kvs = keyValueStore
         self.iCloudAvailability = iCloudAvailability
+        self.assetStore = assetStore ?? LocalFSAssetStore(parentDirectory: directory)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 
@@ -115,17 +104,18 @@ final class PanelStore {
     private var panelsURL: URL { directory.appendingPathComponent("panels.json") }
     private var layoutURL: URL { directory.appendingPathComponent("layout.json") }
 
-    /// Folder for user-recorded audio + chosen pictures, keyed by interaction id.
-    var assetsDirectory: URL {
-        let url = directory.appendingPathComponent("UserAssets", isDirectory: true)
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
-    }
+    /// Folder for user-recorded audio + chosen pictures. Exposed
+    /// because the trash/restore flow operates on raw URLs (move file
+    /// out of the active dir into a per-trash-item folder, and back on
+    /// restore). Delegates to the injected AssetStore so production
+    /// uses local FS today and a CloudKit-backed cache directory in
+    /// a future release.
+    var assetsDirectory: URL { assetStore.rootDirectory }
 
     /// File URL for a user interaction's asset, used both for reading on
     /// hydrate and for AVAudioRecorder/JPEG writes during editing.
     func assetURL(for interactionID: UUID, kind: AssetKind) -> URL {
-        assetsDirectory.appendingPathComponent("\(interactionID.uuidString)\(kind.fileSuffix)")
+        assetStore.url(for: kind, id: interactionID)
     }
 
     /// Reattaches picture and audio URLs to a freshly-decoded user interaction
@@ -133,17 +123,15 @@ final class PanelStore {
     /// already set by Interaction.init(interactionName:)).
     func hydrate(_ interaction: Interaction) {
         guard !interaction.isBuiltIn else { return }
-        let picURL = assetURL(for: interaction.id, kind: .picture)
-        if FileManager.default.fileExists(atPath: picURL.path) {
-            interaction.picture = UIImage(contentsOfFile: picURL.path)
+        if assetStore.exists(.picture, id: interaction.id) {
+            interaction.picture = UIImage(contentsOfFile: assetStore.url(for: .picture,
+                                                                          id: interaction.id).path)
         }
-        let boyURL = assetURL(for: interaction.id, kind: .boyAudio)
-        if FileManager.default.fileExists(atPath: boyURL.path) {
-            interaction.boySound = boyURL
+        if assetStore.exists(.boyAudio, id: interaction.id) {
+            interaction.boySound = assetStore.url(for: .boyAudio, id: interaction.id)
         }
-        let girlURL = assetURL(for: interaction.id, kind: .girlAudio)
-        if FileManager.default.fileExists(atPath: girlURL.path) {
-            interaction.girlSound = girlURL
+        if assetStore.exists(.girlAudio, id: interaction.id) {
+            interaction.girlSound = assetStore.url(for: .girlAudio, id: interaction.id)
         }
     }
 
@@ -158,14 +146,12 @@ final class PanelStore {
         guard let data = image.jpegData(compressionQuality: 0.85) else {
             throw StoreError.assetWriteFailed
         }
-        try data.write(to: assetURL(for: id, kind: .picture), options: .atomic)
+        try assetStore.write(data, kind: .picture, id: id)
     }
 
     /// Removes all asset files for an interaction. Safe if files don't exist.
     func deleteInteractionAssets(id: UUID) {
-        for kind in [AssetKind.picture, .boyAudio, .girlAudio] {
-            try? FileManager.default.removeItem(at: assetURL(for: id, kind: kind))
-        }
+        assetStore.deleteAll(id: id)
     }
 
     // MARK: - KVS keys for synced metadata
@@ -410,10 +396,32 @@ final class PanelStore {
     }
 
     func setPIN(_ pin: String, securityQuestion: String? = nil, securityAnswer: String? = nil) {
-        kvs.set(Self.hash(pin), forKey: Self.pinHashKey)
+        // Case-insensitive: store the lowercased hash so "Abc1" and "abc1"
+        // are equivalent on verify. Eliminates a class of "I can't unlock,
+        // I swear it's the right PIN" lockouts caused by Caps Lock or
+        // accidental shift on a single character.
+        kvs.set(Self.hash(pin.lowercased()), forKey: Self.pinHashKey)
         if let q = securityQuestion?.trimmingCharacters(in: .whitespacesAndNewlines),
            let a = securityAnswer?.trimmingCharacters(in: .whitespacesAndNewlines),
            !q.isEmpty, !a.isEmpty {
+            kvs.set(q, forKey: Self.questionKey)
+            kvs.set(Self.hash(a.lowercased()), forKey: Self.answerHashKey)
+        } else {
+            kvs.removeObject(forKey: Self.questionKey)
+            kvs.removeObject(forKey: Self.answerHashKey)
+        }
+        kvs.synchronize()
+    }
+
+    /// Sets or clears the optional security question + answer without
+    /// touching the existing PIN hash. Use after `setPIN` to add or
+    /// update the recovery question, or pass nil/empty to clear.
+    /// Both must be non-empty to save; if either is empty, both are
+    /// cleared (matching the both-or-neither semantics of `setPIN`).
+    func setSecurityQuestion(_ question: String?, answer: String?) {
+        let q = question?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let a = answer?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !q.isEmpty, !a.isEmpty {
             kvs.set(q, forKey: Self.questionKey)
             kvs.set(Self.hash(a.lowercased()), forKey: Self.answerHashKey)
         } else {
@@ -432,7 +440,18 @@ final class PanelStore {
 
     func verifyPIN(_ pin: String) -> Bool {
         guard let stored = kvs.string(forKey: Self.pinHashKey) else { return false }
-        return Self.hash(pin) == stored
+        // Primary path: PINs set under the case-insensitive policy.
+        if Self.hash(pin.lowercased()) == stored { return true }
+        // Migration: PIN was set under a prior build that hashed the
+        // original case. Match against the original; if it matches,
+        // re-store as the lowercased hash so subsequent verifies hit
+        // the primary path. One-shot, no user interaction required.
+        if Self.hash(pin) == stored {
+            kvs.set(Self.hash(pin.lowercased()), forKey: Self.pinHashKey)
+            kvs.synchronize()
+            return true
+        }
+        return false
     }
 
     /// Reset path 1: user is signed into iCloud (proof of account ownership).
@@ -704,12 +723,7 @@ final class PanelStore {
     func clearAllUserData() {
         try? FileManager.default.removeItem(at: panelsURL)
         try? FileManager.default.removeItem(at: layoutURL)
-        if let entries = try? FileManager.default.contentsOfDirectory(at: assetsDirectory,
-                                                                       includingPropertiesForKeys: nil) {
-            for url in entries {
-                try? FileManager.default.removeItem(at: url)
-            }
-        }
+        assetStore.deleteEverything()
         emptyTrash()
         clearPIN()
         kvs.removeObject(forKey: Self.kvsPanelsKey)
@@ -723,6 +737,18 @@ final class PanelStore {
     private static func hash(_ string: String) -> String {
         let digest = SHA256.hash(data: Data(string.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Test-only: writes a PIN hash computed from `rawPIN` *without*
+    /// the lowercase normalization `setPIN` applies, to simulate the
+    /// on-disk state of an app installed before case-insensitive PINs
+    /// shipped. Lets tests exercise the migration branch in `verifyPIN`.
+    /// Underscore prefix + suffix mark this as not-for-production-use;
+    /// it's `internal` rather than `private` so `@testable import` can
+    /// reach it.
+    func _setLegacyPINHash_forTesting(_ rawPIN: String) {
+        kvs.set(Self.hash(rawPIN), forKey: Self.pinHashKey)
+        kvs.synchronize()
     }
 
     // MARK: - iCloud KVS change observation
@@ -761,10 +787,243 @@ final class PanelStore {
             UserDefaults.standard.set(raw, forKey: ConfigurationMode.userDefaultsKey)
             didChange = true
         }
+        if changedKeys.contains(Self.pinHashKey) {
+            // A5: another device set or cleared the PIN. Mirror the
+            // resulting hasPIN state to the local pin_enabled toggle so
+            // iOS Settings reflects reality on this device too.
+            let remoteHasPIN = kvs.string(forKey: Self.pinHashKey) != nil
+            UserDefaults.standard.set(remoteHasPIN, forKey: "pin_enabled")
+            didChange = true
+        }
         if didChange {
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
             }
         }
+    }
+}
+
+// MARK: - UIColor component comparison (used by editor unsaved-changes detection)
+
+/// Compares two UIColor instances by their RGBA components rather than
+/// by reference. UIColor doesn't conform to Equatable, and identity
+/// comparison ('===') doesn't work because system colors like
+/// UIColor.systemBlue may return different instances on each access.
+enum UIColorComponents {
+    static func areEqual(_ a: UIColor, _ b: UIColor) -> Bool {
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+        a.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        return abs(ar - br) < 0.001
+            && abs(ag - bg) < 0.001
+            && abs(ab - bb) < 0.001
+            && abs(aa - ba) < 0.001
+    }
+}
+
+// MARK: - PanelListEditor mode-aware affordances (UIKit-free)
+
+/// Section identity for `PanelListEditorViewController` — at file scope
+/// so the affordance helpers below can return them as data without the
+/// VC having to hold them privately.
+enum PanelListEditorSection: Equatable {
+    case panels
+    case trash
+}
+
+/// Pure decisions about which UI affordances to show in
+/// `PanelListEditorViewController` given the current `ConfigurationMode`.
+/// Extracted so the per-mode logic is unit-testable without
+/// instantiating a UITableViewController.
+enum PanelListEditorAffordances {
+
+    /// Sections to display for `mode`. Configurable hides Trash because
+    /// user panels (and therefore trash entries) can't exist outside
+    /// Customize.
+    static func sections(for mode: ConfigurationMode) -> [PanelListEditorSection] {
+        mode == .custom ? [.panels, .trash] : [.panels]
+    }
+
+    /// True when the "+" add-panel button should be shown in the
+    /// navigation bar. Configurable can hide / reorder built-ins but
+    /// can't author new panels.
+    static func addButtonVisible(for mode: ConfigurationMode) -> Bool {
+        mode == .custom
+    }
+
+    /// True when tapping the row should push into `PanelEditor`.
+    /// Built-in panels are never editable; user panels are only
+    /// editable in Customize.
+    static func panelRowSelectable(panel: Panel,
+                                   mode: ConfigurationMode) -> Bool {
+        mode == .custom && !panel.isBuiltIn
+    }
+
+    /// True when swipe-to-delete should be available on the row.
+    static func panelRowDeletable(panel: Panel,
+                                  mode: ConfigurationMode) -> Bool {
+        mode == .custom && !panel.isBuiltIn
+    }
+
+    /// Footer text under the Panels section. Default mode has no
+    /// editor → no footer; Configurable explains the limited edits;
+    /// Customize explains full edits.
+    static func panelsFooter(for mode: ConfigurationMode) -> String? {
+        switch mode {
+        case .custom:
+            return "Toggle to hide a panel from the main list. Drag to reorder. Swipe to delete custom panels. PIN and Clear All My Data live in iOS Settings → iInteract."
+        case .configurable:
+            return "Toggle to hide a panel from the main list. Drag to reorder. To add or modify panels with your own pictures and recordings, switch to Customize in Settings → iInteract."
+        case .default:
+            return nil
+        }
+    }
+
+    /// Footer text under the Trash section. Same in every mode (only
+    /// shown in Customize per the `sections(for:)` decision).
+    static let trashFooter = "Deleted panels and interactions stay here for 30 days before they're permanently removed."
+}
+
+/// Copy for the move-to-Trash confirmation alert shown when the user
+/// swipes to delete a custom panel. Extracted as data so tests can
+/// snapshot the strings without driving a real `UIAlertController`.
+struct DeletePanelConfirmSpec: Equatable {
+    let title: String
+    let message: String
+
+    static func make(panelTitle: String) -> Self {
+        Self(
+            title: "Delete \"\(panelTitle)\"?",
+            message: "The panel, every interaction on it, and all of its pictures and voice recordings (sound) will move to Trash and be permanently removed after 30 days."
+        )
+    }
+}
+
+// MARK: - TrashRestoreCoordinator (UIKit-free, unit-testable)
+
+/// Why an interaction can't go back to its original parent.
+enum TrashAlternateReason: Equatable {
+    case parentGone        // parent was permanently deleted
+    case parentInTrash     // parent is itself in the recycle bin
+    case parentFull        // parent exists but already at 6-interaction cap
+
+    /// Human-readable lead-in used in the alternate-destination action
+    /// sheet and the no-candidates error alert.
+    var blurb: String {
+        switch self {
+        case .parentGone:    return "The original panel has been deleted."
+        case .parentInTrash: return "The original panel is in Trash."
+        case .parentFull:    return "The original panel already has 6 interactions."
+        }
+    }
+}
+
+/// Decision for what to do when the user asks to restore an item from
+/// Trash. Computed by inspecting current store state without doing the
+/// restore — the caller dispatches the right UI based on the case.
+enum TrashRestoreDecision: Equatable {
+    /// Store can restore the panel cleanly. Caller should call
+    /// `store.restorePanel(trashID:)` and reload.
+    case restorePanelDirectly(trashID: UUID)
+
+    /// Panel restore would collide with an active panel. Caller should
+    /// prompt for a new title (suggestion provided) and then call
+    /// `store.restorePanel(trashID:newTitle:)`.
+    case needsRenameForPanel(trashID: UUID, suggestedTitle: String)
+
+    /// Interaction's original parent is active and has room. Caller
+    /// should call `store.restoreInteraction(trashID:)` and reload.
+    case restoreInteractionDirectly(trashID: UUID)
+
+    /// Interaction's parent panel is itself in the trash. Caller
+    /// should ask: "Restore the panel first?" If yes, restore parent
+    /// then interaction. If no, fall back to alternate-destination.
+    case needsParentDecision(interactionTrashID: UUID,
+                             parentTrashID: UUID,
+                             parentName: String)
+
+    /// Interaction's parent is gone or full. Caller should show a
+    /// picker of alternative active panels with room.
+    case needsAlternateDestination(trashID: UUID,
+                                   reason: TrashAlternateReason,
+                                   candidatePanelIDs: [UUID])
+
+    /// Interaction has nowhere to go and no active panels with room.
+    /// Caller should show an explanation; no restore is possible
+    /// without making room first.
+    case noCandidatesAvailable(reason: TrashAlternateReason)
+}
+
+/// Computes a `TrashRestoreDecision` by inspecting the store. Pure
+/// logic — no UIKit dependency — so every branch is unit-testable.
+enum TrashRestoreCoordinator {
+
+    /// Compute the right next step for restoring `item` given current
+    /// store state. Caller dispatches UI based on the returned case.
+    static func plan(for item: PanelStore.TrashedItem,
+                     in store: PanelStore) -> TrashRestoreDecision {
+        switch item.kind {
+        case .panel:
+            // Decode the snapshot so we can pre-check the title for
+            // a collision rather than letting savePanel throw.
+            guard let panel = try? JSONDecoder().decode(Panel.self, from: item.snapshot) else {
+                // Snapshot is corrupt — best we can do is try the
+                // store path and let it surface the error.
+                return .restorePanelDirectly(trashID: item.trashID)
+            }
+            if store.isNameAvailable(panel.title, excluding: panel.id) {
+                return .restorePanelDirectly(trashID: item.trashID)
+            }
+            return .needsRenameForPanel(trashID: item.trashID,
+                                        suggestedTitle: panel.title + " (restored)")
+
+        case .interaction:
+            if store.canRestoreInteractionToOriginalParent(trashID: item.trashID) {
+                return .restoreInteractionDirectly(trashID: item.trashID)
+            }
+            if let parentTrashID = store.parentPanelTrashID(forInteractionTrashID: item.trashID),
+               let parentName = parentNameInTrash(trashID: parentTrashID, store: store) {
+                return .needsParentDecision(interactionTrashID: item.trashID,
+                                            parentTrashID: parentTrashID,
+                                            parentName: parentName)
+            }
+            // Parent gone OR full. Distinguish via store lookups.
+            let candidates = store.panelsAvailableToReceiveInteraction()
+            let reason = inferAlternateReason(for: item, store: store)
+            if candidates.isEmpty {
+                return .noCandidatesAvailable(reason: reason)
+            }
+            return .needsAlternateDestination(trashID: item.trashID,
+                                              reason: reason,
+                                              candidatePanelIDs: candidates.map { $0.id })
+        }
+    }
+
+    private static func parentNameInTrash(trashID: UUID, store: PanelStore) -> String? {
+        guard let parentItem = store.trashedItems().first(where: { $0.trashID == trashID }),
+              parentItem.kind == .panel,
+              let panel = try? JSONDecoder().decode(Panel.self, from: parentItem.snapshot) else {
+            return nil
+        }
+        return panel.title
+    }
+
+    /// Best-effort: parent exists in active panels but is full → .parentFull;
+    /// parent exists in trash → .parentInTrash; otherwise .parentGone.
+    /// Called only when canRestoreInteractionToOriginalParent already
+    /// returned false, so "parent active and has room" isn't a branch.
+    private static func inferAlternateReason(for item: PanelStore.TrashedItem,
+                                              store: PanelStore) -> TrashAlternateReason {
+        guard let parentID = item.parentPanelID else {
+            return .parentGone
+        }
+        if store.userPanels().contains(where: { $0.id == parentID }) {
+            return .parentFull
+        }
+        if store.parentPanelTrashID(forInteractionTrashID: item.trashID) != nil {
+            return .parentInTrash
+        }
+        return .parentGone
     }
 }

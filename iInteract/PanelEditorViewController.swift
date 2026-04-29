@@ -35,6 +35,12 @@ final class PanelEditorViewController: UITableViewController,
     private var workingPanel: Panel
     private let isNewPanel: Bool
 
+    /// Snapshot of the panel state at init time. Used to detect
+    /// unsaved changes when the user taps Cancel.
+    private let originalTitle: String
+    private let originalColor: UIColor
+    private let originalInteractionIDs: [UUID]
+
     private var saveButton: UIBarButtonItem!
     private weak var titleField: UITextField?
     private weak var titleFooterLabel: UILabel?
@@ -56,6 +62,9 @@ final class PanelEditorViewController: UITableViewController,
                                       interactions: panel.interactions,
                                       isBuiltIn: false)
             self.isNewPanel = false
+            self.originalTitle = panel.title
+            self.originalColor = panel.color
+            self.originalInteractionIDs = panel.interactions.map { $0.id }
         } else {
             self.workingPanel = Panel(id: UUID(),
                                       title: "",
@@ -63,8 +72,27 @@ final class PanelEditorViewController: UITableViewController,
                                       interactions: [],
                                       isBuiltIn: false)
             self.isNewPanel = true
+            self.originalTitle = ""
+            self.originalColor = .systemBlue
+            self.originalInteractionIDs = []
         }
         super.init(style: .insetGrouped)
+    }
+
+    /// True when the user has made any changes the Cancel/X button
+    /// would discard. Used to gate the discard-confirmation alert.
+    private var hasUnsavedChanges: Bool {
+        let trimmedTitle = workingPanel.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedTitle != originalTitle.trimmingCharacters(in: .whitespacesAndNewlines) {
+            return true
+        }
+        if !UIColorComponents.areEqual(workingPanel.color, originalColor) {
+            return true
+        }
+        if workingPanel.interactions.map({ $0.id }) != originalInteractionIDs {
+            return true
+        }
+        return false
     }
 
     required init?(coder: NSCoder) {
@@ -97,7 +125,20 @@ final class PanelEditorViewController: UITableViewController,
     // MARK: Actions
 
     @objc private func cancelTapped() {
-        navigationController?.popViewController(animated: true)
+        guard hasUnsavedChanges else {
+            navigationController?.popViewController(animated: true)
+            return
+        }
+        let alert = UIAlertController(
+            title: "Discard Changes?",
+            message: "Your edits to this panel haven't been saved. Are you sure you want to discard them?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+            self?.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
 
     @objc private func saveTapped() {
@@ -301,7 +342,10 @@ final class PanelEditorViewController: UITableViewController,
             } else {
                 self.workingPanel.interactions.append(interaction)
             }
-            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+            // onSave may fire just as InteractionEditor pops back —
+            // defer through safeReloadSections so we don't trigger
+            // the off-screen-layout warning during the transition.
+            self.safeReloadSections([Section.interactions.rawValue])
         }
         navigationController?.pushViewController(editor, animated: true)
     }
@@ -386,7 +430,9 @@ final class PanelEditorViewController: UITableViewController,
             else { return }
             let removed = self.workingPanel.interactions.remove(at: row)
             try? self.store.trashInteraction(removed, fromPanelID: self.workingPanel.id)
-            self.tableView.reloadSections([Section.interactions.rawValue], with: .automatic)
+            // Alert dismiss animation overlaps this handler — use the
+            // safe variant so we don't reload mid-transition.
+            self.safeReloadSections([Section.interactions.rawValue])
         })
         present(alert, animated: true)
     }

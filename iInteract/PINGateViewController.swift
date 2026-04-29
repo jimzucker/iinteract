@@ -14,10 +14,15 @@ import UIKit
 // MARK: - State machine (testable)
 
 /// PIN-gate verification state, separated from the view so it can be unit
-/// tested without spinning up a UI. Tracks attempt count and lockout window.
+/// tested without spinning up a UI. Tracks attempt count and lockout
+/// window, persisted in `UserDefaults` so a determined attacker can't
+/// reset the 5-attempt counter by killing and relaunching the app.
 final class PINGateState {
     static let maxAttempts: Int = 5
     static let lockoutDuration: TimeInterval = 60
+
+    private static let attemptsKey = "panelstore.pin_attempts"
+    private static let lockedUntilKey = "panelstore.pin_locked_until_epoch"
 
     enum Outcome: Equatable {
         case success
@@ -27,12 +32,22 @@ final class PINGateState {
 
     private let store: PanelStore
     private let now: () -> Date
-    private(set) var attempts: Int = 0
+    private let defaults: UserDefaults
+    private(set) var attempts: Int
     private(set) var lockedUntil: Date?
 
-    init(store: PanelStore, now: @escaping () -> Date = Date.init) {
+    init(store: PanelStore,
+         now: @escaping () -> Date = Date.init,
+         defaults: UserDefaults = .standard) {
         self.store = store
         self.now = now
+        self.defaults = defaults
+        // Restore persisted state. UserDefaults integer / double default
+        // to 0 when the key is unset, which means "no attempts yet, no
+        // lockout" — exactly the fresh-state we want.
+        self.attempts = defaults.integer(forKey: Self.attemptsKey)
+        let epoch = defaults.double(forKey: Self.lockedUntilKey)
+        self.lockedUntil = epoch > 0 ? Date(timeIntervalSinceReferenceDate: epoch) : nil
     }
 
     var isLocked: Bool {
@@ -50,14 +65,28 @@ final class PINGateState {
         if store.verifyPIN(pin) {
             attempts = 0
             lockedUntil = nil
+            persist()
             return .success
         }
         attempts += 1
         if attempts >= Self.maxAttempts {
             lockedUntil = now().addingTimeInterval(Self.lockoutDuration)
+            persist()
             return .lockedOut(secondsRemaining: Int(Self.lockoutDuration))
         }
+        persist()
         return .wrong(remainingAttempts: Self.maxAttempts - attempts)
+    }
+
+    /// Writes attempts + lockedUntil to UserDefaults so they survive
+    /// app restart. Call after every state mutation.
+    private func persist() {
+        defaults.set(attempts, forKey: Self.attemptsKey)
+        if let until = lockedUntil {
+            defaults.set(until.timeIntervalSinceReferenceDate, forKey: Self.lockedUntilKey)
+        } else {
+            defaults.removeObject(forKey: Self.lockedUntilKey)
+        }
     }
 }
 

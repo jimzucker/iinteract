@@ -35,10 +35,20 @@ final class WatchSync: NSObject, WCSessionDelegate {
     /// Pushes the current visible built-in panel titles (in their saved order
     /// from PanelStore.layout()) to the watch via updateApplicationContext —
     /// only the latest is delivered, perfect for "current state."
+    ///
+    /// Short-circuits when there's no paired watch with our app installed,
+    /// so a phone-only user doesn't get framework-level "counterpart app
+    /// not installed" log spam on every viewWillAppear.
     func pushVisiblePanels() {
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.activationState == .activated else { return }
+        // No paired Apple Watch → nothing to push.
+        guard session.isPaired else { return }
+        // Watch is paired but the iInteract watch app isn't installed there
+        // → calling updateApplicationContext logs "counterpart app not
+        // installed" inside the framework. Skip.
+        guard session.isWatchAppInstalled else { return }
 
         let mode = ConfigurationMode.current()
         // Apply the same layout (visibility + order) that the iPhone shows,
@@ -49,6 +59,12 @@ final class WatchSync: NSObject, WCSessionDelegate {
 
         do {
             try session.updateApplicationContext([Self.payloadKey: titles])
+        } catch let error as WCError where error.code == .watchAppNotInstalled
+                                         || error.code == .deviceNotPaired {
+            // Expected — `isPaired`/`isWatchAppInstalled` raced or
+            // changed between the check and the call. Don't log; this
+            // is the same as the short-circuits above.
+            return
         } catch {
             print("WatchSync: updateApplicationContext failed: \(error)")
         }

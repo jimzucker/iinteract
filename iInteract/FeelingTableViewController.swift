@@ -92,105 +92,159 @@ class FeelingTableViewController: UITableViewController {
         showSplashScreen()
     }
 
-    /// Reads iOS-Settings keys (`pin_enabled`, `pending_clear_all`) and
-    /// reconciles them with the actual app state. The Enable PIN toggle is
-    /// the source of intent — when it diverges from `PanelStore.hasPIN`, we
-    /// prompt the user in-app to bring them in sync (set new PIN with
-    /// confirmation, or enter current PIN to disable). Cancel reverts the
-    /// toggle so iOS Settings always reflects reality.
-    private func applyPendingSettingsActions() {
-        let defaults = UserDefaults.standard
-        // iOS Settings.bundle commits its writes to our app's UserDefaults
-        // when the user navigates away. A fresh read after resume sometimes
-        // lags the commit by a tick; force a sync.
-        defaults.synchronize()
-
-        let wantEnabled = defaults.bool(forKey: "pin_enabled")
-        let hasPIN = PanelStore.shared.hasPIN
-
-        if wantEnabled && !hasPIN {
-            promptEnablePIN()
-        } else if !wantEnabled && hasPIN {
-            promptDisablePIN()
+    /// Computes pending iOS-Settings effects via `SettingsReconciler` and
+    /// dispatches each to the corresponding in-app prompt. The reconciler
+    /// is the single source of truth for "what does the user want us to
+    /// do given current toggle state vs. PIN store state" and is fully
+    /// unit-tested. This method only handles the modal-up retry policy
+    /// and the dispatch table from Effect → prompt method.
+    ///
+    /// If another modal is already up when we'd present, retry on a short
+    /// delay so a Settings change made while the user was mid-dialog still
+    /// reaches the user once the existing dialog dismisses. Coalesces
+    /// multiple concurrent retries via `pendingRetryScheduled` so we
+    /// don't stack timers.
+    private func applyPendingSettingsActions(retriesRemaining: Int = 5) {
+        let modalIsUp = topmostPresenter().presentedViewController != nil
+        switch PendingActionsDecision.decide(modalIsUp: modalIsUp,
+                                              pendingRetryScheduled: pendingRetryScheduled,
+                                              retriesRemaining: retriesRemaining) {
+        case .skip:
+            return
+        case .scheduleRetry:
+            pendingRetryScheduled = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                self.pendingRetryScheduled = false
+                self.applyPendingSettingsActions(retriesRemaining: retriesRemaining - 1)
+            }
+            return
+        case .fire:
+            break
         }
 
-        // Clear All Data — same flow as before.
-        if defaults.bool(forKey: "pending_clear_all") {
-            defaults.set(false, forKey: "pending_clear_all")
-            confirmAndClearAllData()
+        let reconciler = SettingsReconciler()
+        for effect in reconciler.reconcile() {
+            switch effect {
+            case .enablePIN:               promptEnablePIN()
+            case .disablePIN:              promptDisablePIN()
+            case .changePIN:               promptChangePIN()
+            case .completeSecurityQuestion: promptCompleteSecurityQuestion()
+            case .clearAllData:            confirmAndClearAllData()
+            }
         }
     }
 
-    /// User toggled "Enable PIN" on in iOS Settings but no PIN is set yet.
-    /// Prompt for a new PIN (\(PINPolicy.humanDescription)) with a
-    /// confirmation field. Both fields have a show/hide eye toggle.
+    private var pendingRetryScheduled: Bool {
+        get { (objc_getAssociatedObject(self, &Self.pendingRetryKey) as? Bool) ?? false }
+        set { objc_setAssociatedObject(self, &Self.pendingRetryKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+    private static var pendingRetryKey: UInt8 = 0
+
+    /// User toggled "Enable PIN" on in iOS Settings but no PIN is set
+    /// yet. Delegates the cycle-on-failure / prefill / cancel logic to
+    /// `PINPromptCoordinator` so the flow is unit-testable end-to-end
+    /// without needing a real UIAlertController.
     private func promptEnablePIN() {
-        let host = topmostPresenter()
-        guard host.presentedViewController == nil else { return }  // wait for next cycle
-
-        let alert = UIAlertController(
-            title: "Set PIN",
-            message: "Enter a PIN (\(PINPolicy.humanDescription)), then confirm it. The PIN will be required to open the configuration editor and to delete panels, recordings, or clear data.",
-            preferredStyle: .alert
-        )
-        alert.addTextField { tf in
-            tf.placeholder = "PIN"
-            tf.keyboardType = .asciiCapable
-            tf.autocapitalizationType = .none
-            tf.autocorrectionType = .no
-            tf.isSecureTextEntry = true
-            tf.attachShowPINToggle()
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        // Hold the coordinator alive until the flow completes — the
+        // presenter is held weakly inside the coordinator and the
+        // coordinator itself has no other owner during the async
+        // alert chain.
+        objc_setAssociatedObject(self, &Self.enableCoordinatorKey, coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        // Production flow includes the optional security-question step
+        // after the PIN is saved, so the user has a Forgot-PIN reset
+        // path even when iCloud isn't signed in.
+        coordinator.runEnablePINFlowWithSecurityQuestion { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.enableCoordinatorKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
-        alert.addTextField { tf in
-            tf.placeholder = "Confirm PIN"
-            tf.keyboardType = .asciiCapable
-            tf.autocapitalizationType = .none
-            tf.autocorrectionType = .no
-            tf.isSecureTextEntry = true
-            tf.attachShowPINToggle()
-        }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-            // Revert the toggle so iOS Settings reflects reality.
-            UserDefaults.standard.set(false, forKey: "pin_enabled")
-        })
-        alert.addAction(UIAlertAction(title: "Set PIN", style: .default) { [weak self, weak alert] _ in
-            let pin = PINPolicy.sanitize(alert?.textFields?[0].text ?? "")
-            let confirm = PINPolicy.sanitize(alert?.textFields?[1].text ?? "")
-            if PINPolicy.isValid(pin) && pin == confirm {
-                PanelStore.shared.setPIN(pin)
-                // Toggle stays on — we leave pin_enabled = true.
-            } else {
-                UserDefaults.standard.set(false, forKey: "pin_enabled")
-                let msg = !PINPolicy.isValid(pin)
-                    ? "PIN must be \(PINPolicy.humanDescription)."
-                    : "PINs didn't match."
-                self?.presentSimpleAlert(title: "PIN Not Set",
-                                         message: "\(msg) Toggle Enable PIN in iOS Settings to try again.")
-            }
-        })
-        host.present(alert, animated: true)
     }
 
-    /// User toggled "Enable PIN" off in iOS Settings while a PIN is set.
-    /// One combined alert: enter current PIN + confirm disable in a single
-    /// step. Cancel reverts the toggle so iOS Settings reflects reality.
+    private static var enableCoordinatorKey: UInt8 = 0
+
+    /// Recovery for users in the orphan PIN-without-security-question
+    /// state (caused by force-quit during the original Set PIN flow,
+    /// before transactional save was added). Re-fires every reconcile
+    /// until the user completes the question step.
+    private func promptCompleteSecurityQuestion() {
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        objc_setAssociatedObject(self, &Self.completeSecQuestionKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runCompleteSecurityQuestionFlow { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.completeSecQuestionKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    private static var completeSecQuestionKey: UInt8 = 0
+
+    /// User toggled "Change PIN" in iOS Settings. Verify current PIN
+    /// (using the existing PINVerifyCoordinator under confirmActionWithPIN),
+    /// then on success, run the cycling new-PIN flow. Cancel at either
+    /// step leaves the existing PIN intact (Change is a no-op rollback).
+    private func promptChangePIN() {
+        confirmActionWithPIN(
+            title: "Change PIN",
+            message: "Enter your current PIN to continue.",
+            actionTitle: "Continue",
+            actionStyle: .default,
+            onForgotPIN: { [weak self] in
+                self?.presentForgotPINResetSheet(
+                    onAbort: { [weak self] in self?.promptChangePIN() },
+                    onReset: { [weak self] in
+                        // PIN cleared via reset — there's no current PIN
+                        // anymore, so the change flow doesn't apply.
+                        // Tell the user and bring iOS Settings in line.
+                        UserDefaults.standard.set(false, forKey: "pin_enabled")
+                        UserDefaults.standard.synchronize()
+                        let info = UIAlertController(
+                            title: "PIN Cleared",
+                            message: "Your PIN was reset and is now off. Re-enable it any time in Settings → iInteract → Enable PIN.",
+                            preferredStyle: .alert
+                        )
+                        info.addAction(UIAlertAction(title: "OK", style: .default))
+                        self?.topmostPresenter().present(info, animated: true)
+                    }
+                )
+            }
+        ) { [weak self] in
+            // Verify succeeded — prompt for new PIN with cycling validation.
+            self?.runSetNewPINAfterVerify()
+        }
+    }
+
+    private func runSetNewPINAfterVerify() {
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        objc_setAssociatedObject(self, &Self.changeCoordinatorKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runChangePINFlow { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.changeCoordinatorKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    private static var changeCoordinatorKey: UInt8 = 0
+
+    /// User toggled "Enable PIN" off in iOS Settings while a PIN is
+    /// set. Delegates to PINPromptCoordinator.runDisablePINFlow so the
+    /// verify-then-clear logic and the cancel-reverts-toggle behavior
+    /// are unit-testable end-to-end without UIKit.
     private func promptDisablePIN() {
-        let host = topmostPresenter()
-        guard host.presentedViewController == nil else { return }
-
-        host.confirmDestructiveWithPIN(
-            title: "Disable PIN?",
-            message: "Anyone using this device will be able to delete panels and clear data without entering a PIN.",
-            destructiveTitle: "Disable",
-            onCancel: {
-                // Revert the toggle back to on so Settings reflects reality.
-                UserDefaults.standard.set(true, forKey: "pin_enabled")
-            }
-        ) {
-            PanelStore.shared.clearPIN()
-            // Toggle stays off — pin_enabled is already false.
+        let coordinator = PINPromptCoordinator(presenter: topmostPresenter())
+        objc_setAssociatedObject(self, &Self.disableCoordinatorKey,
+                                 coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        coordinator.runDisablePINFlow { [weak self] _ in
+            objc_setAssociatedObject(self ?? UIViewController(),
+                                     &Self.disableCoordinatorKey, nil,
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
+
+    private static var disableCoordinatorKey: UInt8 = 0
 
     private func presentSimpleAlert(title: String, message: String) {
         let host = topmostPresenter()
@@ -226,6 +280,13 @@ class FeelingTableViewController: UITableViewController {
             // dropped the KVS mode key; write default through both to
             // keep UserDefaults in sync and notify any other devices.
             PanelStore.shared.setConfigurationMode(.default)
+            // Hole #1 fix: clearAllUserData wipes the PIN hash, so the
+            // pin_enabled toggle in iOS Settings must follow — otherwise
+            // the next reconcile sees "wants PIN, has none" and prompts
+            // the user to set one as if fresh, which is confusing right
+            // after a deliberate wipe.
+            UserDefaults.standard.set(false, forKey: "pin_enabled")
+            UserDefaults.standard.synchronize()
             self?.updateSettings()
             self?.loadPanels()
             self?.tableView.reloadData()
@@ -263,13 +324,52 @@ class FeelingTableViewController: UITableViewController {
             let editor = PanelListEditorViewController(mode: self.configurationMode)
             self.navigationController?.pushViewController(editor, animated: true)
         }
+        // No PIN set → no protection to enforce, so don't show the
+        // Cancel/Configure alert with its misleading "PIN-protected"
+        // message. Open the editor directly.
+        guard PanelStore.shared.hasPIN else {
+            openEditor()
+            return
+        }
+        // Wrapped so we can re-present the PIN-confirm alert when the
+        // Forgot PIN flow aborts (iCloud signed out, wrong answer,
+        // user cancels) — without this the user is dead-ended at the
+        // info alert and has to tap the gear again.
+        showPINGateForEditor(openEditor: openEditor)
+    }
+
+    private func showPINGateForEditor(openEditor: @escaping () -> Void) {
         confirmActionWithPIN(
             title: "Open Configuration",
             message: "Configuration is PIN-protected. Enter your PIN to open the editor.",
             actionTitle: "Configure",
             actionStyle: .default,
             onForgotPIN: { [weak self] in
-                self?.presentForgotPINResetSheet { openEditor() }
+                self?.presentForgotPINResetSheet(
+                    onAbort: { [weak self] in
+                        // Re-present the PIN-confirm alert so the user
+                        // isn't dropped back to the main list with no
+                        // way to retry.
+                        self?.showPINGateForEditor(openEditor: openEditor)
+                    },
+                    onReset: { [weak self] in
+                        // PIN was reset (cleared from KVS). Bring the iOS
+                        // Settings toggle in line so Settings doesn't lie
+                        // about PIN being on, and tell the user what
+                        // happened before we open the editor.
+                        UserDefaults.standard.set(false, forKey: "pin_enabled")
+                        UserDefaults.standard.synchronize()
+                        let info = UIAlertController(
+                            title: "PIN Cleared",
+                            message: "Your PIN was reset and is now off. Re-enable it any time in Settings → iInteract → Enable PIN.",
+                            preferredStyle: .alert
+                        )
+                        info.addAction(UIAlertAction(title: "Open Editor", style: .default) { _ in
+                            openEditor()
+                        })
+                        self?.topmostPresenter().present(info, animated: true)
+                    }
+                )
             }
         ) {
             openEditor()
@@ -425,12 +525,11 @@ class FeelingTableViewController: UITableViewController {
         let modeChanged = newMode != configurationMode
         configurationMode = newMode
 
-        // Gear is always visible — its visibility doesn't depend on mode.
-        // (Setting up the PIN is in iOS Settings; you may want to hit the
-        // gear in default mode just to reach Trash.)
-        if navigationItem.rightBarButtonItem == nil, let button = configurationButton {
-            navigationItem.rightBarButtonItem = button
-        }
+        // Hide the gear when iOS Settings → Hide Configuration is on, so
+        // children don't see configuration exists. Parents toggle it off
+        // in iOS Settings to bring it back.
+        navigationItem.rightBarButtonItem = SettingsView.gearVisible(userDefaults)
+            ? configurationButton : nil
 
         if modeChanged && isViewLoaded {
             loadPanels()
@@ -440,8 +539,17 @@ class FeelingTableViewController: UITableViewController {
     }
   
     @objc func settingsChanged() {
-            //note currently if the panel is showing this does not take effect until the close and go back to the main menu this is becuase we currently set this in 'prepareForSegue'
-        updateSettings()
+        // UserDefaults.didChangeNotification can fire on any thread —
+        // PhotosUI in particular posts from a background queue when
+        // its picker dismisses. Hop to main before touching
+        // navigationItem etc. inside updateSettings.
+        if Thread.isMainThread {
+            updateSettings()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.updateSettings()
+            }
+        }
     }
 
     @objc func appDidBecomeActive() {

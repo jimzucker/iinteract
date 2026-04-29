@@ -56,6 +56,13 @@ final class InteractionEditorViewController: UITableViewController,
     private let existingBoyAudioURL: URL?
     private let existingGirlAudioURL: URL?
 
+    /// Snapshot of the interaction state at init time. Used to detect
+    /// unsaved changes when the user taps Cancel.
+    private let originalName: String
+    private let originalHadPicture: Bool
+    private let originalHadBoyAudio: Bool
+    private let originalHadGirlAudio: Bool
+
     /// Swipe-to-clear flags. When true, the corresponding existing asset
     /// (if any) is deleted from PanelStore on Save. UI hides the asset
     /// immediately so the user sees it as "removed."
@@ -85,12 +92,20 @@ final class InteractionEditorViewController: UITableViewController,
             self.workingPicture = nil
             self.existingBoyAudioURL = nil
             self.existingGirlAudioURL = nil
+            self.originalName = ""
+            self.originalHadPicture = false
+            self.originalHadBoyAudio = false
+            self.originalHadGirlAudio = false
         case .edit(let interaction):
             self.workingID = interaction.id
             self.workingName = interaction.name ?? ""
             self.workingPicture = interaction.picture
             self.existingBoyAudioURL = interaction.boySound
             self.existingGirlAudioURL = interaction.girlSound
+            self.originalName = interaction.name ?? ""
+            self.originalHadPicture = interaction.picture != nil
+            self.originalHadBoyAudio = interaction.boySound != nil
+            self.originalHadGirlAudio = interaction.girlSound != nil
         }
 
         self.tempDirectory = FileManager.default.temporaryDirectory
@@ -144,10 +159,40 @@ final class InteractionEditorViewController: UITableViewController,
 
     // MARK: Save / Cancel
 
+    /// True when the user has made any changes the Cancel/X button
+    /// would discard. Used to gate the discard-confirmation alert.
+    private var hasUnsavedChanges: Bool {
+        let trimmedName = workingName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName != originalName.trimmingCharacters(in: .whitespacesAndNewlines) {
+            return true
+        }
+        if tempPictureURL != nil { return true }
+        if clearedPicture && originalHadPicture { return true }
+        if tempBoyAudioURL != nil { return true }
+        if clearedBoyAudio && originalHadBoyAudio { return true }
+        if tempGirlAudioURL != nil { return true }
+        if clearedGirlAudio && originalHadGirlAudio { return true }
+        return false
+    }
+
     @objc private func cancelTapped() {
         stopAnyPlayback()
-        try? FileManager.default.removeItem(at: tempDirectory)
-        navigationController?.popViewController(animated: true)
+        guard hasUnsavedChanges else {
+            try? FileManager.default.removeItem(at: tempDirectory)
+            navigationController?.popViewController(animated: true)
+            return
+        }
+        let alert = UIAlertController(
+            title: "Discard Changes?",
+            message: "Your edits to this interaction haven't been saved. Are you sure you want to discard them?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+            try? FileManager.default.removeItem(at: self?.tempDirectory ?? URL(fileURLWithPath: "/dev/null"))
+            self?.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
 
     @objc private func saveTapped() {
@@ -551,8 +596,17 @@ final class InteractionEditorViewController: UITableViewController,
             try? data.write(to: url, options: .atomic)
             tempPictureURL = url
         }
-        tableView.reloadSections([Section.picture.rawValue], with: .none)
         revalidate()
+        // Defer the reload to the next runloop tick so the picker's
+        // dismiss animation can complete before we trigger layout —
+        // calling reloadSections mid-transition was tripping the
+        // "UITableView was told to layout … without being in the
+        // view hierarchy" warning when the picker was the active modal.
+        reloadSectionWhenSafe(.picture)
+    }
+
+    private func reloadSectionWhenSafe(_ section: Section) {
+        safeReloadSections([section.rawValue], with: .none)
     }
 
     // PHPickerViewControllerDelegate
