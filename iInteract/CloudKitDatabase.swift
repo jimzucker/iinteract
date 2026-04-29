@@ -50,6 +50,12 @@ protocol CloudKitDatabase {
     /// loops while `moreComing == true` to pick up large change sets.
     func fetchChanges(in zoneID: CKRecordZone.ID,
                       since previousToken: CKServerChangeToken?) async throws -> CloudKitChanges
+    /// Subscribes the device to silent-push notifications when any
+    /// record changes in the subscription's zone. v3.1.2c bootstrap.
+    /// Apple's `database.save(_ subscription:)` is idempotent when
+    /// given the same subscription ID, so calling this on every
+    /// launch is safe (just a no-op network call after the first).
+    func saveSubscription(_ subscription: CKSubscription) async throws
 }
 
 /// Production implementation. Constructed against the iInteract
@@ -71,6 +77,12 @@ struct LiveCloudKitDatabase: CloudKitDatabase {
     /// future pull work doesn't need a migration.
     static let iInteractZoneID = CKRecordZone.ID(zoneName: "iInteractZone",
                                                  ownerName: CKCurrentUserDefaultName)
+
+    /// Stable identifier for the iInteract zone subscription. Apple's
+    /// `database.save(_ subscription:)` is idempotent when given the
+    /// same ID, so re-saving a subscription with this ID on every
+    /// launch is safe.
+    static let iInteractSubscriptionID = "iInteractZoneChangesSubscription"
 
     let database: CKDatabase
 
@@ -119,6 +131,10 @@ struct LiveCloudKitDatabase: CloudKitDatabase {
                                deletedRecords: deletions,
                                newChangeToken: result.changeToken,
                                moreComing: result.moreComing)
+    }
+
+    func saveSubscription(_ subscription: CKSubscription) async throws {
+        _ = try await database.save(subscription)
     }
 }
 

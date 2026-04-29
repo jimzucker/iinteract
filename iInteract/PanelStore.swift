@@ -12,6 +12,7 @@
 import Foundation
 import CryptoKit
 import UIKit
+import CloudKit
 
 // MARK: - KeyValueStorage
 
@@ -883,9 +884,23 @@ final class PanelStore {
         if cloudKitApplier == nil {
             cloudKitApplier = CloudKitChangeApplier(store: self, assetStore: assetStore)
         }
+        runOneShotPull(database: database)
+        runSubscriptionBootstrapIfNeeded(database: database)
+    }
+
+    /// Public hook so AppDelegate's silent-push handler can drive a
+    /// pull when CloudKit notifies us a record changed. No-op when
+    /// running on a non-CloudKit asset store (iCloud signed out).
+    func pullCloudKitChangesNow() {
+        guard let cloudStore = assetStore as? CloudKitAssetStore else { return }
+        runOneShotPull(database: cloudStore.database)
+    }
+
+    private func runOneShotPull(database: CloudKitDatabase) {
+        guard let tokenStore = cloudKitTokenStore,
+              let applier = cloudKitApplier else { return }
         let coordinator = CloudKitPullCoordinator(database: database,
-                                                   tokenStore: cloudKitTokenStore!)
-        let applier = cloudKitApplier!
+                                                   tokenStore: tokenStore)
         Task.detached { [coordinator, applier] in
             do {
                 let changes = try await coordinator.pull()
@@ -896,10 +911,35 @@ final class PanelStore {
                 }
             } catch {
                 NSLog("CloudKit pull failed: \(error)")
-                // Token store unchanged — next launch retries from
-                // the same point. Drainer's continued pushes still
-                // work; only remote-originated changes are missed
-                // until the next successful pull.
+                // Token store unchanged — next pull retries from the
+                // same point. Drainer's pushes still work; only
+                // remote-originated changes are missed until the
+                // next successful pull.
+            }
+        }
+    }
+
+    /// One-shot bootstrap of the zone-changes silent-push subscription.
+    /// `saveSubscription` is idempotent in CKDatabase (re-saving the
+    /// same subscription ID is a no-op server-side), but we still
+    /// gate behind a sentinel file so we don't make a network round
+    /// trip on every launch — only on first install + after a
+    /// `clearAllUserData` wipe.
+    private func runSubscriptionBootstrapIfNeeded(database: CloudKitDatabase) {
+        let flagURL = directory.appendingPathComponent("cloudkit_subscription_v1.done")
+        guard !FileManager.default.fileExists(atPath: flagURL.path) else { return }
+        let subscription = CKDatabaseSubscription(subscriptionID:
+            LiveCloudKitDatabase.iInteractSubscriptionID)
+        let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true  // silent push
+        subscription.notificationInfo = info
+        Task.detached {
+            do {
+                try await database.saveSubscription(subscription)
+                try? Data().write(to: flagURL)
+            } catch {
+                NSLog("CloudKit subscription bootstrap failed: \(error)")
+                // Leave the flag absent so the next launch retries.
             }
         }
     }

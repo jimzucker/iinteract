@@ -3344,11 +3344,13 @@ final class MockCloudKitDatabase: CloudKitDatabase {
     private(set) var savedRecords: [CKRecord] = []
     private(set) var deletedRecordIDs: [CKRecord.ID] = []
     private(set) var savedZones: [CKRecordZone] = []
+    private(set) var savedSubscriptions: [CKSubscription] = []
     private(set) var fetchChangesCalls: [(zoneID: CKRecordZone.ID,
                                           previousToken: CKServerChangeToken?)] = []
     var nextSaveError: Error?
     var nextDeleteError: Error?
     var nextSaveZoneError: Error?
+    var nextSaveSubscriptionError: Error?
     /// Sequence of canned responses for successive `fetchChanges` calls.
     /// Errors throw; success values return as-is. Tests use this to
     /// drive multi-batch pulls via the moreComing flag.
@@ -3389,6 +3391,14 @@ final class MockCloudKitDatabase: CloudKitDatabase {
         }
         let next = fetchChangesScript.removeFirst()
         return try next.get()
+    }
+
+    func saveSubscription(_ subscription: CKSubscription) async throws {
+        if let err = nextSaveSubscriptionError {
+            nextSaveSubscriptionError = nil
+            throw err
+        }
+        savedSubscriptions.append(subscription)
     }
 }
 
