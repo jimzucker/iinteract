@@ -278,6 +278,12 @@
       "scale" : "2x",
       "size" : "129x129",
       "subtype" : "49mm"
+    },
+    {
+      "filename" : "appStore1024.png",
+      "idiom" : "watch-marketing",
+      "scale" : "1x",
+      "size" : "1024x1024"
     }
   ],
   "info" : {
