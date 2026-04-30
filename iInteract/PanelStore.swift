@@ -12,6 +12,7 @@
 import Foundation
 import CryptoKit
 import UIKit
+import CloudKit
 
 // MARK: - KeyValueStorage
 
@@ -54,12 +55,32 @@ final class PanelStore {
     static let didChangeNotification = Notification.Name("PanelStore.didChange")
 
     /// Production singleton — Application Support + iCloud KVS.
+    /// Picks `CloudKitAssetStore` when iCloud is signed in so user
+    /// recordings + pictures sync to the user's private CloudKit
+    /// database; otherwise falls back to the local-only
+    /// `LocalFSAssetStore`. Choice is sticky for this launch — if the
+    /// user signs into iCloud after launch, restart picks it up.
     static let shared: PanelStore = {
-        let s = PanelStore(directory: PanelStore.defaultDirectory(),
+        let dir = PanelStore.defaultDirectory()
+        let useCloudKit = FileManager.default.ubiquityIdentityToken != nil
+        let assetStore: AssetStore = useCloudKit
+            ? CloudKitAssetStore(parentDirectory: dir)
+            : LocalFSAssetStore(parentDirectory: dir)
+        let s = PanelStore(directory: dir,
                            keyValueStore: NSUbiquitousKeyValueStore.default,
-                           iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil })
+                           iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil },
+                           assetStore: assetStore)
         s.startObservingICloudChanges()
-        NSUbiquitousKeyValueStore.default.synchronize()
+        // Skip the explicit synchronize when iCloud isn't signed in.
+        // Otherwise NSUbiquitousKeyValueStore logs:
+        //   "Error synchronizing with cloud for store ...
+        //    Error Domain=SyncedDefaults Code=8888 'No account'"
+        // every launch on a Mac/simulator without iCloud. The
+        // observer + reads still work — they just no-op against the
+        // local cache when there's no account, without logging.
+        if FileManager.default.ubiquityIdentityToken != nil {
+            NSUbiquitousKeyValueStore.default.synchronize()
+        }
         return s
     }()
 
@@ -152,6 +173,26 @@ final class PanelStore {
     /// Removes all asset files for an interaction. Safe if files don't exist.
     func deleteInteractionAssets(id: UUID) {
         assetStore.deleteAll(id: id)
+    }
+
+    /// Removes a single asset (picture, boy audio, or girl audio) for
+    /// an interaction. Used by the editor when the user clears one
+    /// voice without affecting the other. Routes through the asset
+    /// store so CloudKit-backed deployments enqueue the corresponding
+    /// push.
+    func deleteInteractionAsset(kind: AssetKind, id: UUID) {
+        assetStore.delete(kind, id: id)
+    }
+
+    /// Notifies the asset store that the caller wrote (or copied) a
+    /// file directly to the URL returned by `assetURL(for:kind:)`,
+    /// bypassing `saveInteractionPicture`. Typically called by
+    /// `InteractionEditorViewController` after copying a recorded
+    /// audio file from the temp directory into the final asset path.
+    /// Local-FS asset stores no-op; CloudKit-backed stores enqueue
+    /// an upload.
+    func didExternallyWriteAsset(kind: AssetKind, id: UUID) {
+        assetStore.didExternallyWrite(kind, id: id)
     }
 
     // MARK: - KVS keys for synced metadata
@@ -269,8 +310,23 @@ final class PanelStore {
     /// panels are replaced in place so reorder/visibility maps still match.
     /// Validates uniqueness (excluding self) and the 6-interaction cap.
     func savePanel(_ panel: Panel) throws {
+        try savePanelInternal(panel, enqueuePush: true)
+    }
+
+    /// Variant for v3.1.2b-ii apply path — writes the panel locally
+    /// without enqueueing a CloudKit push. Skips uniqueness validation
+    /// too: when a remote change collides with a local name, last-writer-
+    /// wins is the intended outcome (matches CloudKit's record-change-tag
+    /// behavior). Only call this from `CloudKitChangeApplier`.
+    func applyRemotelySavedPanel(_ panel: Panel) throws {
+        try savePanelInternal(panel, enqueuePush: false, validateName: false)
+    }
+
+    private func savePanelInternal(_ panel: Panel,
+                                   enqueuePush: Bool,
+                                   validateName: Bool = true) throws {
         guard !panel.isBuiltIn else { return }
-        guard isNameAvailable(panel.title, excluding: panel.id) else {
+        if validateName, !isNameAvailable(panel.title, excluding: panel.id) {
             throw StoreError.nameNotUnique
         }
         guard panel.interactions.count <= Self.maxInteractionsPerUserPanel else {
@@ -283,12 +339,32 @@ final class PanelStore {
             panels.append(panel)
         }
         try saveUserPanels(panels)
+        if enqueuePush {
+            enqueueRecordPushForPanelSave(panel)
+        }
     }
 
     func deletePanel(id: UUID) throws {
+        try deletePanelInternal(id: id, enqueuePush: true)
+    }
+
+    /// Apply-path delete that doesn't enqueue a CloudKit push — used
+    /// when the deletion came FROM CloudKit (server-side delete in a
+    /// pull) and re-pushing it would create a feedback loop.
+    func applyRemotelyDeletedPanel(id: UUID) throws {
+        try deletePanelInternal(id: id, enqueuePush: false)
+    }
+
+    private func deletePanelInternal(id: UUID, enqueuePush: Bool) throws {
+        let childIDs = userPanels().first(where: { $0.id == id })?.interactions
+            .filter { !$0.isBuiltIn }
+            .map { $0.id } ?? []
         var panels = userPanels()
         panels.removeAll { $0.id == id }
         try saveUserPanels(panels)
+        if enqueuePush {
+            enqueueRecordPushForPanelDelete(panelID: id, childIDs: childIDs)
+        }
     }
 
     // MARK: - Layout (visibility + order, applies to built-ins AND user panels)
@@ -591,6 +667,11 @@ final class PanelStore {
                                  parentPanelID: panelID,
                                  snapshot: snapshot))
         try saveTrashIndex(items)
+        // Trash is local-only state; mirror to CloudKit as a delete.
+        // If the user restores within 30 days, the savePanel inside
+        // restoreInteraction re-enqueues the save and the record
+        // reappears on other devices.
+        cloudKitPushQueue?.enqueue(.deleteInteraction(id: interaction.id))
     }
 
     /// Moves a trashed panel back into active panels (and its blobs back
@@ -730,6 +811,230 @@ final class PanelStore {
         kvs.removeObject(forKey: Self.kvsLayoutKey)
         kvs.removeObject(forKey: Self.kvsModeKey)
         kvs.synchronize()
+    }
+
+    // MARK: - CloudKit sync (v3.1.1c)
+
+    /// Lifetime-pinned drainer for the CloudKit push queue. nil when
+    /// `assetStore` isn't `CloudKitAssetStore` (i.e. iCloud signed
+    /// out at launch).
+    private var cloudKitDrainer: CloudKitPushDrainer?
+
+    /// Convenience accessor — nil for `LocalFSAssetStore`. Used by
+    /// the mutation methods (savePanel, deletePanel, trashInteraction)
+    /// to enqueue record-level pushes only when CloudKit is wired.
+    private var cloudKitPushQueue: PushQueue? {
+        (assetStore as? CloudKitAssetStore)?.pushQueue
+    }
+
+    /// Enqueues savePanel + saveInteraction(child) for each non-builtin
+    /// child. Drainer pushes the latest panel/interaction state at
+    /// execute time, so it doesn't matter that the snapshot here is
+    /// stale by the time the network call happens.
+    private func enqueueRecordPushForPanelSave(_ panel: Panel) {
+        guard let q = cloudKitPushQueue else { return }
+        q.enqueue(.savePanel(id: panel.id))
+        for interaction in panel.interactions where !interaction.isBuiltIn {
+            q.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+        }
+    }
+
+    /// Enqueues deleteInteraction for each child first (their
+    /// supersession drops pending uploadAsset/deleteAsset for that
+    /// interaction), then deletePanel. CKRecord cascade delete via
+    /// `panelRef.deleteSelf` makes the per-child deletes redundant
+    /// server-side, but enqueuing them explicitly keeps the queue
+    /// dedupe semantics clean.
+    private func enqueueRecordPushForPanelDelete(panelID: UUID, childIDs: [UUID]) {
+        guard let q = cloudKitPushQueue else { return }
+        for childID in childIDs {
+            q.enqueue(.deleteInteraction(id: childID))
+        }
+        q.enqueue(.deletePanel(id: panelID))
+    }
+
+    /// UserDefaults key for the user-facing "Sync Custom Panels via
+    /// iCloud" toggle in iOS Settings. Reading via UserDefaults so
+    /// Settings.bundle bindings work; tests can manipulate via the
+    /// same key.
+    static let iCloudSyncEnabledKey = "icloud_sync_enabled"
+
+    /// Reads the user-toggled iCloud sync preference. Treats absent
+    /// as ON so a fresh install behaves the same as it did before
+    /// v3.1.3. AppDelegate.registerDefaults provides the same default
+    /// as a backstop.
+    private var isCloudKitSyncDesiredEnabled: Bool {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Self.iCloudSyncEnabledKey) == nil {
+            return true
+        }
+        return defaults.bool(forKey: Self.iCloudSyncEnabledKey)
+    }
+
+    /// Call once at app launch (after `PanelStore.shared` is
+    /// materialized) to start CloudKit sync. No-op when the asset
+    /// store isn't CloudKit-backed (iCloud signed out) or the user
+    /// has turned off the Settings.bundle "Sync Custom Panels via
+    /// iCloud" toggle. Idempotent — safe to call multiple times.
+    /// Does three things when enabled:
+    /// 1. Seeds the push queue with existing user panels on first
+    ///    CloudKit launch (so v3.1.1 push uploads pre-existing data).
+    /// 2. Starts the push drainer (v3.1.1c).
+    /// 3. Kicks off a one-shot pull (v3.1.2b-ii) — fetches changes
+    ///    since the last stored token, applies them locally without
+    ///    re-pushing.
+    func startCloudKitSyncIfNeeded() {
+        guard let cloudStore = assetStore as? CloudKitAssetStore else { return }
+        guard isCloudKitSyncDesiredEnabled else { return }
+        runInitialSyncIfNeeded(queue: cloudStore.pushQueue)
+        if cloudKitDrainer == nil {
+            let drainer = CloudKitPushDrainer(queue: cloudStore.pushQueue,
+                                               database: cloudStore.database,
+                                               assetStore: cloudStore,
+                                               panelLookup: { [weak self] in
+                                                   self?.userPanels() ?? []
+                                               })
+            drainer.start()
+            cloudKitDrainer = drainer
+        }
+        kickOffOneShotPull(database: cloudStore.database, assetStore: cloudStore)
+    }
+
+    /// Re-evaluates the iCloud sync toggle and adjusts running state.
+    /// Called from `FeelingTableViewController.reconcile` so a flip in
+    /// iOS Settings → iInteract → Sync Custom Panels via iCloud takes
+    /// effect on the next foreground.
+    /// - Toggle ON → idempotently start sync (push drainer + pull).
+    ///   If pushes accumulated locally while paused, they drain now.
+    ///   A fresh pull picks up any remote changes that arrived while
+    ///   paused.
+    /// - Toggle OFF → stop the drainer. Local writes still happen and
+    ///   accumulate in the push queue; no records reach CloudKit and
+    ///   no remote records are applied. iCloud copy stays as-is so
+    ///   re-enabling resumes from where it left off.
+    func refreshCloudKitSyncState() {
+        if isCloudKitSyncDesiredEnabled {
+            startCloudKitSyncIfNeeded()
+        } else {
+            stopCloudKitSync()
+        }
+    }
+
+    /// Token store + applier for the pull side. Lifetime-pinned so
+    /// the persisted token survives across `pull` calls and the
+    /// applier holds its dependencies.
+    private var cloudKitTokenStore: CloudKitChangeTokenStore?
+    private var cloudKitApplier: CloudKitChangeApplier?
+
+    private func kickOffOneShotPull(database: CloudKitDatabase, assetStore: AssetStore) {
+        if cloudKitTokenStore == nil {
+            cloudKitTokenStore = FileChangeTokenStore(
+                url: directory.appendingPathComponent("cloudkit_change_token"))
+        }
+        if cloudKitApplier == nil {
+            cloudKitApplier = CloudKitChangeApplier(store: self, assetStore: assetStore)
+        }
+        runOneShotPull(database: database)
+        runSubscriptionBootstrapIfNeeded(database: database)
+    }
+
+    /// Public hook so AppDelegate's silent-push handler can drive a
+    /// pull when CloudKit notifies us a record changed. No-op when
+    /// running on a non-CloudKit asset store (iCloud signed out).
+    func pullCloudKitChangesNow() {
+        guard let cloudStore = assetStore as? CloudKitAssetStore else { return }
+        runOneShotPull(database: cloudStore.database)
+    }
+
+    private func runOneShotPull(database: CloudKitDatabase) {
+        guard let tokenStore = cloudKitTokenStore,
+              let applier = cloudKitApplier else { return }
+        let coordinator = CloudKitPullCoordinator(database: database,
+                                                   tokenStore: tokenStore)
+        Task.detached { [coordinator, applier] in
+            do {
+                let changes = try await coordinator.pull()
+                await MainActor.run {
+                    applier.apply(changes)
+                    NotificationCenter.default.post(name: PanelStore.didChangeNotification,
+                                                    object: nil)
+                }
+            } catch {
+                NSLog("CloudKit pull failed: \(error)")
+                // Token store unchanged — next pull retries from the
+                // same point. Drainer's pushes still work; only
+                // remote-originated changes are missed until the
+                // next successful pull.
+            }
+        }
+    }
+
+    /// One-shot bootstrap of the zone-changes silent-push subscription.
+    /// `saveSubscription` is idempotent in CKDatabase (re-saving the
+    /// same subscription ID is a no-op server-side), but we still
+    /// gate behind a sentinel file so we don't make a network round
+    /// trip on every launch — only on first install + after a
+    /// `clearAllUserData` wipe.
+    private func runSubscriptionBootstrapIfNeeded(database: CloudKitDatabase) {
+        let flagURL = directory.appendingPathComponent("cloudkit_subscription_v1.done")
+        guard !FileManager.default.fileExists(atPath: flagURL.path) else { return }
+        let subscription = CKDatabaseSubscription(subscriptionID:
+            LiveCloudKitDatabase.iInteractSubscriptionID)
+        let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true  // silent push
+        subscription.notificationInfo = info
+        Task.detached {
+            do {
+                try await database.saveSubscription(subscription)
+                try? Data().write(to: flagURL)
+            } catch {
+                NSLog("CloudKit subscription bootstrap failed: \(error)")
+                // Leave the flag absent so the next launch retries.
+            }
+        }
+    }
+
+    /// Stops the drainer. Used by tests; production usually lets it
+    /// run for the app lifetime.
+    func stopCloudKitSync() {
+        cloudKitDrainer?.stop()
+        cloudKitDrainer = nil
+    }
+
+    /// Test-only hook: applies changes synchronously without going
+    /// through the live pull. Bypasses Task.detached so XCTest can
+    /// assert on the post-apply state without async waits.
+    func applyCloudKitChanges_forTesting(_ changes: CloudKitChanges) {
+        let assetStore = self.assetStore
+        let applier = cloudKitApplier
+            ?? CloudKitChangeApplier(store: self, assetStore: assetStore)
+        cloudKitApplier = applier
+        applier.apply(changes)
+    }
+
+    /// Path to the local sentinel that marks the initial-sync done.
+    /// Idempotent file existence check — no parsing, no migration.
+    private var cloudKitInitialSyncFlag: URL {
+        directory.appendingPathComponent("cloudkit_initial_sync_v1.done")
+    }
+
+    /// Seeds the push queue with `savePanel` + `saveInteraction` ops
+    /// for every existing user panel on first CloudKit launch. Without
+    /// this, a user with custom panels created under a pre-CloudKit
+    /// build wouldn't see anything sync until their next edit.
+    /// PushQueue's dedupe handles the case where the user makes an
+    /// edit before the initial sync runs.
+    private func runInitialSyncIfNeeded(queue: PushQueue) {
+        guard !FileManager.default.fileExists(atPath: cloudKitInitialSyncFlag.path) else {
+            return
+        }
+        for panel in userPanels() {
+            queue.enqueue(.savePanel(id: panel.id))
+            for interaction in panel.interactions where !interaction.isBuiltIn {
+                queue.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+            }
+        }
+        try? Data().write(to: cloudKitInitialSyncFlag)
     }
 
     // MARK: - Helpers

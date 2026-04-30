@@ -133,6 +133,11 @@ class FeelingTableViewController: UITableViewController {
             case .clearAllData:            confirmAndClearAllData()
             }
         }
+        // Re-evaluate the iCloud sync toggle from Settings.bundle —
+        // the user may have flipped it while we were backgrounded.
+        // Idempotent: starts sync if it's on and not already running,
+        // stops if it's off and was running.
+        PanelStore.shared.refreshCloudKitSyncState()
     }
 
     private var pendingRetryScheduled: Bool {
@@ -433,8 +438,10 @@ class FeelingTableViewController: UITableViewController {
         let numberRows = panels.count
         let heightView = tableView.frame.size.height //this actually returns the height of the screen so we have to subtract StatusBar and NavBar
         let navBarHeight = self.navigationController?.navigationBar.frame.size.height
-        let window = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
-        lazy var statusBarHeight = window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
+        // Reach the status bar via this controller's own window's
+        // scene — UIApplication.shared.windows is deprecated in iOS 15
+        // in favor of the per-scene API.
+        let statusBarHeight = view.window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
 
         let heightScrollView = heightView - navBarHeight! - statusBarHeight
 

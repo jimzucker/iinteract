@@ -157,7 +157,7 @@ One toggle:
 ## Operational checklist
 
 1. Add `com.apple.developer.icloud-container-identifiers` to
-   entitlements (`iCloud.com.jimzucker.iInteract`).
+   entitlements (`iCloud.com.ijaz.iinteract`).
 2. Provision the container in Apple Developer portal + enable iCloud
    capability in Xcode.
 3. Build schema in CloudKit Dashboard (Development environment).

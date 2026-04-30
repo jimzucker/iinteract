@@ -203,7 +203,10 @@ final class InteractionEditorViewController: UITableViewController,
             // keep existing. New interactions must have a picture (validation
             // should have prevented Save being enabled otherwise).
             if clearedPicture && tempPictureURL == nil {
-                try? FileManager.default.removeItem(at: store.assetURL(for: workingID, kind: .picture))
+                // Route through the AssetStore so CloudKit-backed
+                // deployments enqueue a deleteAsset push (LocalFS just
+                // removes the file, same as before).
+                store.deleteInteractionAsset(kind: .picture, id: workingID)
             }
             if let picURL = tempPictureURL,
                let image = UIImage(contentsOfFile: picURL.path) {
@@ -233,12 +236,18 @@ final class InteractionEditorViewController: UITableViewController,
     private func writeOrClearAudio(_ voice: PanelStore.Voice, temp: URL?, cleared: Bool) throws {
         let dest = store.assetURL(for: workingID, kind: voice.assetKind)
         if cleared && temp == nil {
-            try? FileManager.default.removeItem(at: dest)
+            // Route through the AssetStore so CloudKit deployments
+            // enqueue a deleteAsset push.
+            store.deleteInteractionAsset(kind: voice.assetKind, id: workingID)
             return
         }
         if let temp = temp {
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.copyItem(at: temp, to: dest)
+            // FileManager.copyItem bypasses the AssetStore, so notify
+            // it explicitly. CloudKit-backed stores enqueue an upload;
+            // local-FS stores no-op.
+            store.didExternallyWriteAsset(kind: voice.assetKind, id: workingID)
         }
         // else: untouched — keep existing
     }
@@ -578,12 +587,54 @@ final class InteractionEditorViewController: UITableViewController,
     }
 
     private func presentCamera() {
+        // Check authorization first instead of trusting UIImagePickerController
+        // to do the right thing. When the user previously tapped "Don't
+        // Allow" on the camera permission prompt, presenting the picker
+        // anyway results in iOS launching the camera UI with a black
+        // capture surface — confusing UX. Handling the permission
+        // explicitly produces a clear "Open Settings" alert instead.
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            launchCameraPicker()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    if granted {
+                        self.launchCameraPicker()
+                    } else {
+                        self.presentCameraPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            presentCameraPermissionDeniedAlert()
+        @unknown default:
+            presentCameraPermissionDeniedAlert()
+        }
+    }
+
+    private func launchCameraPicker() {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
         picker.cameraCaptureMode = .photo
         picker.delegate = self
         picker.allowsEditing = false
         present(picker, animated: true)
+    }
+
+    private func presentCameraPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "Camera Access Off",
+            message: "iInteract needs camera access to take a picture for this interaction. Open Settings to turn it on, or pick a picture from your photo library instead.",
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        })
+        present(alert, animated: true)
     }
 
     /// Shared "got an image" path used by both the library picker and camera.

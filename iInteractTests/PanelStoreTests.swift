@@ -10,6 +10,7 @@
 //
 
 import XCTest
+import CloudKit
 @testable import iInteract
 
 // MARK: - In-memory KVS for tests
@@ -1916,10 +1917,11 @@ final class SettingsBundleKeyContractTests: XCTestCase {
     }
 
     func testSettingsBundleKeys_MatchExpectedSet() throws {
-        // Order: Mode → Security → Voice → Privacy. iOS auto-appends an
-        // "Allow [App] to Access" section at the bottom from the
-        // Info.plist usage descriptions (camera / photo library /
-        // microphone / Face ID); that's not in this plist.
+        // Order: Mode → Security → Voice → Sync → Privacy. iOS
+        // auto-appends an "Allow [App] to Access" section at the
+        // bottom from the Info.plist usage descriptions (camera /
+        // photo library / microphone / Face ID); that's not in this
+        // plist.
         let expected = [
             "configuration_mode",
             "pin_enabled",
@@ -1927,6 +1929,7 @@ final class SettingsBundleKeyContractTests: XCTestCase {
             "hide_config",
             "voice_enabled",
             "voice_style",
+            "icloud_sync_enabled",
             "pending_clear_all",
         ]
         let actual = try bundleKeys()
@@ -3120,5 +3123,1609 @@ final class PushQueueTests: XCTestCase {
         XCTAssertEqual(q2.entries.first?.nextEligibleAt,
                        now.addingTimeInterval(PushQueue.backoff[0]),
                        "nextEligibleAt must survive reload — otherwise we'd retry too aggressively after a relaunch")
+    }
+}
+
+// MARK: - CloudKit error classification (v3.1.1b)
+
+final class CloudKitErrorClassificationTests: XCTestCase {
+
+    private func ckError(_ code: CKError.Code) -> CKError {
+        CKError(_nsError: NSError(domain: CKErrorDomain, code: code.rawValue))
+    }
+
+    func testTransientErrors_AreRetryable() {
+        let transient: [CKError.Code] = [
+            .networkUnavailable, .networkFailure, .requestRateLimited,
+            .serviceUnavailable, .zoneBusy, .notAuthenticated,
+        ]
+        for code in transient {
+            XCTAssertEqual(classifyCloudKitError(ckError(code)), .retry,
+                           "\(code) should be retryable — backoff and try later")
+        }
+    }
+
+    func testPermanentErrors_AreDropped() {
+        let permanent: [CKError.Code] = [
+            .quotaExceeded, .unknownItem, .serverRejectedRequest,
+            .permissionFailure, .badContainer, .badDatabase,
+            .invalidArguments, .incompatibleVersion,
+            .constraintViolation, .changeTokenExpired,
+            .batchRequestFailed, .managedAccountRestricted,
+            .userDeletedZone,
+        ]
+        for code in permanent {
+            XCTAssertEqual(classifyCloudKitError(ckError(code)), .drop,
+                           "\(code) should be dropped — no point retrying")
+        }
+    }
+
+    func testUnknownCKErrorCode_DefaultsToRetry() {
+        // .internalError (or any code we didn't enumerate) — fall through.
+        XCTAssertEqual(classifyCloudKitError(ckError(.internalError)), .retry,
+                       "unknown codes default to retry; PushQueue's 10-attempt cap limits damage if it's actually permanent")
+    }
+
+    func testNonCKError_DefaultsToRetry() {
+        // URLSession / Foundation errors usually mean transient I/O.
+        let urlErr = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        XCTAssertEqual(classifyCloudKitError(urlErr), .retry,
+                       "Foundation/URL errors are typically transient I/O — retry")
+    }
+}
+
+// MARK: - Panel/Interaction → CKRecord encoding (v3.1.1b)
+
+final class CloudKitRecordEncodingTests: XCTestCase {
+
+    private let zoneID = CKRecordZone.ID(zoneName: "iInteractZone",
+                                          ownerName: CKCurrentUserDefaultName)
+
+    // MARK: Panel
+
+    func testPanelEncoding_RecordTypeAndRecordName() {
+        let panel = Panel(title: "School",
+                          color: .systemRed,
+                          interactions: [],
+                          isBuiltIn: false)
+        let record = panel.toCKRecord(in: zoneID)
+        XCTAssertEqual(record.recordType, "UserPanel")
+        XCTAssertEqual(record.recordID.recordName, panel.id.uuidString,
+                       "recordName must equal panel UUID — deterministic so retries are idempotent")
+        XCTAssertEqual(record.recordID.zoneID, zoneID)
+    }
+
+    func testPanelEncoding_FieldsRoundTrip() {
+        let panel = Panel(title: "Fun",
+                          color: UIColor(red: 0.25, green: 0.5, blue: 0.75, alpha: 1.0),
+                          interactions: [],
+                          isBuiltIn: false)
+        let record = panel.toCKRecord(in: zoneID)
+        XCTAssertEqual(record["panelID"] as? String, panel.id.uuidString)
+        XCTAssertEqual(record["title"] as? String, "Fun")
+        let bytes = record["colorRGBA"] as? Data
+        XCTAssertEqual(bytes?.count, 16, "RGBA = 4 Float32s = 16 bytes")
+    }
+
+    func testPanelEncoding_ColorRGBABytes_DecodableAsFloats() {
+        let panel = Panel(title: "Colors",
+                          color: UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0),
+                          interactions: [],
+                          isBuiltIn: false)
+        let bytes = panel.colorRGBABytes()
+        XCTAssertEqual(bytes.count, 16)
+        let floats = bytes.withUnsafeBytes { ptr -> [Float32] in
+            Array(ptr.bindMemory(to: Float32.self))
+        }
+        XCTAssertEqual(floats[0], 0.1, accuracy: 0.001)
+        XCTAssertEqual(floats[1], 0.2, accuracy: 0.001)
+        XCTAssertEqual(floats[2], 0.3, accuracy: 0.001)
+        XCTAssertEqual(floats[3], 1.0, accuracy: 0.001)
+    }
+
+    func testPanelEncoding_ClampsOutOfRangeColorComponents() {
+        // Some dynamic UIColors return extended-sRGB values outside [0,1]
+        // when resolved against the current trait collection. The bytes
+        // encoding must clamp so cross-device decode lands in-range.
+        let outOfRange = UIColor(red: -0.5, green: 1.5, blue: 0.5, alpha: 2.0)
+        let panel = Panel(title: "OOR", color: outOfRange,
+                          interactions: [], isBuiltIn: false)
+        let bytes = panel.colorRGBABytes()
+        let floats = bytes.withUnsafeBytes { ptr -> [Float32] in
+            Array(ptr.bindMemory(to: Float32.self))
+        }
+        XCTAssertGreaterThanOrEqual(floats[0], 0)
+        XCTAssertLessThanOrEqual(floats[0], 1)
+        XCTAssertGreaterThanOrEqual(floats[1], 0)
+        XCTAssertLessThanOrEqual(floats[1], 1)
+        XCTAssertEqual(floats[3], 1.0, "alpha clamped to 1")
+    }
+
+    // MARK: Interaction
+
+    func testInteractionEncoding_RecordTypeAndPanelRef() {
+        let parentID = UUID()
+        let interaction = Interaction(name: "happy")
+        let record = interaction.toCKRecord(parentPanelID: parentID,
+                                             order: 0,
+                                             assetURLs: (nil, nil, nil),
+                                             in: zoneID)
+        XCTAssertEqual(record.recordType, "Interaction")
+        XCTAssertEqual(record.recordID.recordName, interaction.id.uuidString)
+        let ref = record["panelRef"] as? CKRecord.Reference
+        XCTAssertEqual(ref?.recordID.recordName, parentID.uuidString,
+                       "panelRef points at the parent panel by recordName")
+        XCTAssertEqual(ref?.action, .deleteSelf,
+                       "cascade-delete: removing the parent purges children server-side")
+    }
+
+    func testInteractionEncoding_ScalarFieldsAndOrder() {
+        let interaction = Interaction(name: "playground")
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 3,
+                                             assetURLs: (nil, nil, nil),
+                                             in: zoneID)
+        XCTAssertEqual(record["interactionID"] as? String, interaction.id.uuidString)
+        XCTAssertEqual(record["displayName"] as? String, "playground")
+        XCTAssertEqual(record["order"] as? Int64, 3)
+        XCTAssertNil(record["imageAsset"])
+        XCTAssertNil(record["audioBoyAsset"])
+        XCTAssertNil(record["audioGirlAsset"])
+    }
+
+    func testInteractionEncoding_AssetsAttached_WhenFilesExist() throws {
+        // Create three real files on disk so CKAsset(fileURL:) gets a
+        // valid path. The encoder filters by FileManager.fileExists, so
+        // a missing file leaves the field nil rather than crashing.
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CKEnc-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let imageURL = tempDir.appendingPathComponent("img.jpg")
+        let boyURL = tempDir.appendingPathComponent("boy.m4a")
+        let girlURL = tempDir.appendingPathComponent("girl.m4a")
+        try Data([0xFF, 0xD8]).write(to: imageURL)
+        try Data([0x01]).write(to: boyURL)
+        try Data([0x02]).write(to: girlURL)
+
+        let interaction = Interaction(name: "drink")
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 0,
+                                             assetURLs: (imageURL, boyURL, girlURL),
+                                             in: zoneID)
+        XCTAssertNotNil(record["imageAsset"] as? CKAsset)
+        XCTAssertNotNil(record["audioBoyAsset"] as? CKAsset)
+        XCTAssertNotNil(record["audioGirlAsset"] as? CKAsset)
+    }
+
+    func testInteractionEncoding_NilNameEncodesAsEmpty() {
+        // Defensive — Interaction.name is optional. Don't pass nil to
+        // CKRecord (it'd be ambiguous with field-not-present).
+        let interaction = Interaction(id: UUID(), name: "")
+        interaction.name = nil
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 0,
+                                             assetURLs: (nil, nil, nil),
+                                             in: zoneID)
+        XCTAssertEqual(record["displayName"] as? String, "",
+                       "nil Swift name encodes as empty string for unambiguous CKRecord field")
+    }
+
+    func testInteractionEncoding_OnlyFieldWithRealFile_GetsAsset() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CKEnc-mixed-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let realImage = tempDir.appendingPathComponent("img.jpg")
+        try Data([0xFF, 0xD8]).write(to: realImage)
+        let missingAudio = tempDir.appendingPathComponent("missing.m4a")  // not on disk
+
+        let interaction = Interaction(name: "want")
+        let record = interaction.toCKRecord(parentPanelID: UUID(),
+                                             order: 0,
+                                             assetURLs: (realImage, missingAudio, nil),
+                                             in: zoneID)
+        XCTAssertNotNil(record["imageAsset"] as? CKAsset,
+                        "real file → asset attached")
+        XCTAssertNil(record["audioBoyAsset"],
+                     "URL given but file missing → field nil rather than CKAsset over a missing path")
+        XCTAssertNil(record["audioGirlAsset"],
+                     "no URL → no asset")
+    }
+}
+
+// MARK: - CloudKitAssetStore (v3.1.1b — push enqueueing)
+
+/// Records what CloudKitDatabase methods got called. Used by tests to
+/// verify the AssetStore's push-on-write contract without touching
+/// real CloudKit. v3.1.1b uses this for AssetStore-side coverage; the
+/// drainer (v3.1.1c) will use the same type for end-to-end push tests.
+final class MockCloudKitDatabase: CloudKitDatabase {
+    private(set) var savedRecords: [CKRecord] = []
+    private(set) var deletedRecordIDs: [CKRecord.ID] = []
+    private(set) var savedZones: [CKRecordZone] = []
+    private(set) var savedSubscriptions: [CKSubscription] = []
+    private(set) var fetchChangesCalls: [(zoneID: CKRecordZone.ID,
+                                          previousToken: CKServerChangeToken?)] = []
+    var nextSaveError: Error?
+    var nextDeleteError: Error?
+    var nextSaveZoneError: Error?
+    var nextSaveSubscriptionError: Error?
+    /// Sequence of canned responses for successive `fetchChanges` calls.
+    /// Errors throw; success values return as-is. Tests use this to
+    /// drive multi-batch pulls via the moreComing flag.
+    var fetchChangesScript: [Result<CloudKitChanges, Error>] = []
+
+    func save(_ record: CKRecord) async throws -> CKRecord {
+        if let err = nextSaveError {
+            nextSaveError = nil
+            throw err
+        }
+        savedRecords.append(record)
+        return record
+    }
+
+    func deleteRecord(withID recordID: CKRecord.ID) async throws {
+        if let err = nextDeleteError {
+            nextDeleteError = nil
+            throw err
+        }
+        deletedRecordIDs.append(recordID)
+    }
+
+    func saveZone(_ zone: CKRecordZone) async throws {
+        if let err = nextSaveZoneError {
+            nextSaveZoneError = nil
+            throw err
+        }
+        savedZones.append(zone)
+    }
+
+    func fetchChanges(in zoneID: CKRecordZone.ID,
+                      since previousToken: CKServerChangeToken?) async throws -> CloudKitChanges {
+        fetchChangesCalls.append((zoneID, previousToken))
+        guard !fetchChangesScript.isEmpty else {
+            // Default: empty response with a deterministic token so
+            // tests don't have to script trivial cases.
+            return CloudKitChanges()
+        }
+        let next = fetchChangesScript.removeFirst()
+        return try next.get()
+    }
+
+    func saveSubscription(_ subscription: CKSubscription) async throws {
+        if let err = nextSaveSubscriptionError {
+            nextSaveSubscriptionError = nil
+            throw err
+        }
+        savedSubscriptions.append(subscription)
+    }
+}
+
+/// In-memory `CloudKitChangeTokenStore` for tests. No file I/O.
+final class MemoryChangeTokenStore: CloudKitChangeTokenStore {
+    private(set) var token: CKServerChangeToken?
+
+    func read() -> CKServerChangeToken? { token }
+    func write(_ token: CKServerChangeToken) { self.token = token }
+    func clear() { token = nil }
+}
+
+final class CloudKitAssetStoreTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var store: CloudKitAssetStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitAssetStore-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        store = CloudKitAssetStore(parentDirectory: tempDir,
+                                    database: mockDB)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: Reads pass through to the local cache
+
+    func testRootDirectory_MatchesLocalCache() {
+        XCTAssertEqual(store.rootDirectory.lastPathComponent, "UserAssets")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: store.rootDirectory.path))
+    }
+
+    func testRead_NeverHitsTheDatabase() throws {
+        let id = UUID()
+        try store.write(Data([0xFF]), kind: .picture, id: id)
+        // Many reads — none should trigger any CloudKit traffic since
+        // the mock would record it.
+        for _ in 0..<5 {
+            _ = store.url(for: .picture, id: id)
+            _ = store.exists(.picture, id: id)
+        }
+        XCTAssertEqual(mockDB.savedRecords, [],
+                       "AssetStore reads must hit the local cache only, never the database directly")
+    }
+
+    // MARK: Writes enqueue + cache (but don't drain — that's v3.1.1c)
+
+    func testWrite_Enqueues_UploadAsset() throws {
+        let id = UUID()
+        try store.write(Data([0x01, 0x02]), kind: .picture, id: id)
+        XCTAssertTrue(store.exists(.picture, id: id),
+                      "local cache write happens immediately")
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .uploadAsset(kind: .picture, id: id))
+    }
+
+    func testDidExternallyWrite_Enqueues_UploadAsset() {
+        // Caller wrote to url(for:id:) outside the store (e.g. AVAudioRecorder).
+        let id = UUID()
+        store.didExternallyWrite(.boyAudio, id: id)
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .uploadAsset(kind: .boyAudio, id: id))
+    }
+
+    func testDelete_Enqueues_DeleteAsset() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        store.delete(.picture, id: id)
+        XCTAssertFalse(store.exists(.picture, id: id),
+                       "local cache delete happens immediately")
+        // After write+delete, supersession in PushQueue collapses them
+        // — the only meaningful op left is the delete.
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .deleteAsset(kind: .picture, id: id))
+    }
+
+    func testDeleteAll_Enqueues_DeleteInteraction_Once() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        try store.write(Data([0x02]), kind: .boyAudio, id: id)
+        try store.write(Data([0x03]), kind: .girlAudio, id: id)
+        store.deleteAll(id: id)
+        XCTAssertFalse(store.exists(.picture, id: id))
+        XCTAssertFalse(store.exists(.boyAudio, id: id))
+        XCTAssertFalse(store.exists(.girlAudio, id: id))
+        // Cross-target supersession: deleteInteraction supersedes the
+        // three pending uploads. Net queue = one deleteInteraction.
+        XCTAssertEqual(store.pushQueue.entries.count, 1)
+        XCTAssertEqual(store.pushQueue.entries.first?.op,
+                       .deleteInteraction(id: id))
+    }
+
+    // MARK: deleteEverything is local-only — does NOT enqueue
+
+    func testDeleteEverything_DoesNotEnqueue_AnyServerOps() throws {
+        try store.write(Data([0x01]), kind: .picture, id: UUID())
+        try store.write(Data([0x02]), kind: .picture, id: UUID())
+        // Drain the queue manually to set up: simulate the v3.1.1c
+        // drainer having already pushed those uploads.
+        store.pushQueue.entries.forEach { store.pushQueue.markSuccess($0) }
+
+        store.deleteEverything()
+
+        XCTAssertEqual(store.pushQueue.entries, [],
+                       "Clear All My Data is documented as local-only — does NOT delete iCloud copies")
+    }
+
+    // MARK: Database is never called from the AssetStore alone
+
+    func testWritesAndDeletes_DoNotInvokeTheDatabase_InV3_1_1b() throws {
+        // v3.1.1b enqueues only — the drainer that calls database.save
+        // / .deleteRecord is added in v3.1.1c. Until then the queue
+        // accumulates; nothing reaches CloudKit.
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+        store.delete(.picture, id: id)
+        store.didExternallyWrite(.boyAudio, id: id)
+        store.deleteAll(id: id)
+        XCTAssertEqual(mockDB.savedRecords, [])
+        XCTAssertEqual(mockDB.deletedRecordIDs, [])
+    }
+
+    // MARK: PushQueue persistence works through the AssetStore
+
+    func testPushQueue_PersistsAcrossAssetStoreInstances() throws {
+        let id = UUID()
+        try store.write(Data([0x01]), kind: .picture, id: id)
+
+        let store2 = CloudKitAssetStore(parentDirectory: tempDir,
+                                        database: mockDB)
+        XCTAssertEqual(store2.pushQueue.entries.count, 1,
+                       "queue entries written by one CloudKitAssetStore must reload in another rooted at the same directory — survives app relaunch")
+    }
+}
+
+// MARK: - CloudKitPushDrainer (v3.1.1c-i)
+
+/// Drains the push queue against a CloudKitDatabase. Tests use
+/// `drainOnce()` for deterministic stepping rather than the full async
+/// loop; the loop's correctness is straightforward (just a sleep +
+/// retry around `drainOnce`).
+final class CloudKitPushDrainerTests: XCTestCase {
+
+    var tempDir: URL!
+    var assetStore: LocalFSAssetStore!
+    var queue: PushQueue!
+    var database: MockCloudKitDatabase!
+
+    let zoneID = CKRecordZone.ID(zoneName: "TestZone",
+                                  ownerName: CKCurrentUserDefaultName)
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CKDrainer-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        assetStore = LocalFSAssetStore(parentDirectory: tempDir)
+        queue = PushQueue(persistedAt: tempDir.appendingPathComponent("q.json"))
+        database = MockCloudKitDatabase()
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private func makeDrainer(panels: [Panel] = []) -> CloudKitPushDrainer {
+        CloudKitPushDrainer(queue: queue,
+                            database: database,
+                            assetStore: assetStore,
+                            panelLookup: { panels },
+                            zoneID: zoneID)
+    }
+
+    // MARK: savePanel / deletePanel
+
+    func testDrain_SavePanel_PushesUserPanelRecord() async {
+        let panel = Panel(title: "School", color: .systemBlue,
+                          interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords.count, 1)
+        XCTAssertEqual(database.savedRecords.first?.recordType, "UserPanel")
+        XCTAssertEqual(database.savedRecords.first?.recordID.recordName,
+                       panel.id.uuidString)
+        XCTAssertEqual(queue.entries, [],
+                       "successful push removes the entry")
+    }
+
+    func testDrain_SavePanel_BuiltInIsFiltered_DropsAsUnknownItem() async {
+        // Built-ins should never reach the queue, but if one did, the
+        // drainer treats it as a disappeared item (drop, not infinite
+        // retry).
+        let builtIn = Panel(title: "I feel", color: .red,
+                            interactions: [], isBuiltIn: true)
+        queue.enqueue(.savePanel(id: builtIn.id))
+        let drainer = makeDrainer(panels: [builtIn])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [],
+                       "drained as drop — built-in filter is treated like unknownItem")
+    }
+
+    func testDrain_SavePanel_PanelDisappeared_Drops() async {
+        queue.enqueue(.savePanel(id: UUID()))
+        let drainer = makeDrainer(panels: [])  // no matching panel
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [],
+                       "panel disappeared between enqueue and drain → drop the stale push")
+    }
+
+    func testDrain_DeletePanel_CallsDeleteRecord() async {
+        let id = UUID()
+        queue.enqueue(.deletePanel(id: id))
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.deletedRecordIDs.count, 1)
+        XCTAssertEqual(database.deletedRecordIDs.first?.recordName, id.uuidString)
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    // MARK: saveInteraction
+
+    func testDrain_SaveInteraction_PushesInteractionRecordWithRef() async {
+        let interaction = Interaction(name: "drink")
+        let panel = Panel(title: "I Want", color: .systemPink,
+                          interactions: [interaction], isBuiltIn: false)
+        queue.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(database.savedRecords.count, 1)
+        let record = database.savedRecords.first!
+        XCTAssertEqual(record.recordType, "Interaction")
+        XCTAssertEqual(record["displayName"] as? String, "drink")
+        XCTAssertEqual(record["order"] as? Int64, 0)
+        let ref = record["panelRef"] as? CKRecord.Reference
+        XCTAssertEqual(ref?.recordID.recordName, panel.id.uuidString)
+    }
+
+    func testDrain_SaveInteraction_AttachesAssetsThatExistOnDisk() async throws {
+        let interaction = Interaction(name: "happy")
+        let panel = Panel(title: "I feel", color: .green,
+                          interactions: [interaction], isBuiltIn: false)
+        try Data([0xFF, 0xD8]).write(to: assetStore.url(for: .picture, id: interaction.id))
+        try Data([0x01]).write(to: assetStore.url(for: .boyAudio, id: interaction.id))
+        // No girl audio.
+
+        queue.enqueue(.saveInteraction(id: interaction.id, parentID: panel.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        let record = database.savedRecords.first!
+        XCTAssertNotNil(record["imageAsset"] as? CKAsset)
+        XCTAssertNotNil(record["audioBoyAsset"] as? CKAsset)
+        XCTAssertNil(record["audioGirlAsset"], "no file on disk → field nil")
+    }
+
+    func testDrain_SaveInteraction_ParentDisappeared_Drops() async {
+        let interactionID = UUID()
+        queue.enqueue(.saveInteraction(id: interactionID, parentID: UUID()))
+        let drainer = makeDrainer(panels: [])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    func testDrain_DeleteInteraction_CallsDeleteRecord() async {
+        let id = UUID()
+        queue.enqueue(.deleteInteraction(id: id))
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.deletedRecordIDs.first?.recordName, id.uuidString)
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    // MARK: uploadAsset / deleteAsset translate to saveInteraction
+
+    func testDrain_UploadAsset_TranslatesTo_SaveInteractionRecord() async throws {
+        let interaction = Interaction(name: "tv")
+        let panel = Panel(title: "I want to", color: .yellow,
+                          interactions: [interaction], isBuiltIn: false)
+        try Data([0xFF]).write(to: assetStore.url(for: .picture, id: interaction.id))
+
+        queue.enqueue(.uploadAsset(kind: .picture, id: interaction.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(database.savedRecords.count, 1,
+                       "uploadAsset is translated to a full Interaction record save")
+        XCTAssertEqual(database.savedRecords.first?.recordType, "Interaction")
+        XCTAssertNotNil(database.savedRecords.first?["imageAsset"] as? CKAsset)
+    }
+
+    func testDrain_DeleteAsset_TranslatesTo_SaveInteractionWithFieldOmitted() async {
+        let interaction = Interaction(name: "headache")
+        let panel = Panel(title: "I feel", color: .red,
+                          interactions: [interaction], isBuiltIn: false)
+        // No assets on disk — encoder omits all three fields, which on
+        // CKRecord is equivalent to "remove this field server-side."
+
+        queue.enqueue(.deleteAsset(kind: .picture, id: interaction.id))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(database.savedRecords.count, 1,
+                       "deleteAsset translates to a save with the asset locally absent → CKRecord field nil")
+        XCTAssertNil(database.savedRecords.first?["imageAsset"])
+    }
+
+    func testDrain_AssetOp_ParentMissing_Drops() async {
+        queue.enqueue(.uploadAsset(kind: .picture, id: UUID()))
+        let drainer = makeDrainer(panels: [])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(queue.entries, [])
+    }
+
+    // MARK: Errors — retryable vs permanent
+
+    func testDrain_RetryableError_KeepsEntry_AndAdvancesBackoff() async {
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel.id))
+        database.nextSaveError = CKError(_nsError: NSError(
+            domain: CKErrorDomain, code: CKError.Code.networkUnavailable.rawValue))
+
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(queue.entries.count, 1, "retryable failure keeps the entry")
+        XCTAssertEqual(queue.entries.first?.retryCount, 1)
+        XCTAssertGreaterThan(queue.entries.first!.nextEligibleAt.timeIntervalSinceNow, 0,
+                             "backoff scheduled into the future")
+    }
+
+    func testDrain_PermanentError_DropsEntry() async {
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel.id))
+        database.nextSaveError = CKError(_nsError: NSError(
+            domain: CKErrorDomain, code: CKError.Code.quotaExceeded.rawValue))
+
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+
+        XCTAssertEqual(queue.entries, [],
+                       "permanent error drops the entry — retrying won't help")
+    }
+
+    // MARK: drainOnce contract — no-op on empty queue
+
+    func testDrainOnce_NoOpsOnEmptyQueue() async {
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [])
+        XCTAssertEqual(database.deletedRecordIDs, [])
+    }
+
+    func testDrainOnce_NoOpsWhenNoEntryDue() async {
+        // Enqueue an entry that's been failed enough that nextEligibleAt
+        // is in the future.
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        let entry = queue.enqueue(.savePanel(id: panel.id))
+        queue.markFailure(entry, retryable: true, now: Date())
+
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [],
+                       "drainOnce does nothing while entry is in backoff window")
+    }
+
+    // MARK: Zone bootstrap (v3.1.2a)
+
+    func testDrainOnce_BootstrapsZone_OnFirstCall() async {
+        let drainer = makeDrainer()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedZones.count, 1,
+                       "first drainOnce ensures the custom zone exists before any record save")
+        XCTAssertEqual(database.savedZones.first?.zoneID, zoneID)
+    }
+
+    func testDrainOnce_DoesNotReBootstrapZone_OnceEstablished() async {
+        let panel1 = Panel(title: "a", color: .red, interactions: [], isBuiltIn: false)
+        let panel2 = Panel(title: "b", color: .red, interactions: [], isBuiltIn: false)
+        queue.enqueue(.savePanel(id: panel1.id))
+        queue.enqueue(.savePanel(id: panel2.id))
+
+        let drainer = makeDrainer(panels: [panel1, panel2])
+        await drainer.drainOnce()
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedZones.count, 1,
+                       "zone bootstrap is idempotent — only one saveZone call, even across multiple drains")
+    }
+
+    func testDrainOnce_ZoneBootstrapFailure_SkipsRecordSave_AndRetries() async {
+        let panel = Panel(title: "x", color: .red, interactions: [], isBuiltIn: false)
+        let entry = queue.enqueue(.savePanel(id: panel.id))
+
+        // First drain: zone save throws → record save not even attempted,
+        // entry stays in the queue with retryCount unchanged.
+        database.nextSaveZoneError = CKError(_nsError: NSError(
+            domain: CKErrorDomain, code: CKError.Code.networkUnavailable.rawValue))
+        let drainer = makeDrainer(panels: [panel])
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedRecords, [],
+                       "record save skipped when zone bootstrap fails (transient device-level condition)")
+        XCTAssertEqual(queue.entries.count, 1,
+                       "entry is preserved — not burned on a zone-bootstrap failure")
+        XCTAssertEqual(queue.entries.first?.retryCount, 0,
+                       "no retry slot was consumed on the entry")
+        XCTAssertEqual(queue.entries.first?.id, entry.id)
+
+        // Second drain: zone save now succeeds → record save proceeds
+        // and the queue entry drains.
+        await drainer.drainOnce()
+        XCTAssertEqual(database.savedZones.count, 1,
+                       "zone bootstrap retried and succeeded")
+        XCTAssertEqual(database.savedRecords.count, 1,
+                       "with zone established, the record save now goes through")
+        XCTAssertEqual(queue.entries, [],
+                       "entry drained successfully on the second iteration")
+    }
+}
+
+// MARK: - PanelStore record-push enqueueing (v3.1.1c-ii)
+
+/// Integration tests that wire a PanelStore to a CloudKitAssetStore
+/// (with MockCloudKitDatabase under the hood) and verify the right
+/// PushOperations show up after each mutation. The drainer is NOT
+/// started — we just inspect the queue. v3.1.1c-i covers the drainer
+/// side already.
+final class PanelStoreCloudKitMirrorTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var assetStore: CloudKitAssetStore!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MirrorTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        assetStore = CloudKitAssetStore(parentDirectory: tempDir, database: mockDB)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: kvs,
+                           assetStore: assetStore)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    private var queueEntries: [PushEntry] { assetStore.pushQueue.entries }
+
+    // MARK: savePanel
+
+    func testSavePanel_Enqueues_SavePanelAndChildren() throws {
+        let i1 = Interaction(name: "happy")
+        let i2 = Interaction(name: "sad")
+        let panel = Panel(title: "Feelings", color: .systemBlue,
+                          interactions: [i1, i2], isBuiltIn: false)
+        try store.savePanel(panel)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.savePanel(id: panel.id)))
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i1.id, parentID: panel.id)))
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i2.id, parentID: panel.id)))
+    }
+
+    func testSavePanel_BuiltInsSkipped_OnlyUserPanelEnqueued() throws {
+        // Built-in panels can't be saved via savePanel (it returns early),
+        // so this isn't a real production case, but the guard belt-and-suspenders.
+        let builtIn = Interaction(interactionName: "happy")  // built-in
+        let user = Interaction(name: "custom-greet")
+        let panel = Panel(title: "Mixed", color: .green,
+                          interactions: [builtIn, user], isBuiltIn: false)
+        try store.savePanel(panel)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.saveInteraction(id: user.id, parentID: panel.id)))
+        XCTAssertFalse(ops.contains(.saveInteraction(id: builtIn.id, parentID: panel.id)),
+                       "built-in interactions never sync — they're bundled with the app")
+    }
+
+    // MARK: deletePanel
+
+    func testDeletePanel_Enqueues_ChildDeletesThenPanelDelete() throws {
+        let i = Interaction(name: "want")
+        let panel = Panel(title: "Wants", color: .orange,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.deletePanel(id: panel.id)
+        let ops = queueEntries.map { $0.op }
+        // After delete, the original saves are wiped via supersession,
+        // and explicit deletes for the panel + child remain.
+        XCTAssertTrue(ops.contains(.deletePanel(id: panel.id)),
+                      "explicit panel delete enqueued (cascade is server-side; this is for queue dedupe semantics)")
+        XCTAssertTrue(ops.contains(.deleteInteraction(id: i.id)))
+        XCTAssertFalse(ops.contains(.savePanel(id: panel.id)),
+                       "delete supersedes the prior save")
+    }
+
+    // MARK: trashInteraction
+
+    func testTrashInteraction_Enqueues_DeleteInteraction() throws {
+        let i = Interaction(name: "playground")
+        let panel = Panel(title: "Outside", color: .yellow,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashInteraction(i, fromPanelID: panel.id)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.deleteInteraction(id: i.id)),
+                      "trashing mirrors as server-side delete; restore re-enqueues a save inside savePanel(panel) within restoreInteraction")
+    }
+
+    // MARK: restorePanel — savePanel cascade re-enqueues
+
+    func testRestorePanel_AfterTrash_ReEnqueuesSaves() throws {
+        let i = Interaction(name: "tv")
+        let panel = Panel(title: "Wants", color: .orange,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        try store.trashPanel(panel)
+        // After trash, the save ops are gone, replaced by deletes.
+        XCTAssertFalse(queueEntries.map { $0.op }.contains(.savePanel(id: panel.id)))
+        try store.restorePanel(trashID: store.trashedItems().first!.trashID)
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.savePanel(id: panel.id)),
+                      "restore re-creates the record on iCloud — savePanel inside restorePanel is the trigger")
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i.id, parentID: panel.id)))
+    }
+
+    // MARK: deleteInteractionAsset / didExternallyWriteAsset
+
+    func testDeleteInteractionAsset_RoutesThroughAssetStore_Enqueues() {
+        let id = UUID()
+        store.deleteInteractionAsset(kind: .picture, id: id)
+        XCTAssertEqual(queueEntries.map { $0.op },
+                       [.deleteAsset(kind: .picture, id: id)])
+    }
+
+    func testDidExternallyWriteAsset_Enqueues_UploadAsset() {
+        let id = UUID()
+        store.didExternallyWriteAsset(kind: .boyAudio, id: id)
+        XCTAssertEqual(queueEntries.map { $0.op },
+                       [.uploadAsset(kind: .boyAudio, id: id)])
+    }
+
+    // MARK: Initial sync
+
+    func testStartCloudKitSyncIfNeeded_SeedsExistingPanels_OnFirstRun() throws {
+        // Pre-existing user panel from before CloudKit was wired.
+        let i = Interaction(name: "drink")
+        let panel = Panel(title: "Need", color: .cyan,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        // Drain the queue manually to clear the savePanel/saveInteraction
+        // ops the savePanel call already enqueued — simulate "panel created
+        // before CloudKit was wired in this branch."
+        for entry in assetStore.pushQueue.entries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+        XCTAssertEqual(queueEntries, [])
+
+        // First call: seeds + starts the drainer.
+        store.startCloudKitSyncIfNeeded()
+        let ops = queueEntries.map { $0.op }
+        XCTAssertTrue(ops.contains(.savePanel(id: panel.id)),
+                      "initial sync enqueues savePanel for every existing user panel")
+        XCTAssertTrue(ops.contains(.saveInteraction(id: i.id, parentID: panel.id)))
+
+        // Important: stop the drainer before tearDown so its background
+        // Task doesn't outlive the test and grab the temp dir we're
+        // about to delete.
+        store.stopCloudKitSync()
+    }
+
+    func testStartCloudKitSyncIfNeeded_Idempotent_DoesNotReSeed() throws {
+        let panel = Panel(title: "X", color: .red,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+        for entry in assetStore.pushQueue.entries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+
+        store.startCloudKitSyncIfNeeded()
+        XCTAssertEqual(queueEntries.count, 1, "first call seeds")
+        // Drain again, simulating the drainer succeeded.
+        for entry in queueEntries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+
+        // Second call: no re-seeding even though the queue is empty.
+        store.stopCloudKitSync()
+        store.startCloudKitSyncIfNeeded()
+        XCTAssertEqual(queueEntries, [],
+                       "initial sync flag prevents re-seeding on subsequent launches")
+        store.stopCloudKitSync()
+    }
+
+    func testStartCloudKitSyncIfNeeded_NoOp_WhenAssetStoreIsNotCloudKit() throws {
+        // Local-FS asset store → no drainer, no seeding, no enqueues.
+        let localStore = PanelStore(directory: tempDir.appendingPathComponent("local-only"),
+                                     keyValueStore: MemoryKeyValueStore(),
+                                     assetStore: LocalFSAssetStore(parentDirectory:
+                                        tempDir.appendingPathComponent("local-only")))
+        let panel = Panel(title: "Y", color: .green,
+                          interactions: [], isBuiltIn: false)
+        try localStore.savePanel(panel)
+        // No queue to inspect, but the call must not crash.
+        XCTAssertNoThrow(localStore.startCloudKitSyncIfNeeded())
+        localStore.stopCloudKitSync()
+    }
+
+    // MARK: clearAllUserData is local-only
+
+    func testClearAllUserData_DoesNotEnqueue_AnyServerOps() throws {
+        let i = Interaction(name: "hi")
+        let panel = Panel(title: "Greet", color: .purple,
+                          interactions: [i], isBuiltIn: false)
+        try store.savePanel(panel)
+        for entry in queueEntries {
+            assetStore.pushQueue.markSuccess(entry)
+        }
+
+        store.clearAllUserData()
+
+        XCTAssertEqual(queueEntries, [],
+                       "Clear All My Data is documented as local-only — does NOT enqueue iCloud deletes for v3.1.1")
+    }
+}
+
+// MARK: - CloudKitPullCoordinator (v3.1.2b-i)
+
+/// The pull half of CloudKit sync. v3.1.2b-i tests cover the protocol
+/// flow — read token → fetch (loop while moreComing) → persist new
+/// token → return aggregated CloudKitChanges. Apply-to-PanelStore
+/// logic lives in v3.1.2b-ii and is tested separately.
+///
+/// Note on token equality: tests use `nil` for the new change token in
+/// the canned `CloudKitChanges` responses because production
+/// `CKServerChangeToken` instances can only be constructed by Apple's
+/// CloudKit framework from real server responses, not from test code.
+/// That limits these tests to behavior verification (was tokenStore
+/// written? was the right `previousToken` passed?) rather than content
+/// roundtrip verification, which lives in the v3.1.2c integration
+/// tests against a live iCloud account.
+final class CloudKitPullCoordinatorTests: XCTestCase {
+
+    var database: MockCloudKitDatabase!
+    var tokenStore: MemoryChangeTokenStore!
+    let zoneID = LiveCloudKitDatabase.iInteractZoneID
+
+    override func setUp() {
+        super.setUp()
+        database = MockCloudKitDatabase()
+        tokenStore = MemoryChangeTokenStore()
+    }
+
+    private func makeCoordinator() -> CloudKitPullCoordinator {
+        CloudKitPullCoordinator(database: database,
+                                zoneID: zoneID,
+                                tokenStore: tokenStore)
+    }
+
+    // MARK: pull() basic flow
+
+    func testPull_EmptyStore_PassesNilPreviousToken() async throws {
+        database.fetchChangesScript = [.success(CloudKitChanges())]
+        _ = try await makeCoordinator().pull()
+        XCTAssertEqual(database.fetchChangesCalls.count, 1)
+        XCTAssertNil(database.fetchChangesCalls.first?.previousToken,
+                     "first-ever pull passes nil — fetches everything from the start")
+        XCTAssertEqual(database.fetchChangesCalls.first?.zoneID, zoneID)
+    }
+
+    func testPull_NoChanges_ReturnsEmptyAggregate() async throws {
+        database.fetchChangesScript = [.success(CloudKitChanges())]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(result.updatedRecords.count, 0)
+        XCTAssertEqual(result.deletedRecords, [])
+        XCTAssertFalse(result.moreComing)
+    }
+
+    func testPull_AggregatesUpdatedRecords_AcrossSingleBatch() async throws {
+        let recordA = CKRecord(recordType: "UserPanel",
+                                recordID: CKRecord.ID(recordName: "A", zoneID: zoneID))
+        let recordB = CKRecord(recordType: "UserPanel",
+                                recordID: CKRecord.ID(recordName: "B", zoneID: zoneID))
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(updatedRecords: [recordA, recordB]))
+        ]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(result.updatedRecords.count, 2)
+        XCTAssertEqual(Set(result.updatedRecords.map { $0.recordID.recordName }),
+                       ["A", "B"])
+    }
+
+    func testPull_AggregatesDeletions_AcrossSingleBatch() async throws {
+        let id = CKRecord.ID(recordName: "X", zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: id, recordType: "Interaction")
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(deletedRecords: [deletion]))
+        ]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(result.deletedRecords, [deletion])
+    }
+
+    // MARK: moreComing handling
+
+    func testPull_LoopsWhileMoreComing_AggregatesBothBatches() async throws {
+        let r1 = CKRecord(recordType: "UserPanel",
+                          recordID: CKRecord.ID(recordName: "P1", zoneID: zoneID))
+        let r2 = CKRecord(recordType: "Interaction",
+                          recordID: CKRecord.ID(recordName: "I1", zoneID: zoneID))
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(updatedRecords: [r1], moreComing: true)),
+            .success(CloudKitChanges(updatedRecords: [r2], moreComing: false)),
+        ]
+        let result = try await makeCoordinator().pull()
+        XCTAssertEqual(database.fetchChangesCalls.count, 2,
+                       "should fetch again when moreComing=true")
+        XCTAssertEqual(result.updatedRecords.count, 2,
+                       "aggregate spans both batches")
+        XCTAssertEqual(Set(result.updatedRecords.map { $0.recordID.recordName }),
+                       ["P1", "I1"])
+        XCTAssertFalse(result.moreComing,
+                       "final result reflects the last batch's moreComing=false")
+    }
+
+    func testPull_StopsWhenMoreComingFalse_EvenWithEmptyBatch() async throws {
+        database.fetchChangesScript = [
+            .success(CloudKitChanges(moreComing: false)),
+        ]
+        _ = try await makeCoordinator().pull()
+        XCTAssertEqual(database.fetchChangesCalls.count, 1,
+                       "single fetch when moreComing=false")
+    }
+
+    // MARK: Errors
+
+    func testPull_RethrowsFetchError() async {
+        struct E: Error, Equatable {}
+        database.fetchChangesScript = [.failure(E())]
+        do {
+            _ = try await makeCoordinator().pull()
+            XCTFail("expected throw")
+        } catch let e as E {
+            XCTAssertEqual(e, E())
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
+    func testPull_FailureLeavesPreviousTokenUntouched() async {
+        // Token store starts empty.
+        database.fetchChangesScript = [.failure(NSError(domain: "test", code: 1))]
+        _ = try? await makeCoordinator().pull()
+        XCTAssertNil(tokenStore.token,
+                     "failed pull must not write a partial/garbage token — next call retries from the same point")
+    }
+}
+
+// MARK: - FileChangeTokenStore — bad-file recovery (v3.1.2b-i)
+
+/// Round-tripping a real `CKServerChangeToken` requires a value that
+/// only Apple's CloudKit framework hands out, so a content-roundtrip
+/// test belongs in the v3.1.2c integration suite. What we *can* test
+/// here without real iCloud is the bad-file recovery contract: a
+/// corrupted token file gets renamed aside and `read()` returns nil
+/// rather than crashing the app.
+final class FileChangeTokenStoreTests: XCTestCase {
+
+    var tempDir: URL!
+    var tokenURL: URL!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FileTokenStoreTests-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        tokenURL = tempDir.appendingPathComponent("token")
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    func testRead_NoFile_ReturnsNil() {
+        let store = FileChangeTokenStore(url: tokenURL)
+        XCTAssertNil(store.read())
+    }
+
+    func testRead_CorruptedFile_RenamedAside_ReturnsNil() throws {
+        try Data("not a valid keyed-archive token".utf8).write(to: tokenURL)
+        let store = FileChangeTokenStore(url: tokenURL)
+        XCTAssertNil(store.read(),
+                     "corrupted file must not crash — read returns nil")
+        let siblings = try FileManager.default.contentsOfDirectory(
+            at: tempDir, includingPropertiesForKeys: nil)
+        XCTAssertTrue(siblings.contains(where: { $0.lastPathComponent.contains(".bad-") }),
+                      "corrupted token file must be moved aside (.bad-<timestamp>) so we don't keep retrying the parse on every launch")
+    }
+
+    func testClear_RemovesFile() throws {
+        try Data("anything".utf8).write(to: tokenURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: tokenURL.path))
+        FileChangeTokenStore(url: tokenURL).clear()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: tokenURL.path))
+    }
+
+    func testClear_NoFile_DoesNotThrow() {
+        // Idempotent — clearing a non-existent file must not crash.
+        FileChangeTokenStore(url: tokenURL).clear()
+    }
+}
+
+// MARK: - CloudKitChangeApplier (v3.1.2b-ii)
+
+/// Applies pulled CloudKit changes to a local PanelStore without
+/// re-pushing them. Tests use a CloudKitAssetStore wired to a
+/// MockCloudKitDatabase — the applier should NEVER cause records to
+/// land in `mockDB.savedRecords` because that would mean it triggered
+/// a push (the pull→push feedback loop we're explicitly preventing).
+final class CloudKitChangeApplierTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var assetStore: CloudKitAssetStore!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+    var applier: CloudKitChangeApplier!
+    let zoneID = LiveCloudKitDatabase.iInteractZoneID
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Applier-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        assetStore = CloudKitAssetStore(parentDirectory: tempDir, database: mockDB)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: kvs,
+                           assetStore: assetStore)
+        applier = CloudKitChangeApplier(store: store, assetStore: assetStore)
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: helpers
+
+    private func userPanelRecord(id: UUID, title: String, color: UIColor) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "UserPanel", recordID: recordID)
+        record["panelID"] = id.uuidString as CKRecordValue
+        record["title"] = title as CKRecordValue
+        // Encode the color using the same scheme Panel.colorRGBABytes does.
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        var floats: [Float32] = [Float32(r), Float32(g), Float32(b), Float32(a)]
+        record["colorRGBA"] = Data(bytes: &floats, count: 16) as CKRecordValue
+        return record
+    }
+
+    private func interactionRecord(id: UUID, parentID: UUID,
+                                    name: String, order: Int = 0) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "Interaction", recordID: recordID)
+        record["interactionID"] = id.uuidString as CKRecordValue
+        let parentRecordID = CKRecord.ID(recordName: parentID.uuidString, zoneID: zoneID)
+        record["panelRef"] = CKRecord.Reference(recordID: parentRecordID, action: .deleteSelf)
+        record["displayName"] = name as CKRecordValue
+        record["order"] = Int64(order) as CKRecordValue
+        return record
+    }
+
+    // MARK: - Apply: panel records
+
+    func testApplyPanel_NewPanel_LandsInStore() {
+        let id = UUID()
+        let record = userPanelRecord(id: id, title: "Wants", color: .systemBlue)
+        applier.apply(CloudKitChanges(updatedRecords: [record]))
+        let panel = store.userPanels().first(where: { $0.id == id })
+        XCTAssertNotNil(panel)
+        XCTAssertEqual(panel?.title, "Wants")
+    }
+
+    func testApplyPanel_UpdatesExisting_PreservesInteractions() throws {
+        let parentID = UUID()
+        let interactionID = UUID()
+        let interaction = Interaction(id: interactionID, name: "play")
+        let original = Panel(id: parentID, title: "Original",
+                             color: .red, interactions: [interaction], isBuiltIn: false)
+        try store.savePanel(original)
+
+        let updated = userPanelRecord(id: parentID, title: "Updated", color: .green)
+        applier.apply(CloudKitChanges(updatedRecords: [updated]))
+        let panel = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(panel?.title, "Updated")
+        XCTAssertEqual(panel?.interactions.count, 1,
+                       "applying a panel record must NOT clobber its existing interactions — those arrive in their own records")
+        XCTAssertEqual(panel?.interactions.first?.id, interactionID)
+    }
+
+    // MARK: - Apply: interaction records
+
+    func testApplyInteraction_AppendsToExistingPanel() throws {
+        let parentID = UUID()
+        let panel = Panel(id: parentID, title: "Wants", color: .red,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+
+        let interactionID = UUID()
+        let record = interactionRecord(id: interactionID, parentID: parentID,
+                                        name: "drink", order: 0)
+        applier.apply(CloudKitChanges(updatedRecords: [record]))
+
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(stored?.interactions.count, 1)
+        XCTAssertEqual(stored?.interactions.first?.name, "drink")
+        XCTAssertEqual(stored?.interactions.first?.id, interactionID)
+    }
+
+    func testApplyInteraction_OrderedInsert() throws {
+        let parentID = UUID()
+        let existing = Interaction(id: UUID(), name: "first")
+        let panel = Panel(id: parentID, title: "P", color: .red,
+                          interactions: [existing], isBuiltIn: false)
+        try store.savePanel(panel)
+
+        let newID = UUID()
+        let record = interactionRecord(id: newID, parentID: parentID,
+                                        name: "inserted", order: 0)
+        applier.apply(CloudKitChanges(updatedRecords: [record]))
+
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(stored?.interactions.count, 2)
+        XCTAssertEqual(stored?.interactions[0].name, "inserted",
+                       "order=0 inserts at the front")
+        XCTAssertEqual(stored?.interactions[1].name, "first")
+    }
+
+    func testApplyInteraction_ParentMissing_DefersAndDoesNotCrash() {
+        // No parent panel in the store. Applier logs and skips.
+        let record = interactionRecord(id: UUID(), parentID: UUID(),
+                                        name: "orphan", order: 0)
+        XCTAssertNoThrow(applier.apply(CloudKitChanges(updatedRecords: [record])))
+        XCTAssertTrue(store.userPanels().isEmpty,
+                      "no orphan panels created from interaction-only records")
+    }
+
+    // MARK: - Apply: ordering within a batch (panels before interactions)
+
+    func testApply_PanelsBeforeInteractions_WithinSingleBatch() {
+        let parentID = UUID()
+        let interactionID = UUID()
+        // Order in updatedRecords is INTERACTION FIRST — applier must
+        // still process the panel before the interaction so the
+        // parent exists.
+        let interactionRec = interactionRecord(id: interactionID,
+                                                 parentID: parentID,
+                                                 name: "tv", order: 0)
+        let panelRec = userPanelRecord(id: parentID, title: "Wants",
+                                        color: .yellow)
+        applier.apply(CloudKitChanges(updatedRecords: [interactionRec, panelRec]))
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertNotNil(stored, "panel applied even though it was second in the array")
+        XCTAssertEqual(stored?.interactions.first?.id, interactionID,
+                       "interaction also applied — applier sorted within the batch")
+    }
+
+    // MARK: - Apply: deletions
+
+    func testApplyDeletion_Panel_RemovesFromStore() throws {
+        let id = UUID()
+        let panel = Panel(id: id, title: "Doomed", color: .red,
+                          interactions: [], isBuiltIn: false)
+        try store.savePanel(panel)
+        XCTAssertEqual(store.userPanels().count, 1)
+
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "UserPanel")
+        applier.apply(CloudKitChanges(deletedRecords: [deletion]))
+        XCTAssertEqual(store.userPanels().count, 0)
+    }
+
+    func testApplyDeletion_Interaction_RemovesFromParent() throws {
+        let parentID = UUID()
+        let interactionID = UUID()
+        let interaction = Interaction(id: interactionID, name: "x")
+        let panel = Panel(id: parentID, title: "P", color: .red,
+                          interactions: [interaction], isBuiltIn: false)
+        try store.savePanel(panel)
+
+        let recordID = CKRecord.ID(recordName: interactionID.uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "Interaction")
+        applier.apply(CloudKitChanges(deletedRecords: [deletion]))
+        let stored = store.userPanels().first(where: { $0.id == parentID })
+        XCTAssertEqual(stored?.interactions.count, 0)
+    }
+
+    func testApplyDeletion_UnknownRecordType_NoCrash() {
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "Mystery")
+        XCTAssertNoThrow(applier.apply(CloudKitChanges(deletedRecords: [deletion])))
+    }
+
+    // MARK: - Feedback-loop guard (THE KEY GUARANTEE)
+
+    func testApply_DoesNotEnqueuePushOps() {
+        let panelID = UUID()
+        let interactionID = UUID()
+        let panelRec = userPanelRecord(id: panelID, title: "Pulled", color: .blue)
+        let interactionRec = interactionRecord(id: interactionID,
+                                                 parentID: panelID,
+                                                 name: "pulled-i", order: 0)
+        applier.apply(CloudKitChanges(updatedRecords: [panelRec, interactionRec]))
+
+        XCTAssertEqual(assetStore.pushQueue.entries.count, 0,
+                       "applying a pulled change must NOT enqueue a push — that would be a pull→push feedback loop")
+    }
+
+    func testApplyDeletion_DoesNotEnqueuePushOps() throws {
+        let id = UUID()
+        let panel = Panel(id: id, title: "Doomed", color: .red,
+                          interactions: [], isBuiltIn: false)
+        // Use the apply path so the savePanel itself doesn't enqueue.
+        try store.applyRemotelySavedPanel(panel)
+        XCTAssertEqual(assetStore.pushQueue.entries.count, 0)
+
+        let recordID = CKRecord.ID(recordName: id.uuidString, zoneID: zoneID)
+        let deletion = DeletedRecord(recordID: recordID, recordType: "UserPanel")
+        applier.apply(CloudKitChanges(deletedRecords: [deletion]))
+
+        XCTAssertEqual(assetStore.pushQueue.entries.count, 0,
+                       "applying a remote deletion must NOT enqueue a deletePanel push back to the server")
+    }
+
+    // MARK: - Malformed records
+
+    func testApply_MalformedRecord_SkippedWithoutCrash() {
+        // recordType is right but required fields are missing.
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID)
+        let bad = CKRecord(recordType: "UserPanel", recordID: recordID)
+        // No panelID, title, or colorRGBA.
+        XCTAssertNoThrow(applier.apply(CloudKitChanges(updatedRecords: [bad])))
+        XCTAssertTrue(store.userPanels().isEmpty)
+    }
+}
+
+// MARK: - iCloud sync toggle (v3.1.3)
+
+/// `Settings.bundle` exposes a `Sync Custom Panels via iCloud` toggle
+/// that maps to the `icloud_sync_enabled` UserDefaults key. PanelStore
+/// reads it in `startCloudKitSyncIfNeeded` (no-op when off) and
+/// `refreshCloudKitSyncState` (called from
+/// `FeelingTableViewController.reconcile` on foreground) flips
+/// running state to match. These tests verify the toggle's behavior
+/// without driving the live drainer's async loop — they assert on
+/// `cloudKitDrainer != nil` as a proxy for "sync is running."
+final class CloudKitSyncToggleTests: XCTestCase {
+
+    var tempDir: URL!
+    var mockDB: MockCloudKitDatabase!
+    var assetStore: CloudKitAssetStore!
+    var kvs: MemoryKeyValueStore!
+    var store: PanelStore!
+
+    /// Use a unique key per test so the system UserDefaults state
+    /// from one test can't bleed into another.
+    private var togglePerTestKey: String!
+    /// We can't easily inject a separate UserDefaults into PanelStore
+    /// (the API uses .standard). So manipulate .standard directly,
+    /// scoped to the iCloudSyncEnabledKey, and clean up in tearDown.
+    private let syncKey = PanelStore.iCloudSyncEnabledKey
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SyncToggle-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        mockDB = MockCloudKitDatabase()
+        assetStore = CloudKitAssetStore(parentDirectory: tempDir, database: mockDB)
+        kvs = MemoryKeyValueStore()
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: kvs,
+                           assetStore: assetStore)
+        // Default to enabled so each test starts from a known state.
+        UserDefaults.standard.set(true, forKey: syncKey)
+    }
+
+    override func tearDown() {
+        store.stopCloudKitSync()
+        UserDefaults.standard.removeObject(forKey: syncKey)
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    // MARK: startCloudKitSyncIfNeeded — gate on toggle
+
+    func testStart_RespectsTogglesOFF_Skipped() {
+        UserDefaults.standard.set(false, forKey: syncKey)
+        store.startCloudKitSyncIfNeeded()
+        // No drainer started, no zone bootstrap attempt.
+        XCTAssertEqual(mockDB.savedZones, [])
+        // refreshCloudKitSyncState should also be safe to call.
+        store.refreshCloudKitSyncState()
+        XCTAssertEqual(mockDB.savedZones, [])
+        store.stopCloudKitSync()
+    }
+
+    func testStart_RespectsToggleAbsent_DefaultsToON() {
+        UserDefaults.standard.removeObject(forKey: syncKey)
+        // No flag set → default to ON. startCloudKitSyncIfNeeded
+        // should proceed (drainer instantiated; eventually saves the
+        // zone in its async loop, which we don't await here).
+        store.startCloudKitSyncIfNeeded()
+        // Initial-sync flag file got written → proves we made it past
+        // the toggle gate into runInitialSyncIfNeeded.
+        let flagURL = tempDir.appendingPathComponent("cloudkit_initial_sync_v1.done")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: flagURL.path),
+                      "absent toggle should default to ON and proceed with sync init")
+        store.stopCloudKitSync()
+    }
+
+    // MARK: refreshCloudKitSyncState — flip behavior
+
+    func testRefresh_ToggleOnToOff_StopsSync() {
+        // Start with sync on.
+        UserDefaults.standard.set(true, forKey: syncKey)
+        store.startCloudKitSyncIfNeeded()
+        let flagURL = tempDir.appendingPathComponent("cloudkit_initial_sync_v1.done")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: flagURL.path))
+
+        // Flip to off, refresh.
+        UserDefaults.standard.set(false, forKey: syncKey)
+        store.refreshCloudKitSyncState()
+        // No way to assert the drainer task is cancelled from here
+        // (private), but stopCloudKitSync is invoked which sets
+        // cloudKitDrainer to nil; subsequent refresh-on with the
+        // toggle restored should re-bootstrap idempotently.
+        UserDefaults.standard.set(true, forKey: syncKey)
+        store.refreshCloudKitSyncState()
+        // Flag file is preserved across pause/resume — initial sync
+        // doesn't re-fire.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: flagURL.path),
+                      "pausing + resuming sync must not re-trigger initial sync (flag survives)")
+    }
+
+    func testRefresh_ToggleStartsOFF_NoSyncEverRuns() {
+        UserDefaults.standard.set(false, forKey: syncKey)
+        store.refreshCloudKitSyncState()
+        let flagURL = tempDir.appendingPathComponent("cloudkit_initial_sync_v1.done")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: flagURL.path),
+                       "initial sync flag never created when toggle starts off")
+    }
+}
+
+// MARK: - UIColorComponents.areEqual (helper used for unsaved-changes detection)
+
+/// Verifies the float-tolerance comparison the editor uses to detect
+/// "did the panel's color change?" Identity comparison (`===`) doesn't
+/// work for UIColor because `.systemBlue` etc. can return different
+/// instances per access; this helper compares RGBA components within
+/// 0.001 epsilon. Without these tests, a regression in the helper
+/// (e.g., a tightened tolerance) would silently break the editor's
+/// "discard changes" alert by treating same-color reads as different.
+final class UIColorComponentsAreEqualTests: XCTestCase {
+
+    func testIdenticalColors_AreEqual() {
+        let c = UIColor(red: 0.4, green: 0.6, blue: 0.8, alpha: 1.0)
+        XCTAssertTrue(UIColorComponents.areEqual(c, c))
+    }
+
+    func testSameRGBAValues_DifferentInstances_AreEqual() {
+        let a = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        let b = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        XCTAssertTrue(UIColorComponents.areEqual(a, b))
+    }
+
+    func testDifferentRGB_AreNotEqual() {
+        let a = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        let b = UIColor(red: 0.5, green: 0.5, blue: 0.6, alpha: 1.0)
+        XCTAssertFalse(UIColorComponents.areEqual(a, b))
+    }
+
+    func testAlphaDifference_AreNotEqual() {
+        let a = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        let b = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 0.5)
+        XCTAssertFalse(UIColorComponents.areEqual(a, b),
+                       "alpha must participate in the equality check — otherwise translucency edits would be missed")
+    }
+
+    func testTinyFloatNoise_BelowEpsilon_AreEqual() {
+        // Float round-trip through UIColor sometimes drifts by ~1e-5.
+        // The 0.001 epsilon must absorb that or the editor would
+        // false-positive every reload.
+        let a = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        let b = UIColor(red: 0.1 + 0.0005, green: 0.2 - 0.0003,
+                        blue: 0.3 + 0.0001, alpha: 1.0)
+        XCTAssertTrue(UIColorComponents.areEqual(a, b),
+                      "small float noise within 0.001 must be treated as equal")
+    }
+
+    func testDifferenceAboveEpsilon_AreNotEqual() {
+        let a = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        let b = UIColor(red: 0.1 + 0.01, green: 0.2, blue: 0.3, alpha: 1.0)
+        XCTAssertFalse(UIColorComponents.areEqual(a, b))
+    }
+
+    func testSystemColors_SameValue_AreEqual() {
+        // The motivating case for the helper existing — system colors
+        // can hand out different instances per access. They must still
+        // compare equal.
+        XCTAssertTrue(UIColorComponents.areEqual(.systemBlue, .systemBlue))
+        XCTAssertTrue(UIColorComponents.areEqual(.systemRed, .systemRed))
+        XCTAssertFalse(UIColorComponents.areEqual(.systemBlue, .systemRed))
+    }
+}
+
+// MARK: - PanelEditor color picker delegate (regression coverage for c5b7263)
+
+/// Pins the contract behind the picker fix: `didSelect` updates the
+/// in-progress panel's color (running once per drag tick during a
+/// continuous interaction), and `colorPickerViewControllerDidFinish`
+/// fires without crashing. The visible swatch refresh on Finish is
+/// a UIKit reload that's hard to assert on without putting the view
+/// in a window — these tests guarantee the model side, which is
+/// what the c5b7263 bug actually hinged on.
+final class PanelEditorColorFlowTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: PanelStore!
+    var controller: PanelEditorViewController!
+    private var picker: UIColorPickerViewController!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PanelEditorColor-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: MemoryKeyValueStore())
+        let initial = Panel(title: "Test",
+                            color: UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0),
+                            interactions: [],
+                            isBuiltIn: false)
+        controller = PanelEditorViewController(panel: initial, store: store)
+        // Force the view to load so isViewLoaded == true; the
+        // colorPickerViewControllerDidFinish path needs that.
+        _ = controller.view
+        picker = UIColorPickerViewController()
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    func testDidSelect_UpdatesWorkingPanelColor() {
+        let newColor = UIColor(red: 0.9, green: 0.4, blue: 0.1, alpha: 1.0)
+        controller.colorPickerViewController(picker, didSelect: newColor,
+                                              continuously: false)
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, newColor),
+            "didSelect must update the in-progress panel's color")
+    }
+
+    func testDidSelect_ContinuousChanges_LastOneWins() {
+        // Simulate a drag: many continuous calls, last value should
+        // be reflected in the model.
+        let intermediate = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        let final = UIColor(red: 0.0, green: 1.0, blue: 0.0, alpha: 1.0)
+        controller.colorPickerViewController(picker, didSelect: intermediate,
+                                              continuously: true)
+        controller.colorPickerViewController(picker, didSelect: final,
+                                              continuously: true)
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, final),
+            "subsequent didSelect calls overwrite — model reflects the latest color")
+    }
+
+    func testDidFinish_DoesNotCrash_AndPreservesColor() {
+        let newColor = UIColor(red: 0.2, green: 0.7, blue: 0.4, alpha: 1.0)
+        controller.colorPickerViewController(picker, didSelect: newColor,
+                                              continuously: true)
+        // didFinish triggers tableView.reloadSections — must not
+        // crash, must not revert the model.
+        XCTAssertNoThrow(controller.colorPickerViewControllerDidFinish(picker))
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, newColor),
+            "Finish refreshes the visible swatch; it must NOT mutate the model")
+    }
+
+    func testDidFinish_BeforeAnyDidSelect_NoOpsCleanly() {
+        // User opens the picker and dismisses without changing anything.
+        // Finish must not crash, and the original color must still be
+        // intact.
+        let original = controller.workingPanel_forTesting.color
+        XCTAssertNoThrow(controller.colorPickerViewControllerDidFinish(picker))
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, original))
     }
 }

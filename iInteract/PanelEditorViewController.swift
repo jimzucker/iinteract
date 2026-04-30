@@ -363,11 +363,29 @@ final class PanelEditorViewController: UITableViewController,
     func colorPickerViewController(_ viewController: UIColorPickerViewController,
                                    didSelect color: UIColor,
                                    continuously: Bool) {
+        // Update the model on every change. The visible swatch refresh
+        // is deferred to `colorPickerViewControllerDidFinish` (after
+        // dismiss) — reloading the table section while the picker is
+        // still presented modally produces inconsistent results on
+        // iOS 18+ (the section reload runs but the cell behind the
+        // modal doesn't re-render visibly until the picker goes away).
         workingPanel.color = color
-        if isViewLoaded {
-            tableView.reloadSections([Section.color.rawValue], with: .none)
-        }
     }
+
+    func colorPickerViewControllerDidFinish(_ viewController: UIColorPickerViewController) {
+        // Picker is about to dismiss — refresh the swatch + any
+        // dependent affordances so the new color is visible the
+        // moment the editor reappears.
+        guard isViewLoaded else { return }
+        tableView.reloadSections([Section.color.rawValue], with: .none)
+    }
+
+    /// Test-only accessor — exposes the editor's in-progress panel so
+    /// `PanelEditorColorFlowTests` can assert on the color delegate
+    /// behavior without going through the full save flow. The trailing
+    /// `_forTesting` is a convention in this codebase for hooks that
+    /// shouldn't be touched by production callers.
+    var workingPanel_forTesting: Panel { workingPanel }
 
     // MARK: - Editing (reorder + delete) only on interaction rows
 

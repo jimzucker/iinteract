@@ -23,8 +23,61 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // of intent — runtime reconcile (in FeelingTableViewController) pushes
         // local changes from iOS Settings up to KVS.
         PanelStore.shared.adoptCloudConfigurationModeIfFirstLaunch()
+        // Kick off the CloudKit push drainer when iCloud is signed in
+        // and the AssetStore is CloudKit-backed (see PanelStore.shared
+        // factory). No-op when running on an iCloud-signed-out device.
+        // Also seeds the queue with all existing user panels +
+        // interactions on the first CloudKit launch and bootstraps a
+        // CKDatabaseSubscription for silent pushes.
+        PanelStore.shared.startCloudKitSyncIfNeeded()
+        // Register for silent push notifications so CloudKit's
+        // CKDatabaseSubscription can wake us when records change on
+        // another device. Silent pushes don't require user
+        // permission (UNUserNotificationCenter consent) — they piggyback
+        // on the aps-environment entitlement.
+        application.registerForRemoteNotifications()
+        // Mac Catalyst can't pair with an Apple Watch (Watch pairs
+        // with the iPhone), so activating WCSession on Catalyst just
+        // emits framework-level "WCSession is not paired" /
+        // "Application context data is nil" log spam without
+        // accomplishing anything. Skip it.
+        #if !targetEnvironment(macCatalyst)
         WatchSync.shared.start()
+        #endif
         return true
+    }
+
+    /// Silent push from CloudKit — a CKDatabaseSubscription notified
+    /// us that a record changed on another device. Trigger a pull so
+    /// the new state lands locally. Background fetch budget is
+    /// limited; we ack with `.newData` if pull touched anything,
+    /// `.noData` otherwise. (For v3.1.2c we don't differentiate
+    /// internally — `.newData` keeps the budget growing in our
+    /// favor.)
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler:
+                        @escaping (UIBackgroundFetchResult) -> Void) {
+        // Sanity: only react to notifications that look like CloudKit
+        // ones — others (push from a future feature) should pass
+        // through as .noData.
+        guard userInfo["ck"] != nil else {
+            completionHandler(.noData)
+            return
+        }
+        PanelStore.shared.pullCloudKitChangesNow()
+        // pullCloudKitChangesNow runs async — we report `.newData`
+        // optimistically. The system gives us a bit more background
+        // time on the next push if we report `.newData`.
+        completionHandler(.newData)
+    }
+
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Common in simulator (no APNS token) — log and move on.
+        // Push subscriptions still work in development without APNS;
+        // simulators receive them via XPC.
+        NSLog("Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
     /// Debug-only hook for XCUITest to pre-seed PIN state at launch.
@@ -60,7 +113,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             "voice_enabled": "YES",
             "voice_style": "girl",
             ConfigurationMode.userDefaultsKey: ConfigurationMode.default.rawValue,
-            "displaySplashScreen": "0.0"
+            "displaySplashScreen": "0.0",
+            // Default the iCloud sync toggle to ON so it matches the
+            // pre-v3.1.3 behavior. Settings.bundle has the same
+            // DefaultValue, but registering here covers the gap
+            // before the user has ever opened iOS Settings → iInteract.
+            PanelStore.iCloudSyncEnabledKey: true,
         ])
     }
 }

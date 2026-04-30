@@ -52,6 +52,14 @@ protocol AssetStore {
     /// to the URL returned by `url(for:id:)`).
     func write(_ data: Data, kind: AssetKind, id: UUID) throws
 
+    /// Apply-path variant of `write` for v3.1.2b — writes to the local
+    /// cache WITHOUT enqueueing a CloudKit push. Used by
+    /// `CloudKitChangeApplier` when downloading assets from a pulled
+    /// `CKAsset` to avoid pushing the same bytes back up. Local-FS
+    /// implementations forward to `write` since they have no push
+    /// queue. Only call from the apply path.
+    func applyRemoteWrite(_ data: Data, kind: AssetKind, id: UUID) throws
+
     /// Called by the editor after a caller wrote to the URL returned by
     /// `url(for:id:)` without going through `write(_:kind:id:)` — most
     /// often AVAudioRecorder finishing a recording. Local-FS
@@ -112,6 +120,12 @@ final class LocalFSAssetStore: AssetStore {
 
     func write(_ data: Data, kind: AssetKind, id: UUID) throws {
         try data.write(to: url(for: kind, id: id), options: .atomic)
+    }
+
+    /// Local-FS has no push queue, so the apply-path variant is just
+    /// a normal write — same end state as `write(_:kind:id:)`.
+    func applyRemoteWrite(_ data: Data, kind: AssetKind, id: UUID) throws {
+        try write(data, kind: kind, id: id)
     }
 
     /// Local-FS no-op: there's nothing to enqueue, the file is already
