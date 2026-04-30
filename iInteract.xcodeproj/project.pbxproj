@@ -465,7 +465,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastSwiftUpdateCheck = 0710;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2640;
 				ORGANIZATIONNAME = "James A Zucker";
 				TargetAttributes = {
