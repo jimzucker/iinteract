@@ -36,7 +36,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // permission (UNUserNotificationCenter consent) — they piggyback
         // on the aps-environment entitlement.
         application.registerForRemoteNotifications()
+        // Mac Catalyst can't pair with an Apple Watch (Watch pairs
+        // with the iPhone), so activating WCSession on Catalyst just
+        // emits framework-level "WCSession is not paired" /
+        // "Application context data is nil" log spam without
+        // accomplishing anything. Skip it.
+        #if !targetEnvironment(macCatalyst)
         WatchSync.shared.start()
+        #endif
         return true
     }
 

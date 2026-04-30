@@ -71,7 +71,16 @@ final class PanelStore {
                            iCloudAvailability: { FileManager.default.ubiquityIdentityToken != nil },
                            assetStore: assetStore)
         s.startObservingICloudChanges()
-        NSUbiquitousKeyValueStore.default.synchronize()
+        // Skip the explicit synchronize when iCloud isn't signed in.
+        // Otherwise NSUbiquitousKeyValueStore logs:
+        //   "Error synchronizing with cloud for store ...
+        //    Error Domain=SyncedDefaults Code=8888 'No account'"
+        // every launch on a Mac/simulator without iCloud. The
+        // observer + reads still work — they just no-op against the
+        // local cache when there's no account, without logging.
+        if FileManager.default.ubiquityIdentityToken != nil {
+            NSUbiquitousKeyValueStore.default.synchronize()
+        }
         return s
     }()
 
