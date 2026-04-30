@@ -881,7 +881,7 @@
 				CODE_SIGN_ENTITLEMENTS = iInteract/iInteract.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteract/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -890,7 +890,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -908,7 +908,7 @@
 				CODE_SIGN_ENTITLEMENTS = iInteract/iInteract.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteract/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -917,7 +917,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -974,14 +974,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = WatchAppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteractWatch/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -999,14 +999,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = WatchAppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 583XUQ99J6;
 				INFOPLIST_FILE = iInteractWatch/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ijaz.iInteract.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

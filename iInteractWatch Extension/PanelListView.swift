@@ -38,14 +38,24 @@ struct PanelListView: View {
     }
 
     private func reloadPanels() {
-        let bundled = Panel.readFromPlist()
-        guard let titles = UserDefaults.standard.array(
-                forKey: ExtensionDelegate.storageKey) as? [String] else {
-            panels = bundled
-            return
+        panels = Self.computePanels(
+            bundled: Panel.readFromPlist(),
+            iPhoneTitles: UserDefaults.standard.array(
+                forKey: ExtensionDelegate.storageKey) as? [String])
+    }
+
+    /// Pure function for testability: given the bundled built-ins and
+    /// the iPhone's most recent visibility/order push (or nil if the
+    /// iPhone hasn't synced yet), return the ordered list to display.
+    /// Extracted so the iPhone-driven ordering logic can be unit-tested
+    /// without instantiating the SwiftUI view or UserDefaults.
+    static func computePanels(bundled: [Panel],
+                              iPhoneTitles: [String]?) -> [Panel] {
+        guard let titles = iPhoneTitles else {
+            return bundled
         }
         let byTitle = Dictionary(uniqueKeysWithValues: bundled.map { ($0.title, $0) })
-        panels = titles.compactMap { byTitle[$0] }
+        return titles.compactMap { byTitle[$0] }
     }
 }
 
