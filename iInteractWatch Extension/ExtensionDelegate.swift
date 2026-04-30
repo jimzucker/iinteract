@@ -13,7 +13,10 @@
 import WatchKit
 import WatchConnectivity
 
-@main
+/// Adopted via `WKApplicationDelegateAdaptor` from `iInteractWatchApp`
+/// so the WatchConnectivity plumbing — receive the iPhone's panel-
+/// order push, mirror it to UserDefaults, post a notification SwiftUI
+/// views observe — keeps working under the SwiftUI lifecycle.
 class ExtensionDelegate: NSObject, WKApplicationDelegate, WCSessionDelegate {
 
     static let payloadKey = "builtInPanelOrder"
