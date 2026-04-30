@@ -4581,3 +4581,151 @@ final class CloudKitSyncToggleTests: XCTestCase {
                        "initial sync flag never created when toggle starts off")
     }
 }
+
+// MARK: - UIColorComponents.areEqual (helper used for unsaved-changes detection)
+
+/// Verifies the float-tolerance comparison the editor uses to detect
+/// "did the panel's color change?" Identity comparison (`===`) doesn't
+/// work for UIColor because `.systemBlue` etc. can return different
+/// instances per access; this helper compares RGBA components within
+/// 0.001 epsilon. Without these tests, a regression in the helper
+/// (e.g., a tightened tolerance) would silently break the editor's
+/// "discard changes" alert by treating same-color reads as different.
+final class UIColorComponentsAreEqualTests: XCTestCase {
+
+    func testIdenticalColors_AreEqual() {
+        let c = UIColor(red: 0.4, green: 0.6, blue: 0.8, alpha: 1.0)
+        XCTAssertTrue(UIColorComponents.areEqual(c, c))
+    }
+
+    func testSameRGBAValues_DifferentInstances_AreEqual() {
+        let a = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        let b = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        XCTAssertTrue(UIColorComponents.areEqual(a, b))
+    }
+
+    func testDifferentRGB_AreNotEqual() {
+        let a = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        let b = UIColor(red: 0.5, green: 0.5, blue: 0.6, alpha: 1.0)
+        XCTAssertFalse(UIColorComponents.areEqual(a, b))
+    }
+
+    func testAlphaDifference_AreNotEqual() {
+        let a = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        let b = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 0.5)
+        XCTAssertFalse(UIColorComponents.areEqual(a, b),
+                       "alpha must participate in the equality check — otherwise translucency edits would be missed")
+    }
+
+    func testTinyFloatNoise_BelowEpsilon_AreEqual() {
+        // Float round-trip through UIColor sometimes drifts by ~1e-5.
+        // The 0.001 epsilon must absorb that or the editor would
+        // false-positive every reload.
+        let a = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        let b = UIColor(red: 0.1 + 0.0005, green: 0.2 - 0.0003,
+                        blue: 0.3 + 0.0001, alpha: 1.0)
+        XCTAssertTrue(UIColorComponents.areEqual(a, b),
+                      "small float noise within 0.001 must be treated as equal")
+    }
+
+    func testDifferenceAboveEpsilon_AreNotEqual() {
+        let a = UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        let b = UIColor(red: 0.1 + 0.01, green: 0.2, blue: 0.3, alpha: 1.0)
+        XCTAssertFalse(UIColorComponents.areEqual(a, b))
+    }
+
+    func testSystemColors_SameValue_AreEqual() {
+        // The motivating case for the helper existing — system colors
+        // can hand out different instances per access. They must still
+        // compare equal.
+        XCTAssertTrue(UIColorComponents.areEqual(.systemBlue, .systemBlue))
+        XCTAssertTrue(UIColorComponents.areEqual(.systemRed, .systemRed))
+        XCTAssertFalse(UIColorComponents.areEqual(.systemBlue, .systemRed))
+    }
+}
+
+// MARK: - PanelEditor color picker delegate (regression coverage for c5b7263)
+
+/// Pins the contract behind the picker fix: `didSelect` updates the
+/// in-progress panel's color (running once per drag tick during a
+/// continuous interaction), and `colorPickerViewControllerDidFinish`
+/// fires without crashing. The visible swatch refresh on Finish is
+/// a UIKit reload that's hard to assert on without putting the view
+/// in a window — these tests guarantee the model side, which is
+/// what the c5b7263 bug actually hinged on.
+final class PanelEditorColorFlowTests: XCTestCase {
+
+    var tempDir: URL!
+    var store: PanelStore!
+    var controller: PanelEditorViewController!
+    private var picker: UIColorPickerViewController!
+
+    override func setUp() {
+        super.setUp()
+        tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PanelEditorColor-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir,
+                                                  withIntermediateDirectories: true)
+        store = PanelStore(directory: tempDir,
+                           keyValueStore: MemoryKeyValueStore())
+        let initial = Panel(title: "Test",
+                            color: UIColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0),
+                            interactions: [],
+                            isBuiltIn: false)
+        controller = PanelEditorViewController(panel: initial, store: store)
+        // Force the view to load so isViewLoaded == true; the
+        // colorPickerViewControllerDidFinish path needs that.
+        _ = controller.view
+        picker = UIColorPickerViewController()
+    }
+
+    override func tearDown() {
+        try? FileManager.default.removeItem(at: tempDir)
+        super.tearDown()
+    }
+
+    func testDidSelect_UpdatesWorkingPanelColor() {
+        let newColor = UIColor(red: 0.9, green: 0.4, blue: 0.1, alpha: 1.0)
+        controller.colorPickerViewController(picker, didSelect: newColor,
+                                              continuously: false)
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, newColor),
+            "didSelect must update the in-progress panel's color")
+    }
+
+    func testDidSelect_ContinuousChanges_LastOneWins() {
+        // Simulate a drag: many continuous calls, last value should
+        // be reflected in the model.
+        let intermediate = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+        let final = UIColor(red: 0.0, green: 1.0, blue: 0.0, alpha: 1.0)
+        controller.colorPickerViewController(picker, didSelect: intermediate,
+                                              continuously: true)
+        controller.colorPickerViewController(picker, didSelect: final,
+                                              continuously: true)
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, final),
+            "subsequent didSelect calls overwrite — model reflects the latest color")
+    }
+
+    func testDidFinish_DoesNotCrash_AndPreservesColor() {
+        let newColor = UIColor(red: 0.2, green: 0.7, blue: 0.4, alpha: 1.0)
+        controller.colorPickerViewController(picker, didSelect: newColor,
+                                              continuously: true)
+        // didFinish triggers tableView.reloadSections — must not
+        // crash, must not revert the model.
+        XCTAssertNoThrow(controller.colorPickerViewControllerDidFinish(picker))
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, newColor),
+            "Finish refreshes the visible swatch; it must NOT mutate the model")
+    }
+
+    func testDidFinish_BeforeAnyDidSelect_NoOpsCleanly() {
+        // User opens the picker and dismisses without changing anything.
+        // Finish must not crash, and the original color must still be
+        // intact.
+        let original = controller.workingPanel_forTesting.color
+        XCTAssertNoThrow(controller.colorPickerViewControllerDidFinish(picker))
+        XCTAssertTrue(UIColorComponents.areEqual(
+            controller.workingPanel_forTesting.color, original))
+    }
+}

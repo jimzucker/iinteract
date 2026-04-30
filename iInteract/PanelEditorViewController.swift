@@ -380,6 +380,13 @@ final class PanelEditorViewController: UITableViewController,
         tableView.reloadSections([Section.color.rawValue], with: .none)
     }
 
+    /// Test-only accessor — exposes the editor's in-progress panel so
+    /// `PanelEditorColorFlowTests` can assert on the color delegate
+    /// behavior without going through the full save flow. The trailing
+    /// `_forTesting` is a convention in this codebase for hooks that
+    /// shouldn't be touched by production callers.
+    var workingPanel_forTesting: Panel { workingPanel }
+
     // MARK: - Editing (reorder + delete) only on interaction rows
 
     override func tableView(_ tableView: UITableView,
