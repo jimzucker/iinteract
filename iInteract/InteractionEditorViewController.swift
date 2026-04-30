@@ -587,12 +587,54 @@ final class InteractionEditorViewController: UITableViewController,
     }
 
     private func presentCamera() {
+        // Check authorization first instead of trusting UIImagePickerController
+        // to do the right thing. When the user previously tapped "Don't
+        // Allow" on the camera permission prompt, presenting the picker
+        // anyway results in iOS launching the camera UI with a black
+        // capture surface — confusing UX. Handling the permission
+        // explicitly produces a clear "Open Settings" alert instead.
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            launchCameraPicker()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    if granted {
+                        self.launchCameraPicker()
+                    } else {
+                        self.presentCameraPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            presentCameraPermissionDeniedAlert()
+        @unknown default:
+            presentCameraPermissionDeniedAlert()
+        }
+    }
+
+    private func launchCameraPicker() {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
         picker.cameraCaptureMode = .photo
         picker.delegate = self
         picker.allowsEditing = false
         present(picker, animated: true)
+    }
+
+    private func presentCameraPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "Camera Access Off",
+            message: "iInteract needs camera access to take a picture for this interaction. Open Settings to turn it on, or pick a picture from your photo library instead.",
+            preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        })
+        present(alert, animated: true)
     }
 
     /// Shared "got an image" path used by both the library picker and camera.
